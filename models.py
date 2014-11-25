@@ -3,6 +3,7 @@ import config
 from flask.ext.sqlalchemy import SQLAlchemy
 from passlib.apps import custom_app_context as pwd_context
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+from itsdangerous import SignatureExpired, BadSignature
 import uuid
 
 db = SQLAlchemy()
@@ -47,7 +48,6 @@ class Domain(db.Model):
 
 	def generate_domain_token(self):
 		self.token = str(uuid.uuid4())
-		return self.token
 
 	def verify_domain_token(self, token):
 		return self.token == token
