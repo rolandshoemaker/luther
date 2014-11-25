@@ -11,7 +11,8 @@ class User(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	email = db.Column(db.String(120), unique=True)
 	password_hash = db.Column(db.String(128))
-	quote = db.Column(db.Integer)
+	quota = db.Column(db.Integer)
+	role = db.Column(db.Integer)
 
 	def hash_password(self, password):
 		self.password_hash = pwd_context.encrypt(password)
@@ -50,4 +51,3 @@ class Domain(db.Model):
 
 	def verify_domain_token(self, token):
 		return self.token == token
-		
