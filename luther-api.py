@@ -1,6 +1,6 @@
 import config
 
-from flask import Flask. g. request, abort, jsonify
+from flask import Flask, g, request, jsonify
 from flask.ext.httpauth import HTTPBasicAuth
 
 from models import db, User, Domain
@@ -86,7 +86,7 @@ def verify_password(email_or_token, password):
 @auth.login_required
 def get_auth_token():
     token = g.user.generate_auth_token()
-    return jsonify({'token': token.decode('ascii')})
+    return jsonify({'status': 201, 'token': token.decode('ascii')})
 
 ###########################
 # JSON / URL param routes #
@@ -97,14 +97,19 @@ def new_user():
     email = request.json.get('email')
     password = request.json.get('password')
     if email is None or password is None:
-        abort(400) # missing arguments
+        return bad_request('missing arguments') # missing arguments
     if User.query.filter_by(email = email).first() is not None:
-        abort(400) # existing user
+        return conflict('existing user') # existing user
     user = User(email = email)
     user.hash_password(password)
     db.session.add(user)
     db.session.commit()
-    return jsonify({'status': 201, 'email': user.email, 'resources': {'Domains': {'url': 'https://'+config.root_domain+'/api/v1/domain'}}})
+    return jsonify({'status': 201, 'email': user.email, 'resources': {'Domains': {'url': 'https://'+config.root_domain+'/api/v1/domain'}, 'Domain updates': 'https://'+config.root_domain+'/api/v1/update'}})
+
+@app.route('/api/v1/user', methods = ['DELETE', 'UPDATE'])
+@auth.login_required
+def edit_user():
+	pass
 
 @app.route('/api/v1/domain', methods=['GET', 'POST', 'DELETE'])
 @auth.login_required
@@ -119,12 +124,12 @@ def fancy_interface():
 # GET only routes #
 ###################
 
-@app.route('/api/v1/update/<str:domain_name>/<str:domain_token>/<str:domain_ip>', methods=['GET'])
+@app.route('/api/v1/update/<domain_name>/<domain_token>/<domain_ip>', methods=['GET'])
 def get_interface(domain_name, domain_token, domain_ip=None):
 	domain = Domain.query.filter_by(name=domain_name).first()
 	if domain and domain.verify_domain_token(domain_token):
 		if domain_ip == domain.ip:
-			return nothing_todo('supplied IP is the same as current IP'):
+			return nothing_todo('supplied IP is the same as current IP')
 		else:
 			if domain.v6:
 				result = update_v6(domain, domain_ip)
@@ -136,6 +141,10 @@ def get_interface(domain_name, domain_token, domain_ip=None):
 				return bad_request(result)
 	else:
 		return bad_request('invalid domain or token')
+
+##############
+# Dev server #
+##############
 
 if __name__ == '__main__':
 	app.host = ''

@@ -26,14 +26,14 @@ class User(db.Model):
 	@staticmethod
 	def verify_auth_token(token):
 		s = Serializer(config.secret_key)
-        try:
-            data = s.loads(token)
-        except SignatureExpired:
-            return None # valid token, but expired
-        except BadSignature:
-            return None # invalid token
-        user = User.query.get(data['id'])
-        return user
+		try:
+			data = s.loads(token)
+		except SignatureExpired:
+			return None # valid token, but expired
+		except BadSignature:
+			return None # invalid token
+		user = User.query.get(data['id'])
+		return user
 
 class Domain(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
@@ -50,3 +50,4 @@ class Domain(db.Model):
 
 	def verify_domain_token(self, token):
 		return self.token == token
+		
