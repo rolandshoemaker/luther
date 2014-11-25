@@ -1,10 +1,11 @@
 import uuid
 
-root_domain = 'dnsd.co'
-dns_master_server = 'ns.dnsd.co'
+root_domain = 'example.com'
+dns_master_server = 'ns.example.com'
 dns_master_port = 53
 dns_master_source_port = 0
-tsig_zone = root_domain
+dns_master_timeout = 60
+tsig_zone = root_domain+'.'
 tsig_key = ''
 db = 'sqlite:///luther.db'
 secret_key = str(uuid.uuid4())

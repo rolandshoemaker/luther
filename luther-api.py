@@ -111,17 +111,51 @@ def nothing_to_do(error=None, extra=''):
 def no_content(error=None, extra=''):
 	return json_status_message('No content', 204, extra)
 
+@app.errorhandler(401)
+def unauthorized(error=None, extra=''):
+	return json_status_message('Unauthorized', 401, extra)
+
 @app.errorhandler(403)
 def forbidden(error=None, extra=''):
 	return json_status_message('Forbidden', 403, extra)
 
+@app.errorhandler(500)
+def internal_error(error=None, extra=''):
+	return json_status_message('Internal server error', 500, extra)
+
 @app.errorhandler(504)
 def upstream_timeout(error=None, extra=''):
-	return json_status_message('Gateway timeout', 504)
+	return json_status_message('Gateway timeout', 504, extra)
 
 #########################
 # DNS setup + functions #
 #########################
+
+def rcode_check(rcode):
+	if rcode == 0: # NOERROR
+		return False
+	elif rcode == 1: # FORMERR
+		pass
+	elif rcode == 2: # SERVFAIL
+		pass
+	elif rcode == 3: # NXDOMAIN
+		return bad_request('subdomain does not exist on master dns server')
+	elif rcode == 4: # NOTIMP
+		pass
+	elif rcode == 5: # REFUSED
+		pass
+	elif rcode == 6: # YXDOMAIN
+		return bad_request('subdomain already exists on master dns server')
+	elif rcode == 7: # YXRRSET
+		pass
+	elif rcode == 8: # NXRRSET
+		pass
+	elif rcode == 9: # NOTAUTH
+		return unauthorized('server is not authorized to make updates to zone on master dns server')
+	elif rcode == 10: # NOTZONE
+		pass
+	elif rcode == 16: # BADVERS
+		pass
 
 keyring = dns.tsigkeyring.from_text({
 	config.tsig_zone: config.tsig_key
@@ -132,13 +166,16 @@ def update_ddns(name, ip, v6=False):
 	if addr:
 		update = dns.update.Update(config.root_domain, keyring=keyring)
 		if not v6:
-			update.replace(name+'.'+config.root_domain, config.default_ttl, 'A', addr)
-			update.replace(name+'.'+config.root_domain, config.default_ttl, 'TXT', '"Record for '+name+'.'+config.root_domain+' last updated at '+str(datetime.datetime.utcnow())+' UTC"')
+			update.replace(name, config.default_ttl, 'A', addr)
+			update.replace(name, config.default_ttl, 'TXT', '"Record for '+name+'.'+config.root_domain+' last updated at '+str(datetime.datetime.utcnow())+' UTC"')
 		else:
-			update.replace(name+'.'+config.root_domain, config.default_ttl, 'AAAA', addr)
-			update.replace(name+'.'+config.root_domain, config.default_ttl, 'TXT', '"Record for '+name+'.'+config.root_domain+' last updated at '+str(datetime.datetime.utcnow())+' UTC"')
+			update.replace(name, config.default_ttl, 'AAAA', addr)
+			update.replace(name, config.default_ttl, 'TXT', '"Record for '+name+'.'+config.root_domain+' last updated at '+str(datetime.datetime.utcnow())+' UTC"')
 		try:
 			resp = dns.query.tcp(update, config.dns_master_server, port=config.dns_master_port, source_port=config.dns_master_source_port, timeout=config.dns_master_timeout)
+			error = rcode_check(resp.rcode)
+			if error:
+				return error
 		except UnexpectedSource:
 			return bad_request()
 		except BadResponse:
@@ -154,14 +191,17 @@ def update_ddns(name, ip, v6=False):
 def new_ddns(name, ip, v6=False):
 	new_record = dns.update.Update(config.root_domain, keyring=keyring)
 	if not v6:
-		new_record.add(name+'.'+config.root_domain, config.default_ttl, 'A', ip)
-		new_record.add(name+'.'+config.root_domain, config.default_ttl, 'TXT', '"Record for '+name+'.'+config.root_domain+' last updated at '+str(datetime.datetime.utcnow())+' UTC"')
+		new_record.add(name, config.default_ttl, 'A', ip)
+		new_record.add(name, config.default_ttl, 'TXT', '"Record for '+name+'.'+config.root_domain+' last updated at '+str(datetime.datetime.utcnow())+' UTC"')
 	else:
-		new_record.add(name+'.'+config.root_domain, config.default_ttl, 'AAAA', ip)
-		new_record.add(name+'.'+config.root_domain, config.default_ttl, 'TXT', '"Record for '+name+'.'+config.root_domain+' last updated at '+str(datetime.datetime.utcnow())+' UTC"')
-	new_record.absent(name+'.'+config.root_domain)
+		new_record.add(name, config.default_ttl, 'AAAA', ip)
+		new_record.add(name, config.default_ttl, 'TXT', '"Record for '+name+'.'+config.root_domain+' last updated at '+str(datetime.datetime.utcnow())+' UTC"')
+	new_record.absent(name)
 	try:
 		resp = dns.query.tcp(new_record, config.dns_master_server, port=config.dns_master_port, source_port=config.dns_master_source_port, timeout=config.dns_master_timeout)
+		error = rcode_check(resp.rcode)
+		if error:
+			return error
 	except UnexpectedSource:
 		return bad_request()
 	except BadResponse:
@@ -175,6 +215,9 @@ def delete_ddns(name):
 	delete.present(name)
 	try:
 		resp = dns.query.tcp(delete, config.dns_master_server, port=config.dns_master_port, source_port=config.dns_master_source_port, timeout=config.dns_master_timeout)
+		error = rcode_check(resp.rcode)
+		if error:
+			return error
 	except UnexpectedSource:
 		return bad_request()
 	except BadResponse:
@@ -262,19 +305,19 @@ def edit_user():
 @app.route('/api/v1/domains', methods=['GET', 'POST', 'DELETE'])
 @auth.login_required
 def domain_mainuplator():
+	if request.method == 'GET':
+		domains = g.user.domains
+		info = {'email': g.user.email, 'domains': []}
+		for d in domains:
+			info['domains'].append({'subdomain': d.name, 'full_domain': d.name+"."+config.root_domain, 'ip': d.ip, 'subdomain_token': d.token})
+		if len(info['domains']) > 0:
+			resp = jsonify(info)
+			resp.status_code = 200
+			return resp
+		else:
+			return json_status_message('You have no '+config.root_domain+' subdomains', 200)
 	if request.json and not request.args:
-		if request.method == 'GET':
-			domains = g.user.domains
-			info = {'email': g.user.email, 'domains': []}
-			for d in domains:
-				domains.append({'subdomain': d.name, 'full_domain': d.name+"."+config.root_domain, 'ip': d.ip, 'subdomain_token': d.token})
-			if len(info['domains']) > 0:
-				resp = jsonify(info)
-				resp.status_code = 200
-				return resp
-			else:
-				return json_status_message('You have no '+config.root_domain+' subdomains', 200)
-		elif request.method == 'POST':
+		if request.method == 'POST':
 			if g.user.quota is 0 or not g.user.domains.count() == g.user.quota:
 				domain_name = request.json.get('subdomain')
 				if not domain_name:
@@ -310,7 +353,7 @@ def domain_mainuplator():
 			if not validate_subdomain(domain_name):
 				return bad_request(extra='invalid subdomain')
 			for d in g.user.domains:
-				if d.name is domain_name:
+				if d.name == domain_name:
 					if d.verify_domain_token(domain_token):
 						ddns_result = delete_ddns(d.name)
 						if not ddns_result:
@@ -355,9 +398,9 @@ def get_interface(domain_name, domain_token, domain_ip=None):
 			return nothing_to_do(extra='supplied IP is the same as current IP')
 		else:
 			if domain.v6:
-				ddns_result = update_ddns(domain, domain_ip, v6=True)
+				ddns_result = update_ddns(domain.name, domain_ip, v6=True)
 			else:
-				ddns_result = update_ddns(domain, domain_ip)
+				ddns_result = update_ddns(domain.name, domain_ip)
 			if not ddns_result:
 				domain.ip = domain_ip
 				db.session.commit()
@@ -379,4 +422,4 @@ if __name__ == '__main__':
 		admin.hash_password(config.default_admin_password)
 		db.session.add(admin)
 		db.session.commit()
-	app.run(use_reloader=False, host='192.168.1.8', port=80)
+	app.run(use_reloader=False, host='192.168.50.2', port=80)
