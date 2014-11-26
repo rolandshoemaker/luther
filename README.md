@@ -4,7 +4,7 @@ luther
 <p align="center">
   <img src="luther.png"/>
 </p>
-<p align="center" style="font-color: grey;">
+<p align="center">
   "your non-lutheran ddns worries me" - Martin Luther, 1538
 </p>
 
