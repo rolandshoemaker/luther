@@ -1,3 +1,5 @@
 __pycache__/
 luther.db
+luther.log
 config.py
+*.pyc
