@@ -37,14 +37,14 @@ class User(db.Model):
 		user = User.query.get(data['id'])
 		return user
 
-class Domain(db.Model):
+class Subdomain(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	name = db.Column(db.String)
 	ip = db.Column(db.String)
 	v6 = db.Column(db.Boolean)
 	token = db.Column(db.String)
 	user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-	user = db.relationship('User', backref=db.backref('domains', lazy='dynamic'))
+	user = db.relationship('User', backref=db.backref('subdomains', lazy='dynamic'))
 
 	def generate_domain_token(self):
 		self.token = str(uuid.uuid4())

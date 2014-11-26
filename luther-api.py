@@ -18,6 +18,9 @@ from flask.ext.httpauth import HTTPBasicAuth
 
 import dns.query, dns.tsigkeyring, dns.update
 from dns.query import UnexpectedSource, BadResponse
+from redis import Redis
+import time
+from functools import update_wrapper
 import ipaddress
 import re
 import datetime
@@ -51,7 +54,7 @@ def validate_ip(ip, v6=False):
 			for subnet in config.allowed_ddns_ipv6_subnets:
 				if test in ipaddress.IPv6Network(subnet):
 					correct_subnet = True
-		if test.is_private or not correct_subnet:
+		if (test.is_private and not config.allow_private_addresses) or not correct_subnet:
 			return False
 		return test.exploded
 	except ipaddress.AddressValueError:
@@ -151,7 +154,7 @@ def rcode_check(rcode):
 	elif rcode == 8: # NXRRSET
 		pass
 	elif rcode == 9: # NOTAUTH
-		return unauthorized('server is not authorized to make updates to zone on master dns server')
+		return unauthorized('server is not authorized to make updates to zone \''+config.tsig_zone+'\' on master dns server')
 	elif rcode == 10: # NOTZONE
 		pass
 	elif rcode == 16: # BADVERS
@@ -225,6 +228,62 @@ def delete_ddns(name):
 	except TimeoutError:
 		return upstream_timeout(extra='tcp connection to master DNS server timed out')
 
+#######################
+# Rate limiting logic #
+#######################
+
+redis = Redis()
+
+class RateLimit(object):
+	expiration_window = 10
+
+	def __init__(self, key_prefix, limit, per, send_x_headers):
+		self.reset = (int(time.time()) // per) * per + per
+		self.key = key_prefix + str(self.reset)
+		self.limit = limit
+		self.per = per
+		self.send_x_headers = send_x_headers
+		p = redis.pipeline()
+		p.incr(self.key)
+		p.expireat(self.key, self.reset + self.expiration_window)
+		self.current = min(p.execute()[0], limit)
+
+	remaining = property(lambda x: x.limit - x.current)
+	over_limit = property(lambda x: x.current >= x.limit)
+
+	def get_view_rate_limit():
+		return getattr(g, '_view_rate_limit', None)
+
+	def on_over_limit(limit):
+		if not limit.send_x_headers:
+			return json_status_message('You  have reached the rate limit (limit: '+str(limit.limit)+', per: '+str(limit.per)+' seconds)', 429)
+		else:
+			return json_status_message('You  have reached the rate limit', 429)
+
+	def ratelimit(limit, per=225, send_x_headers=True,
+				  over_limit=on_over_limit,
+				  scope_func=lambda: request.remote_addr,
+				  key_func=lambda: request.endpoint):
+		def decorator(f):
+				def rate_limited(*args, **kwargs):
+				key = 'rate-limit/%s/%s/' % (key_func(), scope_func())
+				rlimit = RateLimit(key, limit, per, send_x_headers)
+				g._view_rate_limit = rlimit
+				if over_limit is not None and rlimit.over_limit and not g.user.role is 0:
+					return over_limit(rlimit)
+				return f(*args, **kwargs)
+			return update_wrapper(rate_limited, f)
+		return decorator
+
+@app.after_request
+def inject_x_rate_headers(response):
+	limit = get_view_rate_limit()
+	if limit and limit.send_x_headers:
+		h = response.headers
+		h.add('X-RateLimit-Remaining', str(limit.remaining))
+		h.add('X-RateLimit-Limit', str(limit.limit))
+		h.add('X-RateLimit-Reset', str(limit.reset))
+	return response
 
 ################################
 # User/Auth functions + routes #
@@ -248,65 +307,72 @@ def verify_password(email_or_token, password):
 @app.route('/api/v1/auth_token')
 @auth.login_required
 def get_auth_token():
-    token = g.user.generate_auth_token()
-    return jsonify({'status': 201, 'token': token.decode('ascii')})
+	token = g.user.generate_auth_token()
+	return jsonify({'status': 201, 'token': token.decode('ascii')})
 
 @app.route('/api/v1/user', methods = ['POST'])
 def new_user():
 	if request.json and not request.args:
-	    email = request.json.get('email')
-	    password = request.json.get('password')
-	    if email is None or password is None:
-	        return bad_request('missing arguments') # missing arguments
-	    if User.query.filter_by(email = email).first() is not None:
-	        return conflict('existing user') # existing user
-	    user = User(email=email, quota=5, role=1)
-	    user.hash_password(password)
-	    db.session.add(user)
-	    db.session.commit()
-	    resp = jsonify({'status': 201, 'email': user.email, 'resources': {'Domains': {'url': 'https://'+config.root_domain+'/api/v1/domain'}, 'Domain updates': 'https://'+config.root_domain+'/api/v1/update'}})
-	    resp.status_code = 201
-	    return resp
+		email = request.json.get('email')
+		password = request.json.get('password')
 	elif request.args and not request.json:
-		pass
+		email = request.args.get('email')
+		password = request.args.get('password')
 	else:
 		return bad_request('no JSON data or URL Parameters, or both')
+	if email is None or password is None:
+		return bad_request('missing arguments') # missing arguments
+	if User.query.filter_by(email = email).first() is not None:
+		return conflict('existing user') # existing user
+	user = User(email=email, quota=5, role=1)
+	user.hash_password(password)
+	db.session.add(user)
+	db.session.commit()
+	resp = jsonify({'status': 201, 'email': user.email, 'resources': {'Subdomains': {'url': 'https://'+config.root_domain+'/api/v1/subdomains'}, 'Subdomain updates': 'https://'+config.root_domain+'/api/v1/update'}})
+	resp.status_code = 201
+	return resp
 
 @app.route('/api/v1/user', methods = ['DELETE', 'UPDATE'])
 @auth.login_required
 def edit_user():
-	if request.json and not request.args:
-		if request.method == 'DELETE':
+	if request.method == 'DELETE':
+		if request.json and not request.args:
 			sure = request.json.get('confirm')
-			if sure is None or sure is not 'DELETE':
-				return bad_request(extra='missing or malformed arguments')
-			for d in g.user.domains:
-				delete_ddns(d.name)
-			db.session.delete(g.user)
-			g.user = None
-			db.session.commit()
-			return json_status_message('User deleted, bai bai :<', 200)
-		elif request.method == 'UPDATE':
+		elif request.args:
+			sure = request.args.get('confirm')
+		else:
+			return bad_request(extra='no JSON data or URL Parameters, or both')
+		if sure is None or sure is not 'DELETE':
+			return bad_request(extra='missing or malformed arguments')
+		for d in g.user.subdomains:
+			delete_ddns(d.name)
+		db.session.delete(g.user)
+		g.user = None
+		db.session.commit()
+		return json_status_message('User deleted, bai bai :<', 200)
+	elif request.method == 'UPDATE':
+		if request.json and not request.args:
 			password = request.json.get('password')
-			if password is None:
-				return bad_request(extra='missing arguments')
-			g.user.hash_password(password)
-			db.session.commit()
-			return json_status_message('Password updated', 200)
-	elif request.args:
-		pass
-	else:
-		return bad_request(extra='no JSON data or URL Parameters, or both')
+		elif request.args:
+			password = request.args.get('password')
+		else:
+			return bad_request(extra='no JSON data or URL Parameters, or both')
+		if password is None:
+			return bad_request(extra='missing arguments')
+		g.user.hash_password(password)
+		db.session.commit()
+		return json_status_message('Password updated', 200)
 
 ################################
 # Domain create / delete route #
 ################################
 
-@app.route('/api/v1/domains', methods=['GET', 'POST', 'DELETE'])
+@app.route('/api/v1/subdomains', methods=['GET', 'POST', 'DELETE'])
+@ratelimit(limit=100, per=60*60)
 @auth.login_required
 def domain_mainuplator():
 	if request.method == 'GET':
-		domains = g.user.domains
+		domains = g.user.subdomains
 		info = {'email': g.user.email, 'domains': []}
 		for d in domains:
 			info['domains'].append({'subdomain': d.name, 'full_domain': d.name+"."+config.root_domain, 'ip': d.ip, 'subdomain_token': d.token})
@@ -316,59 +382,91 @@ def domain_mainuplator():
 			return resp
 		else:
 			return json_status_message('You have no '+config.root_domain+' subdomains', 200)
-	if request.json and not request.args:
-		if request.method == 'POST':
-			if g.user.quota is 0 or not g.user.domains.count() == g.user.quota:
+	if request.method == 'POST':
+		if g.user.quota is 0 or not g.user.subdomains.count() == g.user.quota:
+			if request.json and not request.args:
 				domain_name = request.json.get('subdomain')
-				if not domain_name:
-					return bad_request(extra='missing arguments')
 				ip = request.json.get('ip')
-				if not ip:
-					ip = request.remote_addr
-				if not validate_subdomain(domain_name):
-					return bad_request(extra='invalid subdomain')
-				if validate_ip(ip):
-					ipv6 = False
-				else:
-					if validate_ip(ip, v6=True):
-						ipv6 = True
-					else:
-						return bad_request(extra='IP address invalid or not in allowed subnets')
-				new_domain = Domain(name=domain_name, ip=ip, v6=ipv6, user=g.user)
-				new_domain.generate_domain_token()
-				ddns_result = new_ddns(domain_name, ip, ipv6)
-				if not ddns_result:
-					db.session.add(new_domain)
-					db.session.commit()
-					return jsonify({'status': 201, 'subdomain': domain_name, 'full_domain': domain_name+"."+config.root_domain, 'ip': ip, 'subdomain_token': new_domain.token})
-				else:
-					return ddns_result
+			elif request.args and not request.json:
+				domain_name = request.args.get('subdomain')
+				ip = request.args.get('ip')
 			else:
-				return json_status_message('You have reached your subdomain quota', 200)
-		elif request.method == 'DELETE':
-			domain_name = request.json.get('subdomain')
-			domain_token = request.json.get('subdomain_token')
-			if not domain_name or not domain_token:
+				return bad_request(extra='no JSON data or URL Parameters, or both')
+			if not domain_name:
 				return bad_request(extra='missing arguments')
+			if not ip:
+				ip = request.remote_addr
 			if not validate_subdomain(domain_name):
 				return bad_request(extra='invalid subdomain')
-			for d in g.user.domains:
-				if d.name == domain_name:
-					if d.verify_domain_token(domain_token):
-						ddns_result = delete_ddns(d.name)
-						if not ddns_result:
-							db.session.delete(d)
-							db.session.commit()
-							return json_status_message('Subdomain deleted', 200)
-						else:
-							return ddns_result
-					else:
-						return bad_request(extra='invalid subdomain_token')
+			if validate_ip(ip):
+				ipv6 = False
+			else:
+				if validate_ip(ip, v6=True):
+					ipv6 = True
+				else:
+					return bad_request(extra='IP address invalid or not in allowed subnets')
+			new_domain = Subdomain(name=domain_name, ip=ip, v6=ipv6, user=g.user)
+			new_domain.generate_domain_token()
+			ddns_result = new_ddns(domain_name, ip, ipv6)
+			if not ddns_result:
+				db.session.add(new_domain)
+				db.session.commit()
+				return jsonify({'status': 201, 'subdomain': domain_name, 'full_domain': domain_name+"."+config.root_domain, 'ip': ip, 'subdomain_token': new_domain.token, 'GET_update_path': 'htts://'+config.root_domain+'/api/v1/update/'+domain_name+'/'+domain_token+'{/optional-IP}'})
+			else:
+				return ddns_result
+		else:
+			return json_status_message('You have reached your subdomain quota', 200)
+	elif request.method == 'DELETE':
+		if request.json and not request.args:
+			domain_name = request.json.get('subdomain')
+			domain_token = request.json.get('subdomain_token')
+		elif request.args and not request.json:
+			domain_name = request.args.get('subdomain')
+			domain_token = request.args.get('subdomain_token')
+		else:
+			return bad_request(extra='no JSON data or URL Parameters, or both')
+		if not domain_name or not domain_token:
+			return bad_request(extra='missing arguments')
+		if not validate_subdomain(domain_name):
 			return bad_request(extra='invalid subdomain')
+		for d in g.user.subdomains:
+			if d.name == domain_name:
+				if d.verify_domain_token(domain_token):
+					ddns_result = delete_ddns(d.name)
+					if not ddns_result:
+						db.session.delete(d)
+						db.session.commit()
+						return json_status_message('Subdomain deleted', 200)
+					else:
+						return ddns_result
+				else:
+					return bad_request(extra='invalid subdomain_token')
+		return bad_request(extra='invalid subdomain')
+
+@app.route('/api/v1/regen_subdomain_token', methods=['POST'])
+@ratelimit(limit=100, per=60*60)
+@auth.login_required
+def regen_subdomain_token:
+	if request.json and not request.args:
+		domain_name = request.json.get('subdomain')
+		domain_token = request.json.get('subdomain_token')
 	elif request.args and not request.json:
-		pass
+		domain_name = request.args.get('subdomain')
+		domain_token = request.args.get('subdomain_token')
 	else:
 		return bad_request(extra='no JSON data or URL Parameters, or both')
+	if not domain_token or not domain_name:
+		return bad_request(extra='missing arguments')
+	for d in g.user.domains:
+		if domain_name is d.name:
+			if d.verify_domain_token(domain_token):
+				d.generate_domain_token()
+				db.session.commit()
+				return jsonify({'status': 200, 'subdomain': d.name, 'subdomain_token': d.token})
+			else:
+				return bad_request(extra='invalid subdomain_token')
+		else:
+			return bad_request(extra='invalid subdomain')
 
 
 #################################
@@ -376,19 +474,69 @@ def domain_mainuplator():
 #################################
 
 @app.route('/api/v1/update', methods=['POST'])
+@ratelimit(limit=100, per=60*60)
 def fancy_interface():
 	if request.json and not request.args:
-		pass
+		domain_list = []
+		for d in request.json:
+			if not d.name or not d.token:
+				return bad_request(extra='missing or malformed arguments')
+			if not d.get('address'):
+				d['address'] = request.remote_addr
+			domain_list.append([d.name, d.token, d['address']])
 	elif request.args and not request.json:
-		pass
+		domain_list = []
+		names = request.args.get('names')
+		tokens = request.args.get('tokens')
+		ips = request.args.get('addresses')
+		if not names or not tokens:
+			return bad_request(extra='missing or malformed arguments')
+		names = names.split(',')
+		tokens = tokens.split(',')
+		if len(names) is not len(tokens) or len(ips) > len(names):
+			return bad_request(extra='malformed arguments')
+		if ips:
+			ips = ips.split(',')
+		for i in range(len(names)):
+			if len(ips) <= i:
+				domain_list.append([names[i], tokens[i], ips[i]])
+			else:
+				domain_list.append([names[i], tokens[i], request.remote_addr])
 	else:
 		return bad_request(extra='no JSON data or URL Parameters, or both')
+	if not len(domain_list) > 0:
+		return bad_request()
+	results = []
+	for domain_obj in domain_list:
+		domain = Domain.query.filter_by(name=domain_obj[0]).first()
+		if domain and domain.verify_domain_token(domain_obj[1]):
+			if domain_obj[2] == domain.ip:
+				return nothing_to_do(extra='supplied IP is the same as current IP')
+			else:
+				if domain.v6:
+					ddns_result = update_ddns(domain.name, domain_obj[2], v6=True)
+				else:
+					ddns_result = update_ddns(domain.name, domain_obj[2])
+				if not ddns_result:
+					domain.ip = domain_obj[2]
+					db.session.commit()
+					results.append({'status': 200, 'subdomain': domain_obj[0], 'full_domain': domain_obj[0]+"."+config.root_domain, 'ip': domain_obj[2]})
+				else:
+					return ddns_result
+		else:
+			return bad_request(extra='invalid domain or token')
+	if len(results) > 0:
+		return jsonify({'results': [results]})
+	else:
+		return internal_error()
+
 
 #########################
 # GET only update route #
 #########################
 
 @app.route('/api/v1/update/<domain_name>/<domain_token>/<domain_ip>', methods=['GET'])
+@ratelimit(limit=100, per=60*60)
 def get_interface(domain_name, domain_token, domain_ip=None):
 	domain = Domain.query.filter_by(name=domain_name).first()
 	if domain and domain.verify_domain_token(domain_token):
