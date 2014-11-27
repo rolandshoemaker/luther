@@ -188,7 +188,7 @@ def handle_broken(error):
 # DNS functions #
 #################
 
-def dns_message_check(msg):
+def dns_message_check(msg, on_api=True):
     """dns_message_check checks the rcode of a dns.message.Message response.
 
     :param msg: The dns.message.Message object.
@@ -196,36 +196,27 @@ def dns_message_check(msg):
     :returns: object -- None on success or a internal_error() JSON response based on the rcode.
     
     """
-    error_info = ''
-    if msg.rcode == 0: # NOERROR
-        return True
-    elif msg.rcode == 1: # FORMERR
-        error_info = 'malformed dns message'
-    elif msg.rcode == 2: # SERVFAIL
-        pass
-    elif msg.rcode == 3: # NXDOMAIN
-        error_info = 'subdomain does not exist on master dns server'
-    elif msg.rcode == 4: # NOTIMP
-        error_info = 'master dns server does not support that opcode'
-    elif msg.rcode == 5: # REFUSED
-        error_info = 'master dns server refuses to perform the specified operation for policy or security reasons'
-    elif msg.rcode == 6: # YXDOMAIN
-        error_info = 'subdomain already exists on master dns server'
-    elif msg.rcode == 7: # YXRRSET
-        error_info = 'record that shouldnt exist does exist'
-    elif msg.rcode == 8: # NXRRSET
-        error_info = 'record that should exist doesnt exist'
-    elif msg.rcode == 9: # NOTAUTH
-        error_info = 'server is not authorized or is using bad tsig key to make updates to zone \''+config.tsig_zone+'\' on master dns server'
-    elif msg.rcode == 10: # NOTZONE
-        error_info = 'zone \''+config.tsig_zone+'\' does not exist on master dns server'
-    elif msg.rcode == 16: # BADVERS
-        pass
+    rcode_errors = {1: 'malformed dns message',
+        2: '',
+        3: 'subdomain does not exist on master dns server',
+        4: 'master dns server does not support that opcode',
+        5: 'master dns server refuses to perform the specified operation for policy or security reasons',
+        6: 'subdomain already exists on master dns server',
+        7: 'record that shouldnt exist does exist',
+        8: 'record that should exist doesnt exist',
+        9: 'server is not authorized or is using bad tsig key to make updates to zone \''+config.tsig_zone+'\' on master dns server',
+        10: 'zone \''+config.tsig_zone+'\' does not exist on master dns server',
+        16: ''}
+    error_info = rcode_errors.get(msg.rcode)
+    if error_info is not None:
+        if error_info is not '':
+            error_info = ', '+error_info
+        if on_api:
+            raise LutherBroke('Internal server error'+error_info, status_code=500)
+        else:
+            return False
     else:
-        pass
-    if error_info is not '':
-        error_info = ', '+error_info
-    raise LutherBroke('Internal server error'+error_info, status_code=500)
+        return True
 
 def dns_query(update, server=config.dns_master_server, port=config.dns_master_port, source_port=config.dns_master_source_port, timeout=config.dns_master_timeout):
     """dns_query sends dns.update.Update objects to a dns server and parses the response.
@@ -248,9 +239,9 @@ def dns_query(update, server=config.dns_master_server, port=config.dns_master_po
         if dns_message_check(resp):
             return True
     except UnexpectedSource:
-        raise LutherBroke()
+        raise LutherBroke('Internal server error, response came from unexpected source'. status_code=500)
     except BadResponse:
-        raise LutherBroke()
+        raise LutherBroke('Internal server error, malformed response from master dns server', status_code=500)
     except TimeoutError:
         raise LutherBroke('Gateway timeout, tcp connection to master DNS server timed out', status_code=504)
 
@@ -513,7 +504,7 @@ def domain_mainuplator():
         domains = g.user.subdomains
         info = {'email': g.user.email, 'domains': []}
         for d in domains:
-            info['domains'].append({'subdomain': d.name, 'full_domain': d.name+"."+config.root_domain, 'ip': d.ip, 'subdomain_token': d.token})
+            info['domains'].append({'subdomain': d.name, 'full_domain': d.name+"."+config.root_domain, 'ip': d.ip, 'subdomain_token': d.token, 'regenerate_subdomain_token_endpoint': 'https://'+config.root_domain+'/api/v1/regen_subdomain_token/'+d.name, 'GET_update_path': 'htts://'+config.root_domain+'/api/v1/update/'+d.name+'/'+d.token+'{/optional-IP}'})
         if len(info['domains']) > 0:
             resp = jsonify(info)
             resp.status_code = 200
@@ -584,33 +575,30 @@ def domain_mainuplator():
                     raise LutherBroke('Bad request, invalid subdomain_token')
         raise LutherBroke('Bad request, invalid subdomain')
 
-@app.route('/api/v1/regen_subdomain_token', methods=['POST'])
+@app.route('/api/v1/regen_subdomain_token/<subdomain_name>/', methods=['POST'])
 @ratelimit(limit=100, per=60*60)
 @auth.login_required
-def regen_subdomain_token():
+def regen_subdomain_token(subdomain_name=None):
     """Regenerate subdomain token, parameters can be passed as either JSON or URL arguments.
 
     :returns: object -- JSON response indicating the outcome of action.
 
     """
-    if request.json and not request.args:
+    if request.json and not request.args and not subdomain_name:
         domain_name = request.json.get('subdomain')
-        domain_token = request.json.get('subdomain_token')
-    elif request.args and not request.json:
+    elif request.args and not request.json and not subdomain_name:
         domain_name = request.args.get('subdomain')
-        domain_token = request.args.get('subdomain_token')
+    elif subdomain_name and not request.json and not request.args:
+        domain_name = subdomain_name
     else:
         raise LutherBroke('Bad request, no JSON data or URL Parameters, or both')
     if not domain_token or not domain_name:
         raise LutherBroke('Bad request, missing arguments')
     for d in g.user.domains:
         if domain_name is d.name:
-            if d.verify_domain_token(domain_token):
-                d.generate_domain_token()
-                db.session.commit()
-                return jsonify({'status': 200, 'subdomain': d.name, 'subdomain_token': d.token})
-            else:
-                raise LutherBroke('Bad request, invalid subdomain_token')
+            d.generate_domain_token()
+            db.session.commit()
+            return jsonify({'status': 200, 'subdomain': d.name, 'subdomain_token': d.token})
         else:
             raise LutherBroke('Bad request, invalid subdomain')
 
@@ -661,7 +649,7 @@ def fancy_interface():
         domain = Subdomain.query.filter_by(name=domain_obj[0]).first()
         if domain and domain.verify_domain_token(domain_obj[1]):
             if domain_obj[2] == domain.ip:
-                return json_status_message('supplied IP is the same as current IP', 200)
+                results.append({'status': 200, 'subdomain': domain_obj[0], 'full_domain': domain_obj[0]+"."+config.root_domain, 'ip': domain_obj[2], 'message': 'Nothing to do, supplied IP is the same as current IP.'})
             else:
                 if domain.v6:
                     ddns_result = update_ddns(domain.name, domain_obj[2], v6=True)
@@ -670,7 +658,7 @@ def fancy_interface():
                 if ddns_result:
                     domain.ip = domain_obj[2]
                     db.session.commit()
-                    results.append({'status': 200, 'subdomain': domain_obj[0], 'full_domain': domain_obj[0]+"."+config.root_domain, 'ip': domain_obj[2]})
+                    results.append({'status': 200, 'subdomain': domain_obj[0], 'full_domain': domain_obj[0]+"."+config.root_domain, 'ip': domain_obj[2], 'message': 'IP updated.')
                 else:
                     raise LutherBroke()
         else:
@@ -703,7 +691,7 @@ def get_interface(domain_name, domain_token, domain_ip=None):
         if domain_ip is None:
             domain_ip = request.remote_addr
         if domain_ip == domain.ip:
-            return nothing_to_do(extra='supplied IP is the same as current IP')
+            return jsonify({'status': 200, 'subdomain': domain.name, 'full_domain': domain.name+"."+config.root_domain, 'ip': domain.ip, 'message': 'Nothing to do, supplied IP is the same as current IP.'})
         else:
             if domain.v6:
                 ddns_result = update_ddns(domain.name, domain_ip, v6=True)
