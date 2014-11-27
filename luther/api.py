@@ -1,13 +1,3 @@
-"""
-.. module:: luther
-    :platform: Unix
-    :synopsis: lightweight REST API for managing DDNS.
-
-.. moduleauthor:: Roland Shoemaker <rolandshoemaker@gmail.com>
-
-
-"""
-
 ##################
 # luther imports #
 ##################
@@ -166,128 +156,33 @@ def json_status_message(message, code, extra=''):
     resp.status_code = code
     return resp
 
-########################
-# Error handler routes #
-########################
+##################
+# Error handling #
+##################
 
-@app.errorhandler(400)
-def bad_request(error=None, extra=''):
-    """bad_request is the 400 HTTP status code error handler.
+class LutherBroke(Exception):
+    status_code = 400
+    message = 'Bad request'
 
-    :param error: The flask error if called by flask.
-    :param extra: Extra information about the error.
-    :type extra: string.
-    :returns: obj -- A JSON response object with http status code.
+    def __init__(self, message, status_code=None, payload=None):
+        Exception.__init__(self)
+        if message is not None:
+            self.message = message
+        self.message = message
+        if status_code is not None:
+            self.status_code = status_code
+        self.payload = payload
 
-    """
-    return json_status_message('Bad request', 400, extra)
+    def to_dict(self):
+        rv = dict(self.payload or ())
+        rv['message'] = self.message
+        return rv
 
-@app.errorhandler(404)
-def not_found(error=None, extra=''):
-    """not_found is the 404 HTTP status code error handler.
-
-    :param error: The flask error if called by flask.
-    :param extra: Extra information about the error.
-    :type extra: string.
-    :returns: obj -- A JSON response object with http status code.
-    
-    """
-    return json_status_message('Not found', 404, extra)
-
-@app.errorhandler(405)
-def method_not_allowed(error=None, extra=''):
-    """method_not_allowed is the 405 HTTP status code error handler.
-
-    :param error: The flask error if called by flask.
-    :param extra: Extra information about the error.
-    :type extra: string.
-    :returns: obj -- A JSON response object with http status code.
-    
-    """
-    return json_status_message('Method not allowed', 405, extra)
-
-@app.errorhandler(409)
-def conflict(error=None, extra=''):
-    """conflict is the 409 HTTP status code error handler.
-
-    :param error: The flask error if called by flask.
-    :param extra: Extra information about the error.
-    :type extra: string.
-    :returns: obj -- A JSON response object with http status code.
-    
-    """
-    return json_status_message('Conflict in request', 409, extra)
-
-def nothing_to_do(error=None, extra=''):
-    """nothing_to_do tells the user that there was nothing to do.
-
-    :param error: The flask error if called by flask.
-    :param extra: Extra information about the error.
-    :type extra: string.
-    :returns: obj -- A JSON response object with http status code.
-    
-    """
-    return json_status_message('Nothing to do', 200, extra)
-
-@app.errorhandler(204)
-def no_content(error=None, extra=''):
-    """no_content is the 204 HTTP status code error handler.
-
-    :param error: The flask error if called by flask.
-    :param extra: Extra information about the error.
-    :type extra: string.
-    :returns: obj -- A JSON response object with http status code.
-    
-    """
-    return json_status_message('No content', 204, extra)
-
-@app.errorhandler(401)
-def unauthorized(error=None, extra=''):
-    """unauthorized is the 401 HTTP status code error handler.
-
-    :param error: The flask error if called by flask.
-    :param extra: Extra information about the error.
-    :type extra: string.
-    :returns: obj -- A JSON response object with http status code.
-    
-    """
-    return json_status_message('Unauthorized', 401, extra)
-
-@app.errorhandler(403)
-def forbidden(error=None, extra=''):
-    """forbidden is the 403 HTTP status code error handler.
-
-    :param error: The flask error if called by flask.
-    :param extra: Extra information about the error.
-    :type extra: string.
-    :returns: obj -- A JSON response object with http status code.
-    
-    """
-    return json_status_message('Forbidden', 403, extra)
-
-@app.errorhandler(500)
-def internal_error(error=None, extra=''):
-    """internal_error is the 500 HTTP status code error handler.
-
-    :param error: The flask error if called by flask.
-    :param extra: Extra information about the error.
-    :type extra: string.
-    :returns: obj -- A JSON response object with http status code.
-    
-    """
-    return json_status_message('Internal server error', 500, extra)
-
-@app.errorhandler(504)
-def upstream_timeout(error=None, extra=''):
-    """upstream_timeout is the 504 HTTP status code error handler.
-
-    :param error: The flask error if called by flask.
-    :param extra: Extra information about the error.
-    :type extra: string.
-    :returns: obj -- A JSON response object with http status code.
-    
-    """
-    return json_status_message('Gateway timeout', 504, extra)
+@app.errorhandler(LutherBroke)
+def handle_broken(error):
+    response = jsonify(error.to_dict())
+    response.status_code = error.status_code
+    return response
 
 #################
 # DNS functions #
@@ -303,7 +198,7 @@ def dns_message_check(msg):
     """
     error_info = ''
     if msg.rcode == 0: # NOERROR
-        return None
+        return True
     elif msg.rcode == 1: # FORMERR
         error_info = 'malformed dns message'
     elif msg.rcode == 2: # SERVFAIL
@@ -328,7 +223,9 @@ def dns_message_check(msg):
         pass
     else:
         pass
-    return internal_error(extra=error_info)
+    if error_info is not '':
+        error_info = ', '+error_info
+    raise LutherBroke('Internal server error'+error_info, status_code=500)
 
 def dns_query(update, server=config.dns_master_server, port=config.dns_master_port, source_port=config.dns_master_source_port, timeout=config.dns_master_timeout):
     """dns_query sends dns.update.Update objects to a dns server and parses the response.
@@ -348,15 +245,14 @@ def dns_query(update, server=config.dns_master_server, port=config.dns_master_po
     """
     try:
         resp = dns.query.tcp(update, server, port=port, source_port=source_port, timeout=timeout)
-        error = dns_message_check(resp)
-        if error:
-            return error
+        if dns_message_check(resp):
+            return True
     except UnexpectedSource:
-        return bad_request()
+        raise LutherBroke()
     except BadResponse:
-        return bad_request()
+        raise LutherBroke()
     except TimeoutError:
-        return upstream_timeout(extra='tcp connection to master DNS server timed out')
+        raise LutherBroke('Gateway timeout, tcp connection to master DNS server timed out', status_code=504)
 
 def new_ddns(name, ip, v6=False):
     """new_ddns formats a dns.update.Update object to add A/AAA (and optionally TXT) records for a subdomain and sends it to a dns server via dns_query().
@@ -371,16 +267,18 @@ def new_ddns(name, ip, v6=False):
 
     """
     new_record = dns.update.Update(config.root_domain, keyring=keyring)
+    addr = validate_ip(ip, v6=v6)
     if not v6:
-        new_record.add(name, config.default_ttl, 'A', ip)
+        new_record.add(name, config.default_ttl, 'A', addr)
         if config.add_txt_records:
             new_record.add(name, config.default_ttl, 'TXT', '"Record for '+name+'.'+config.root_domain+' last updated at '+str(datetime.datetime.utcnow())+' UTC"')
     else:
-        new_record.add(name, config.default_ttl, 'AAAA', ip)
+        new_record.add(name, config.default_ttl, 'AAAA', addr)
         if config.add_txt_records:
             new_record.add(name, config.default_ttl, 'TXT', '"Record for '+name+'.'+config.root_domain+' last updated at '+str(datetime.datetime.utcnow())+' UTC"')
     new_record.absent(name)
-    return dns_query(new_record)
+    if dns_query(new_record):
+        return True
 
 def update_ddns(name, ip, v6=False):
     """update_ddns formats a dns.update.Update object to update A/AAA (and optionally TXT) records for a subdomain and sends it to a dns server via dns_query().
@@ -405,12 +303,13 @@ def update_ddns(name, ip, v6=False):
             update.replace(name, config.default_ttl, 'AAAA', addr)
             if config.add_txt_records:
                 update.replace(name, config.default_ttl, 'TXT', '"Record for '+name+'.'+config.root_domain+' last updated at '+str(datetime.datetime.utcnow())+' UTC"')
-        return dns_query(update)
+        if dns_query(update):
+            return True
     else:
         if not v6:
-            return 'invalid IPv4 address'
+            raise LutherBroke('Bad request, invalid IPv4 address')
         else:
-            return 'invalid IPv6 address'
+            raise LutherBroke('Bad request, invalid IPv6 address')
 
 def delete_ddns(name):
     """delete_ddns formats a dns.update.Update object to delete the RRSET for a subdomain.
@@ -423,7 +322,8 @@ def delete_ddns(name):
     delete = dns.update.Update(config.root_domain, keyring=keyring)
     delete.delete(name)
     delete.present(name)
-    return dns_query(delete)
+    if dns_query(delete):
+        return True
 
 #######################
 # Rate limiting logic #
@@ -454,9 +354,9 @@ def get_view_rate_limit():
 
 def on_over_limit(limit):
     if not limit.send_x_headers:
-        return json_status_message('You have reached the rate limit (limit: '+str(limit.limit)+', per: '+str(limit.per)+' seconds)', 429)
+        raise LutherBroke('You have reached the rate limit (limit: '+str(limit.limit)+', per: '+str(limit.per)+' seconds)', status_code=429)
     else:
-        return json_status_message('You have reached the rate limit', 429)
+        raise LutherBroke('You have reached the rate limit', status_code=429)
 
 def ratelimit(limit, per=225, send_x_headers=True,
     over_limit=on_over_limit,
@@ -496,7 +396,7 @@ def check_user_network():
 
     """
     if not in_allowed_network(request.remote_addr):
-        return abort(403)
+        raise LutherBroke('You are not in an authorized network', status_code=403)
 
 @auth.verify_password
 def verify_password(email_or_token, password=None):
@@ -547,11 +447,11 @@ def new_user():
         email = request.args.get('email')
         password = request.args.get('password')
     else:
-        return bad_request('no JSON data or URL Parameters, or both')
+        raise LutherBroke('Bad request, no JSON data or URL Parameters, or both')
     if email is None or password is None:
-        return bad_request('missing arguments') # missing arguments
+        raise LutherBroke('Bad request, missing arguments') # missing arguments
     if User.query.filter_by(email=email).first() is not None:
-        return conflict('existing user') # existing user
+        raise LutherBroke('Conflict in request, existing user', status_code=409) # existing user
     user = User(email=email, quota=config.default_user_quota, role=1)
     user.hash_password(password)
     db.session.add(user)
@@ -574,9 +474,9 @@ def edit_user():
         elif request.args:
             sure = request.args.get('confirm')
         else:
-            return bad_request(extra='no JSON data or URL Parameters, or both')
+            raise LutherBroke('Bad request, no JSON data or URL Parameters, or both')
         if sure is None or sure is not 'DELETE':
-            return bad_request(extra='missing or malformed arguments')
+            raise LutherBroke('Bad request, missing or malformed arguments')
         for d in g.user.subdomains:
             delete_ddns(d.name)
         db.session.delete(g.user)
@@ -589,9 +489,9 @@ def edit_user():
         elif request.args:
             password = request.args.get('new_password')
         else:
-            return bad_request(extra='no JSON data or URL Parameters, or both')
+            raise LutherBroke('Bad request, no JSON data or URL Parameters, or both')
         if password is None:
-            return bad_request(extra='missing arguments')
+            raise LutherBroke('Bad request, missing arguments')
         g.user.hash_password(password)
         db.session.commit()
         return json_status_message('Password updated', 200)
@@ -630,33 +530,33 @@ def domain_mainuplator():
                     domain_name = request.args.get('subdomain')
                     ip = request.args.get('ip')
                 else:
-                    return bad_request(extra='no JSON data or URL Parameters, or both')
+                    raise LutherBroke('Bad request, no JSON data or URL Parameters, or both')
                 if not domain_name:
-                    return bad_request(extra='missing arguments')
+                    raise LutherBroke('Bad request, missing arguments')
                 if not ip:
                     ip = request.remote_addr
                 if not validate_subdomain(domain_name):
-                    return bad_request(extra='invalid subdomain')
+                    raise LutherBroke('Bad request, invalid subdomain')
                 if validate_ip(ip):
                     ipv6 = False
                 else:
                     if validate_ip(ip, v6=True):
                         ipv6 = True
                     else:
-                        return bad_request(extra='IP address invalid or not in allowed subnets')
+                        raise LutherBroke('Bad request, IP address invalid or not in allowed subnets')
                 new_domain = Subdomain(name=domain_name, ip=ip, v6=ipv6, user=g.user)
                 new_domain.generate_domain_token()
                 ddns_result = new_ddns(domain_name, ip, ipv6)
-                if not ddns_result:
+                if ddns_result:
                     db.session.add(new_domain)
                     db.session.commit()
                     return jsonify({'status': 201, 'subdomain': domain_name, 'full_domain': domain_name+"."+config.root_domain, 'ip': ip, 'subdomain_token': new_domain.token, 'GET_update_path': 'htts://'+config.root_domain+'/api/v1/update/'+domain_name+'/'+new_domain.token+'{/optional-IP}'})
                 else:
-                    return ddns_result
+                    raise LutherBroke()
             else:
                 return json_status_message('You have reached your subdomain quota', 200)
         else:
-            return bad_request(extra='service subdomain limit reached!') # prob wrong error...
+            raise LutherBroke('Bad request, service subdomain limit reached!') # prob wrong error...
     elif request.method == 'DELETE':
         if request.json and not request.args:
             domain_name = request.json.get('subdomain')
@@ -665,24 +565,24 @@ def domain_mainuplator():
             domain_name = request.args.get('subdomain')
             domain_token = request.args.get('subdomain_token')
         else:
-            return bad_request(extra='no JSON data or URL Parameters, or both')
+            raise LutherBroke('Bad request, no JSON data or URL Parameters, or both')
         if not domain_name or not domain_token:
-            return bad_request(extra='missing arguments')
+            raise LutherBroke('Bad request, missing arguments')
         if not validate_subdomain(domain_name):
-            return bad_request(extra='invalid subdomain')
+            raise LutherBroke('Bad request, invalid subdomain')
         for d in g.user.subdomains:
             if d.name == domain_name:
                 if d.verify_domain_token(domain_token):
                     ddns_result = delete_ddns(d.name)
-                    if not ddns_result:
+                    if ddns_result:
                         db.session.delete(d)
                         db.session.commit()
                         return json_status_message('Subdomain deleted', 200)
                     else:
-                        return ddns_result
+                        raise LutherBroke()
                 else:
-                    return bad_request(extra='invalid subdomain_token')
-        return bad_request(extra='invalid subdomain')
+                    raise LutherBroke('Bad request, invalid subdomain_token')
+        raise LutherBroke('Bad request, invalid subdomain')
 
 @app.route('/api/v1/regen_subdomain_token', methods=['POST'])
 @ratelimit(limit=100, per=60*60)
@@ -700,9 +600,9 @@ def regen_subdomain_token():
         domain_name = request.args.get('subdomain')
         domain_token = request.args.get('subdomain_token')
     else:
-        return bad_request(extra='no JSON data or URL Parameters, or both')
+        raise LutherBroke('Bad request, no JSON data or URL Parameters, or both')
     if not domain_token or not domain_name:
-        return bad_request(extra='missing arguments')
+        raise LutherBroke('Bad request, missing arguments')
     for d in g.user.domains:
         if domain_name is d.name:
             if d.verify_domain_token(domain_token):
@@ -710,10 +610,9 @@ def regen_subdomain_token():
                 db.session.commit()
                 return jsonify({'status': 200, 'subdomain': d.name, 'subdomain_token': d.token})
             else:
-                return bad_request(extra='invalid subdomain_token')
+                raise LutherBroke('Bad request, invalid subdomain_token')
         else:
-            return bad_request(extra='invalid subdomain')
-
+            raise LutherBroke('Bad request, invalid subdomain')
 
 #################################
 # JSON / URL param update route #
@@ -731,7 +630,7 @@ def fancy_interface():
         domain_list = []
         for d in request.json:
             if not d.name or not d.token:
-                return bad_request(extra='missing or malformed arguments')
+                raise LutherBroke('Bad request, missing or malformed arguments')
             if not d.get('address'):
                 d['address'] = request.remote_addr
             domain_list.append([d.name, d.token, d['address']])
@@ -741,11 +640,11 @@ def fancy_interface():
         tokens = request.args.get('tokens')
         ips = request.args.get('addresses')
         if not names or not tokens:
-            return bad_request(extra='missing or malformed arguments')
+            raise LutherBroke('Bad request, missing or malformed arguments')
         names = names.split(',')
         tokens = tokens.split(',')
         if len(names) is not len(tokens) or len(ips) > len(names):
-            return bad_request(extra='malformed arguments')
+            raise LutherBroke('Bad request, malformed arguments')
         if ips:
             ips = ips.split(',')
         for i in range(len(names)):
@@ -754,33 +653,32 @@ def fancy_interface():
             else:
                 domain_list.append([names[i], tokens[i], request.remote_addr])
     else:
-        return bad_request(extra='no JSON data or URL Parameters, or both')
+        raise LutherBroke('Bad request, no JSON data or URL Parameters, or both')
     if not len(domain_list) > 0:
-        return bad_request()
+        raise LutherBroke()
     results = []
     for domain_obj in domain_list:
         domain = Subdomain.query.filter_by(name=domain_obj[0]).first()
         if domain and domain.verify_domain_token(domain_obj[1]):
             if domain_obj[2] == domain.ip:
-                return nothing_to_do(extra='supplied IP is the same as current IP')
+                return json_status_message('supplied IP is the same as current IP', 200)
             else:
                 if domain.v6:
                     ddns_result = update_ddns(domain.name, domain_obj[2], v6=True)
                 else:
                     ddns_result = update_ddns(domain.name, domain_obj[2])
-                if not ddns_result:
+                if ddns_result:
                     domain.ip = domain_obj[2]
                     db.session.commit()
                     results.append({'status': 200, 'subdomain': domain_obj[0], 'full_domain': domain_obj[0]+"."+config.root_domain, 'ip': domain_obj[2]})
                 else:
-                    return ddns_result
+                    raise LutherBroke()
         else:
-            return bad_request(extra='invalid subdomain or token')
+            raise LutherBroke('Bad request, invalid subdomain or token')
     if len(results) > 0:
         return jsonify({'results': [results]})
     else:
-        return internal_error()
-
+        raise LutherBroke('Internal server error', status_code=500)
 
 #########################
 # GET only update route #
@@ -811,14 +709,23 @@ def get_interface(domain_name, domain_token, domain_ip=None):
                 ddns_result = update_ddns(domain.name, domain_ip, v6=True)
             else:
                 ddns_result = update_ddns(domain.name, domain_ip)
-            if not ddns_result:
+            if ddns_result:
                 domain.ip = domain_ip
                 db.session.commit()
                 return jsonify({'status': 200, 'subdomain': domain_name, 'full_domain': domain_name+"."+config.root_domain, 'ip': domain_ip})
             else:
-                return ddns_result
+                raise LutherBroke()
     else:
-        return bad_request(extra='invalid domain or token')
+        raise LutherBroke('Bad request, invalid domain or token')
+
+###################
+# luther frontend #
+###################
+
+if config.enable_frontend:
+    @app.route('/')
+    def index():
+        return render_template('index.html')
 
 ##############
 # Dev server #

@@ -1,5 +1,5 @@
-__pycache__/
-luther.db
-luther.log
-config.py
+luther/__pycache__/
+luther/luther.db
+luther/luther.log
+luther/config.py
 *.pyc
