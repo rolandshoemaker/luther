@@ -55,3 +55,7 @@ def list_subdomains(count=False):
         with app.app_context():
             print(str(Subdomain.query.all().count())+' subdomains exist.')
             return True
+
+if __name__ == "__main__":
+    import argparse
+    

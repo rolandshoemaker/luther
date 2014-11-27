@@ -43,6 +43,7 @@ class Subdomain(db.Model):
 	ip = db.Column(db.String)
 	v6 = db.Column(db.Boolean)
 	token = db.Column(db.String)
+	last_updated = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
 	user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 	user = db.relationship('User', backref=db.backref('subdomains', lazy='dynamic'))
 

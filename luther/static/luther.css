@@ -1,0 +1,30 @@
+body {
+    padding-top: 70px; /* Required padding for .navbar-fixed-top. Change if height of navigation changes. */
+    color: #575757;
+}
+
+.navbar {
+    padding-top: 15px;
+    text-align: center
+}
+
+.navbar a {
+    font-size: 12pt;
+    color: white;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.col-centered {
+    float: none;
+    margin: 0 auto;
+}
+
+hr {
+    width: 80%;
+    border-top: 1px solid #575757;
+}
+
+h1, h3 {
+    color: #F49D76;
+}

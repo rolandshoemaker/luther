@@ -9,7 +9,7 @@ from models import db, User, Subdomain
 # flask imports #
 #################
 
-from flask import Flask, g, request, jsonify, abort
+from flask import Flask, g, request, jsonify, render_template
 from flask.ext.httpauth import HTTPBasicAuth
 
 #################
@@ -188,7 +188,7 @@ def handle_broken(error):
 # DNS functions #
 #################
 
-def dns_message_check(msg, on_api=True):
+def dns_message_check(msg, on_api):
     """dns_message_check checks the rcode of a dns.message.Message response.
 
     :param msg: The dns.message.Message object.
@@ -218,11 +218,13 @@ def dns_message_check(msg, on_api=True):
     else:
         return True
 
-def dns_query(update, server=config.dns_master_server, port=config.dns_master_port, source_port=config.dns_master_source_port, timeout=config.dns_master_timeout):
+def dns_query(update, on_api, server=config.dns_master_server, port=config.dns_master_port, source_port=config.dns_master_source_port, timeout=config.dns_master_timeout):
     """dns_query sends dns.update.Update objects to a dns server and parses the response.
 
     :param update:
     :type update: object.
+    :param on_api:
+    :type on_api: bool.
     :param server:
     :type server: string.
     :param port:
@@ -236,16 +238,18 @@ def dns_query(update, server=config.dns_master_server, port=config.dns_master_po
     """
     try:
         resp = dns.query.tcp(update, server, port=port, source_port=source_port, timeout=timeout)
-        if dns_message_check(resp):
+        if dns_message_check(resp, on_api):
             return True
     except UnexpectedSource:
-        raise LutherBroke('Internal server error, response came from unexpected source'. status_code=500)
+        raise LutherBroke('Internal server error, response came from unexpected source', status_code=500)
     except BadResponse:
         raise LutherBroke('Internal server error, malformed response from master dns server', status_code=500)
     except TimeoutError:
         raise LutherBroke('Gateway timeout, tcp connection to master DNS server timed out', status_code=504)
+    except OSError:
+        raise LutherBroke('Internal server error, OSError (most likely no route to host)', status_code=500)
 
-def new_ddns(name, ip, v6=False):
+def new_ddns(name, ip, v6=False, on_api=True):
     """new_ddns formats a dns.update.Update object to add A/AAA (and optionally TXT) records for a subdomain and sends it to a dns server via dns_query().
 
     :param name: The subdomain name
@@ -254,6 +258,8 @@ def new_ddns(name, ip, v6=False):
     :type ip: string.
     :param v6: If the address to point to is a IPv6 address.
     :type b6: bool.
+    :param on_api:
+    :type on_api: bool.
     :returns: object -- None on success or JSON response indicating the error.
 
     """
@@ -268,10 +274,12 @@ def new_ddns(name, ip, v6=False):
         if config.add_txt_records:
             new_record.add(name, config.default_ttl, 'TXT', '"Record for '+name+'.'+config.root_domain+' last updated at '+str(datetime.datetime.utcnow())+' UTC"')
     new_record.absent(name)
-    if dns_query(new_record):
+    if dns_query(new_record, on_api):
         return True
+    else:
+        return False
 
-def update_ddns(name, ip, v6=False):
+def update_ddns(name, ip, v6=False, on_api=True):
     """update_ddns formats a dns.update.Update object to update A/AAA (and optionally TXT) records for a subdomain and sends it to a dns server via dns_query().
 
     :param name: The subdomain name
@@ -280,6 +288,8 @@ def update_ddns(name, ip, v6=False):
     :type ip: string.
     :param v6: If the address to point to is a IPv6 address.
     :type b6: bool.
+    :param on_api:
+    :type on_api: bool.
     :returns: object -- None on success or JSON response indicating the error.
 
     """
@@ -294,27 +304,33 @@ def update_ddns(name, ip, v6=False):
             update.replace(name, config.default_ttl, 'AAAA', addr)
             if config.add_txt_records:
                 update.replace(name, config.default_ttl, 'TXT', '"Record for '+name+'.'+config.root_domain+' last updated at '+str(datetime.datetime.utcnow())+' UTC"')
-        if dns_query(update):
+        if dns_query(update, on_api):
             return True
+        else:
+            return False
     else:
         if not v6:
             raise LutherBroke('Bad request, invalid IPv4 address')
         else:
             raise LutherBroke('Bad request, invalid IPv6 address')
 
-def delete_ddns(name):
+def delete_ddns(name, on_api=True):
     """delete_ddns formats a dns.update.Update object to delete the RRSET for a subdomain.
 
     :param name: The subdomain name
     :type name: string.
+    :param on_api:
+    :type on_api: bool.
     :returns: object -- None on success or JSON response indicating the error.
 
     """
     delete = dns.update.Update(config.root_domain, keyring=keyring)
     delete.delete(name)
     delete.present(name)
-    if dns_query(delete):
+    if dns_query(delete, on_api):
         return True
+    else:
+        return False
 
 #######################
 # Rate limiting logic #
@@ -492,7 +508,7 @@ def edit_user():
 ################################
 
 @app.route('/api/v1/subdomains', methods=['GET', 'POST', 'DELETE'])
-@ratelimit(limit=100, per=60*60)
+# @ratelimit(limit=100, per=60*60)
 @auth.login_required
 def domain_mainuplator():
     """Create subdomain, delete subdomain, or get list of users subdomains, parameters can be passed as either JSON or URL arguments.
@@ -502,17 +518,17 @@ def domain_mainuplator():
     """
     if request.method == 'GET':
         domains = g.user.subdomains
-        info = {'email': g.user.email, 'domains': []}
+        info = {'email': g.user.email, 'subdomains': []}
         for d in domains:
-            info['domains'].append({'subdomain': d.name, 'full_domain': d.name+"."+config.root_domain, 'ip': d.ip, 'subdomain_token': d.token, 'regenerate_subdomain_token_endpoint': 'https://'+config.root_domain+'/api/v1/regen_subdomain_token/'+d.name, 'GET_update_path': 'htts://'+config.root_domain+'/api/v1/update/'+d.name+'/'+d.token+'{/optional-IP}'})
-        if len(info['domains']) > 0:
+            info['subdomains'].append({'subdomain': d.name, 'full_domain': d.name+"."+config.root_domain, 'ip': d.ip, 'subdomain_token': d.token, 'regenerate_subdomain_token_endpoint': 'https://'+config.root_domain+'/api/v1/regen_subdomain_token/'+d.name, 'GET_update_endpoint': 'htts://'+config.root_domain+'/api/v1/update/'+d.name+'/'+d.token, 'last_updated': str(d.last_updated)})
+        if len(info['subdomains']) > 0:
             resp = jsonify(info)
             resp.status_code = 200
             return resp
         else:
-            return json_status_message('You have no '+config.root_domain+' subdomains', 200)
+            return jsonify({'subdomains': [], 'message': 'You have no '+config.root_domain+' subdomains', 'status': 200})
     elif request.method == 'POST':
-        if Subdomain.query.all().count() <= config.total_subdomain_limit:
+        if Subdomain.query.count() <= config.total_subdomain_limit:
             if g.user.quota is 0 or not g.user.subdomains.count() == g.user.quota:
                 if request.json and not request.args:
                     domain_name = request.json.get('subdomain')
@@ -522,6 +538,7 @@ def domain_mainuplator():
                     ip = request.args.get('ip')
                 else:
                     raise LutherBroke('Bad request, no JSON data or URL Parameters, or both')
+                print(request.json)
                 if not domain_name:
                     raise LutherBroke('Bad request, missing arguments')
                 if not ip:
@@ -541,7 +558,7 @@ def domain_mainuplator():
                 if ddns_result:
                     db.session.add(new_domain)
                     db.session.commit()
-                    return jsonify({'status': 201, 'subdomain': domain_name, 'full_domain': domain_name+"."+config.root_domain, 'ip': ip, 'subdomain_token': new_domain.token, 'GET_update_path': 'htts://'+config.root_domain+'/api/v1/update/'+domain_name+'/'+new_domain.token+'{/optional-IP}'})
+                    return jsonify({'status': 201, 'subdomain': domain_name, 'full_domain': new_domain.name+"."+config.root_domain, 'ip': ip, 'subdomain_token': new_domain.token, 'GET_update_endpoint': 'htts://'+config.root_domain+'/api/v1/update/'+new_domain.name+'/'+new_domain.token, 'last_updated': str(new_domain.last_updated)})
                 else:
                     raise LutherBroke()
             else:
@@ -576,7 +593,7 @@ def domain_mainuplator():
         raise LutherBroke('Bad request, invalid subdomain')
 
 @app.route('/api/v1/regen_subdomain_token/<subdomain_name>/', methods=['POST'])
-@ratelimit(limit=100, per=60*60)
+# @ratelimit(limit=100, per=60*60)
 @auth.login_required
 def regen_subdomain_token(subdomain_name=None):
     """Regenerate subdomain token, parameters can be passed as either JSON or URL arguments.
@@ -607,7 +624,7 @@ def regen_subdomain_token(subdomain_name=None):
 #################################
 
 @app.route('/api/v1/update', methods=['POST'])
-@ratelimit(limit=100, per=60*60)
+# @ratelimit(limit=100, per=60*60)
 def fancy_interface():
     """The fancy interface for updating subdomain IP addresses, this is the only for a user to update multiple subdomains at once. Parameters can be passed as either JSON or URL arguments.
 
@@ -658,7 +675,7 @@ def fancy_interface():
                 if ddns_result:
                     domain.ip = domain_obj[2]
                     db.session.commit()
-                    results.append({'status': 200, 'subdomain': domain_obj[0], 'full_domain': domain_obj[0]+"."+config.root_domain, 'ip': domain_obj[2], 'message': 'IP updated.')
+                    results.append({'status': 200, 'subdomain': domain_obj[0], 'full_domain': domain_obj[0]+"."+config.root_domain, 'ip': domain_obj[2], 'message': 'IP updated.'})
                 else:
                     raise LutherBroke()
         else:
@@ -673,7 +690,7 @@ def fancy_interface():
 #########################
 
 @app.route('/api/v1/update/<domain_name>/<domain_token>/<domain_ip>', methods=['GET'])
-@ratelimit(limit=100, per=60*60)
+# @ratelimit(limit=100, per=60*60)
 def get_interface(domain_name, domain_token, domain_ip=None):
     """The (stone age) GET interface for updating a single subdomain IP address.
 
