@@ -78,6 +78,7 @@
                         <h4 class="modal-title" id="addSubLabel">Add new subdomain</h4>
                     </div>
                     <div class="modal-body">
+                        <p>Your current IP is (probably): <strong>{{client_ip}}</strong></p>
                         <form>
                             <div class="control-group form-group">
                                 <label class="control-label" for="inputSubdomain">Subdomain name</label>
@@ -108,6 +109,8 @@
                         <h4 class="modal-title" id="editSubLabel">Edit subdomain</h4>
                     </div>
                     <div class="modal-body">
+                        <p style="text-align: center;">You seem to be</p>
+                        <p style="text-align: center;"><strong>{{client_ip}}</strong></p>
                         <form>
                             <div class="control-group form-group">
                                 <label class="control-label" for="inputSubdomain">Subdomain name</label>
@@ -130,6 +133,9 @@
                 </div>
             </div>
         </div>
+        <script>
+        var luther_client_address = '{{client_ip}}';
+        </script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
         <script src="http://cdnjs.cloudflare.com/ajax/libs/knockout/3.1.0/knockout-min.js"></script>

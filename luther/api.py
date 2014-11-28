@@ -582,7 +582,8 @@ def domain_mainuplator():
             raise LutherBroke('Bad request, missing arguments')
         if not validate_subdomain(domain_name):
             raise LutherBroke('Bad request, invalid subdomain')
-        for d in g.user.subdomains:
+        sub_iterator = g.user.subdomains if g.user.role is 1 else Subdomain.query.all()
+        for d in sub_iterator:
             if d.name == domain_name:
                 if d.verify_domain_token(domain_token):
                     ddns_result = delete_ddns(d.name)
@@ -734,7 +735,7 @@ def get_interface(domain_name, domain_token, domain_ip=None):
 if config.enable_frontend:
     @app.route('/')
     def index():
-        return render_template('luther.html')
+        return render_template('luther.html', client_ip=request.remote_addr)
 
 ##############
 # Dev server #
