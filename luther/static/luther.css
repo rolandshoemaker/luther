@@ -10,7 +10,7 @@ body {
 
 .navbar a {
     font-size: 12pt;
-    color: white;
+    color: rgb(176, 128, 215);
     font-weight: bold;
     text-decoration: none;
 }
@@ -26,5 +26,5 @@ hr {
 }
 
 h1, h3 {
-    color: #F49D76;
+    color: rgb(176, 128, 215);
 }

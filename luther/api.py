@@ -166,11 +166,9 @@ class LutherBroke(Exception):
 
     def __init__(self, message, status_code=None, payload=None):
         Exception.__init__(self)
-        if message is not None:
-            self.message = message
         self.message = message
         if status_code is not None:
-            self.status_code = status_code
+            self.status_code = 403 if status_code == 401 and config.enable_frontend else status_code
         self.payload = payload
 
     def to_dict(self):
@@ -207,7 +205,7 @@ def dns_message_check(msg, on_api):
         9: 'server is not authorized or is using bad tsig key to make updates to zone \''+config.tsig_zone+'\' on master dns server',
         10: 'zone \''+config.tsig_zone+'\' does not exist on master dns server',
         16: ''}
-    error_info = rcode_errors.get(msg.rcode)
+    error_info = rcode_errors.get(msg.rcode())
     if error_info is not None:
         if error_info is not '':
             error_info = ', '+error_info
@@ -247,7 +245,7 @@ def dns_query(update, on_api, server=config.dns_master_server, port=config.dns_m
     except TimeoutError:
         raise LutherBroke('Gateway timeout, tcp connection to master DNS server timed out', status_code=504)
     except OSError:
-        raise LutherBroke('Internal server error, OSError (most likely no route to host)', status_code=500)
+        raise LutherBroke('Internal server error, OSError (most likely no route to dns master server)', status_code=500)
 
 def new_ddns(name, ip, v6=False, on_api=True):
     """new_ddns formats a dns.update.Update object to add A/AAA (and optionally TXT) records for a subdomain and sends it to a dns server via dns_query().
@@ -263,7 +261,7 @@ def new_ddns(name, ip, v6=False, on_api=True):
     :returns: object -- None on success or JSON response indicating the error.
 
     """
-    new_record = dns.update.Update(config.root_domain, keyring=keyring)
+    new_record = dns.update.Update(config.dns_root_domain, keyring=keyring)
     addr = validate_ip(ip, v6=v6)
     if not v6:
         new_record.add(name, config.default_ttl, 'A', addr)
@@ -295,7 +293,7 @@ def update_ddns(name, ip, v6=False, on_api=True):
     """
     addr = validate_ip(ip, v6=v6)
     if addr:
-        update = dns.update.Update(config.root_domain, keyring=keyring)
+        update = dns.update.Update(config.dns_root_domain, keyring=keyring)
         if not v6:
             update.replace(name, config.default_ttl, 'A', addr)
             if config.add_txt_records:
@@ -324,7 +322,7 @@ def delete_ddns(name, on_api=True):
     :returns: object -- None on success or JSON response indicating the error.
 
     """
-    delete = dns.update.Update(config.root_domain, keyring=keyring)
+    delete = dns.update.Update(config.dns_root_domain, keyring=keyring)
     delete.delete(name)
     delete.present(name)
     if dns_query(delete, on_api):
@@ -429,16 +427,16 @@ def verify_password(email_or_token, password=None):
     g.user = user
     return True
 
-@app.route('/api/v1/auth_token')
-@auth.login_required
-def get_auth_token():
-    """Generate or retrieve an authentication that can be used instead of email/password credentials to authenticate.
+# @app.route('/api/v1/auth_token')
+# @auth.login_required
+# def get_auth_token():
+#     """Generate or retrieve an authentication that can be used instead of email/password credentials to authenticate.
 
-    :returns: string -- The users current authentication token.
+#     :returns: string -- The users current authentication token.
 
-    """
-    token = g.user.generate_auth_token()
-    return jsonify({'status': 201, 'token': token.decode('ascii')})
+#     """
+#     token = g.user.generate_auth_token()
+#     return jsonify({'status': 201, 'token': token.decode('ascii')})
 
 @app.route('/api/v1/user', methods=['POST'])
 def new_user():
@@ -454,7 +452,7 @@ def new_user():
         email = request.args.get('email')
         password = request.args.get('password')
     else:
-        raise LutherBroke('Bad request, no JSON data or URL Parameters, or both')
+        raise LutherBroke('Bad request, no data')
     if email is None or password is None:
         raise LutherBroke('Bad request, missing arguments') # missing arguments
     if User.query.filter_by(email=email).first() is not None:
@@ -481,7 +479,7 @@ def edit_user():
         elif request.args:
             sure = request.args.get('confirm')
         else:
-            raise LutherBroke('Bad request, no JSON data or URL Parameters, or both')
+            raise LutherBroke('Bad request, no data')
         if sure is None or sure is not 'DELETE':
             raise LutherBroke('Bad request, missing or malformed arguments')
         for d in g.user.subdomains:
@@ -496,7 +494,7 @@ def edit_user():
         elif request.args:
             password = request.args.get('new_password')
         else:
-            raise LutherBroke('Bad request, no JSON data or URL Parameters, or both')
+            raise LutherBroke('Bad request, no data')
         if password is None:
             raise LutherBroke('Bad request, missing arguments')
         g.user.hash_password(password)
@@ -517,10 +515,13 @@ def domain_mainuplator():
 
     """
     if request.method == 'GET':
-        domains = g.user.subdomains
+        if g.user.role is 1:
+            domains = g.user.subdomains
+        else:
+            domains = Subdomain.query.all()
         info = {'email': g.user.email, 'subdomains': []}
         for d in domains:
-            info['subdomains'].append({'subdomain': d.name, 'full_domain': d.name+"."+config.root_domain, 'ip': d.ip, 'subdomain_token': d.token, 'regenerate_subdomain_token_endpoint': 'https://'+config.root_domain+'/api/v1/regen_subdomain_token/'+d.name, 'GET_update_endpoint': 'htts://'+config.root_domain+'/api/v1/update/'+d.name+'/'+d.token, 'last_updated': str(d.last_updated)})
+            info['subdomains'].append({'subdomain': d.name, 'full_domain': d.name+"."+config.root_domain, 'ip': d.ip, 'subdomain_token': d.token, 'regenerate_subdomain_token_endpoint': 'https://'+config.root_domain+'/api/v1/regen_subdomain_token/'+d.name, 'GET_update_endpoint': 'https://'+config.root_domain+'/api/v1/update/'+d.name+'/'+d.token, 'last_updated': str(d.last_updated)})
         if len(info['subdomains']) > 0:
             resp = jsonify(info)
             resp.status_code = 200
@@ -537,7 +538,7 @@ def domain_mainuplator():
                     domain_name = request.args.get('subdomain')
                     ip = request.args.get('ip')
                 else:
-                    raise LutherBroke('Bad request, no JSON data or URL Parameters, or both')
+                    raise LutherBroke('Bad request, no data')
                 print(request.json)
                 if not domain_name:
                     raise LutherBroke('Bad request, missing arguments')
@@ -558,7 +559,7 @@ def domain_mainuplator():
                 if ddns_result:
                     db.session.add(new_domain)
                     db.session.commit()
-                    return jsonify({'status': 201, 'subdomain': domain_name, 'full_domain': new_domain.name+"."+config.root_domain, 'ip': ip, 'subdomain_token': new_domain.token, 'GET_update_endpoint': 'htts://'+config.root_domain+'/api/v1/update/'+new_domain.name+'/'+new_domain.token, 'last_updated': str(new_domain.last_updated)})
+                    return jsonify({'status': 201, 'subdomain': domain_name, 'full_domain': new_domain.name+"."+config.root_domain, 'ip': ip, 'subdomain_token': new_domain.token, 'GET_update_endpoint': 'https://'+config.root_domain+'/api/v1/update/'+new_domain.name+'/'+new_domain.token, 'last_updated': str(new_domain.last_updated)})
                 else:
                     raise LutherBroke()
             else:
@@ -573,7 +574,7 @@ def domain_mainuplator():
             domain_name = request.args.get('subdomain')
             domain_token = request.args.get('subdomain_token')
         else:
-            raise LutherBroke('Bad request, no JSON data or URL Parameters, or both')
+            raise LutherBroke('Bad request, no data')
         if not domain_name or not domain_token:
             raise LutherBroke('Bad request, missing arguments')
         if not validate_subdomain(domain_name):
@@ -608,14 +609,14 @@ def regen_subdomain_token(subdomain_name=None):
     elif subdomain_name and not request.json and not request.args:
         domain_name = subdomain_name
     else:
-        raise LutherBroke('Bad request, no JSON data or URL Parameters, or both')
+        raise LutherBroke('Bad request, no data')
     if not domain_token or not domain_name:
         raise LutherBroke('Bad request, missing arguments')
     for d in g.user.domains:
         if domain_name is d.name:
             d.generate_domain_token()
             db.session.commit()
-            return jsonify({'status': 200, 'subdomain': d.name, 'subdomain_token': d.token})
+            return jsonify({'status': 200, 'subdomain': d.name, 'full_domain': d.name+"."+config.root_domain, 'ip': d.ip,  'subdomain_token': d.token, 'GET_update_endpoint': 'https://'+config.root_domain+'/api/v1/update/'+d.name+'/'+d.token, 'last_updated': str(d.last_updated), 'message': 'Subdomain token regenerated.'})
         else:
             raise LutherBroke('Bad request, invalid subdomain')
 
@@ -658,7 +659,7 @@ def fancy_interface():
             else:
                 domain_list.append([names[i], tokens[i], request.remote_addr])
     else:
-        raise LutherBroke('Bad request, no JSON data or URL Parameters, or both')
+        raise LutherBroke('Bad request, no data')
     if not len(domain_list) > 0:
         raise LutherBroke()
     results = []
@@ -666,7 +667,7 @@ def fancy_interface():
         domain = Subdomain.query.filter_by(name=domain_obj[0]).first()
         if domain and domain.verify_domain_token(domain_obj[1]):
             if domain_obj[2] == domain.ip:
-                results.append({'status': 200, 'subdomain': domain_obj[0], 'full_domain': domain_obj[0]+"."+config.root_domain, 'ip': domain_obj[2], 'message': 'Nothing to do, supplied IP is the same as current IP.'})
+                results.append({'status': 200, 'subdomain': domain.name, 'full_domain': domain.name+"."+config.root_domain, 'ip': domain.ip,  'subdomain_token': domain.token, 'GET_update_endpoint': 'https://'+config.root_domain+'/api/v1/update/'+domain.name+'/'+domain.token, 'last_updated': str(domain.last_updated), 'message': 'Nothing to do, supplied IP is the same as current IP.'})
             else:
                 if domain.v6:
                     ddns_result = update_ddns(domain.name, domain_obj[2], v6=True)
@@ -675,7 +676,7 @@ def fancy_interface():
                 if ddns_result:
                     domain.ip = domain_obj[2]
                     db.session.commit()
-                    results.append({'status': 200, 'subdomain': domain_obj[0], 'full_domain': domain_obj[0]+"."+config.root_domain, 'ip': domain_obj[2], 'message': 'IP updated.'})
+                    results.append({'status': 200, 'subdomain': domain.name, 'full_domain': domain.name+"."+config.root_domain, 'ip': domain.ip,  'subdomain_token': domain.token, 'GET_update_endpoint': 'https://'+config.root_domain+'/api/v1/update/'+domain.name+'/'+domain.token, 'last_updated': str(domain.last_updated), 'message': 'Subdomain updated.'})
                 else:
                     raise LutherBroke()
         else:
@@ -708,7 +709,7 @@ def get_interface(domain_name, domain_token, domain_ip=None):
         if domain_ip is None:
             domain_ip = request.remote_addr
         if domain_ip == domain.ip:
-            return jsonify({'status': 200, 'subdomain': domain.name, 'full_domain': domain.name+"."+config.root_domain, 'ip': domain.ip, 'message': 'Nothing to do, supplied IP is the same as current IP.'})
+            return jsonify({'status': 200, 'subdomain': domain.name, 'full_domain': domain.name+"."+config.root_domain, 'ip': domain.ip,  'subdomain_token': domain.token, 'GET_update_endpoint': 'https://'+config.root_domain+'/api/v1/update/'+domain.name+'/'+domain.token, 'last_updated': str(domain.last_updated), 'message': 'Nothing to do, supplied IP is the same as current IP.'})
         else:
             if domain.v6:
                 ddns_result = update_ddns(domain.name, domain_ip, v6=True)
@@ -717,7 +718,7 @@ def get_interface(domain_name, domain_token, domain_ip=None):
             if ddns_result:
                 domain.ip = domain_ip
                 db.session.commit()
-                return jsonify({'status': 200, 'subdomain': domain_name, 'full_domain': domain_name+"."+config.root_domain, 'ip': domain_ip})
+                return jsonify({'status': 200, 'subdomain': domain.name, 'full_domain': domain.name+"."+config.root_domain, 'ip': domain.ip,  'subdomain_token': domain.token, 'GET_update_endpoint': 'https://'+config.root_domain+'/api/v1/update/'+domain.name+'/'+domain.token, 'last_updated': str(domain.last_updated), 'message': 'Subdomain updated.'})
             else:
                 raise LutherBroke()
     else:
@@ -730,7 +731,7 @@ def get_interface(domain_name, domain_token, domain_ip=None):
 if config.enable_frontend:
     @app.route('/')
     def index():
-        return render_template('index.html')
+        return render_template('luther.html')
 
 ##############
 # Dev server #
@@ -738,10 +739,10 @@ if config.enable_frontend:
 
 if __name__ == '__main__':
     app.debug = True
-    with app.app_context():
-        db.create_all()
-        admin = User(email='admin', role=0, quota=0)
-        admin.hash_password(config.default_admin_password)
-        db.session.add(admin)
-        db.session.commit()
-    app.run(use_reloader=False, host='192.168.1.8', port=80)
+    # with app.app_context():
+    #     db.create_all()
+    #     admin = User(email='admin', role=0, quota=0)
+    #     admin.hash_password(config.default_admin_password)
+    #     db.session.add(admin)
+    #     db.session.commit()
+    app.run(use_reloader=True, host='192.168.1.8', port=80)

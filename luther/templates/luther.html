@@ -19,7 +19,7 @@
         <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
             <div class="container">
                 <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-                    <a href="/">luther</i></a>
+                    <a href="/"><i class="fa fa-tty fw-fw"></i></a>
                 </div>
             </div>
         </nav>
@@ -40,18 +40,14 @@
             <!-- /ko -->
             <div class="row">
                 <div class="col-lg-12 col-centered">
-                <h1 style="text-align: center; cursor: default;">luther</h1>
-                <div class="container">
-                    <!-- ko ifnot: subdomains().length -->
-                        <p>no stuff sad</p>
-                    <!-- /ko -->
-                    <!-- ko if: subdomains().length -->
+                    <h1 style="text-align: center; cursor: default;">luther</h1>
+                    <br>
                     <table class="table table-striped">
                         <tr><td><b>Subdomain</b></td><td><b>IP Address</b></td><td><b>Token</b></td><td><b>Last update</b></td><td><b>Options</b></td></tr>
                         <!-- ko foreach: subdomains -->
                         <tr>
                             <td>
-                                <p data-bind="text: name"></p>
+                                <p data-bind="text: subdomain"></p>
                             </td>
                             <td>
                                 <p data-bind="text: ip"></p>
@@ -64,18 +60,17 @@
                             </td>
                             <td>
                                 <button data-bind="click: $parent.beginUpdate" class="btn">Update</button>
+                                <button data-bind="click: $parent.regenToken" class="btn">Regen token</button>
                                 <button data-bind="click: $parent.remove" class="btn">Delete</button>
                             </td>
                         </tr>
                         <!-- /ko -->
                     </table>
-                    <!-- /ko -->
                     <button data-bind="click: beginAdd" class="btn">Add new subdomain</button>
-                    </div>
                 </div>
             </div>
         </div>
-        <div class="modal fade" id="addSub" tabindex="-1" role="dialog" aria-labelledby="RFCaddSubLabel" aria-hidden="true">
+        <div class="modal fade" id="addSub" tabindex="-1" role="dialog" aria-labelledby="addSubLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -100,6 +95,36 @@
                     </div>
                     <div class="modal-footer">
                         <button data-bind="click: addSubdomain" class="btn btn-primary">Add subdomain</button>
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="editSub" tabindex="-1" role="dialog" aria-labelledby="editSubLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                        <h4 class="modal-title" id="editSubLabel">Edit subdomain</h4>
+                    </div>
+                    <div class="modal-body">
+                        <form>
+                            <div class="control-group form-group">
+                                <label class="control-label" for="inputSubdomain">Subdomain name</label>
+                                <div class="controls">
+                                    <input data-bind="value: subdomain" id="inputSubdomain" class="form-control" placeholder="rad">
+                                </div>
+                            </div>
+                            <div class="control-group form-group">
+                                <label class="control-label" for="inputIP">IP address</label>
+                                <div class="controls">
+                                    <input data-bind="value: ip" id="inputIP" class="form-control" placeholder="1.2.3.4">
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button data-bind="click: updateSubdomain" class="btn btn-primary">Update subdomain</button>
                         <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
                     </div>
                 </div>
