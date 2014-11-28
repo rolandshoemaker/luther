@@ -16,7 +16,11 @@ def cli():
     pass
 
 @cli.command('add_user')
-def add_user(email=None, password=None, role=1, quota=config.default_user_quota):
+@click.argument('email')
+@click.argument('password')
+@click.option('--role', default=1, help='user role (0 admin, 1 user)')
+@click.option('--quota', default=config.default_user_quota, help='user subdomain quota')
+def add_user(email, password, role, quota):
     with app.app_context():
         if not email:
             email = input('Email: ')
@@ -74,6 +78,7 @@ def edit_user(userid=None, email=None, password=None, quota=None, role=None):
             return False
 
 @cli.command('delete_user')
+@click.argument('email')
 def delete_user(email):
     with app.app_context():
         user = User.query.filter_by(email=email).first()
@@ -90,6 +95,7 @@ def delete_user(email):
             return False
 
 @cli.command('view_user')
+@click.argument('email')
 def view_user(email):
     with app.app_context():
         user = User.query.filter_by(email=email).first()
@@ -113,6 +119,7 @@ def count_users():
         print(str(User.query.count())+' users exist.')
 
 @cli.command('list_users_subdomains')
+@click.argument('email')
 def users_subdomains(email):
     user = User.query.filter_by(email=email).first()
     if user:
@@ -128,6 +135,9 @@ def users_subdomains(email):
         return False
 
 @cli.command('add_subdomain')
+@click.argument('email')
+@click.argument('name')
+@click.argument('ip')
 def add_subdomain(email, name, ip):
     with app.app_context():
         user = User.query.filter_by(email=email).first()
@@ -176,6 +186,7 @@ def edit_subdomain(name, ip=None, v6=None, user_email=None):
             return False
 
 @cli.command('delete_subdomain')
+@click.argument('name')
 def delete_subdomain(name):
     with app.app_context():
         sub = Subdomain.query.filter_by(name=name).first()
@@ -191,6 +202,7 @@ def delete_subdomain(name):
             return False
 
 @cli.command('regen_subdomain_token')
+@click.argument('name')
 def regen_subdomain_token(name):
     with app.app_context():
         sub = Subdomain.query.filter_by(name=name)
@@ -202,6 +214,7 @@ def regen_subdomain_token(name):
             return False
 
 @cli.command('view_subdomain')
+@click.argument('name')
 def view_subdomain(name):
     with app.app_context():
         sub = Subdomain.query.filter_by(name=name).first()
@@ -224,8 +237,4 @@ def list_subdomains():
         print(tabulate(results, ['subdomain', 'ip', 'token', 'last updated', 'user']))
 
 if __name__ == "__main__":
-    # count_users()
-    # list_users()
-    # count_subdomains()
-    # list_subdomains()
     cli()
