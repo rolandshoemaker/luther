@@ -18,8 +18,8 @@ def cli():
 @cli.command('add_user')
 @click.argument('email')
 @click.argument('password')
-@click.option('--role', default=1, help='user role (0 admin, 1 user)')
-@click.option('--quota', default=config.default_user_quota, help='user subdomain quota')
+@click.option('--role', default=1, help='User role (0 admin, 1 user)')
+@click.option('--quota', default=config.default_user_quota, help='User subdomain quota')
 def add_user(email, password, role, quota):
     with app.app_context():
         if not email:
@@ -42,25 +42,13 @@ def add_user(email, password, role, quota):
         print(email+' added!')
 
 @cli.command('edit_user')
-def edit_user(userid=None, email=None, password=None, quota=None, role=None):
+@click.argument('email')
+@click.option('--password', help='Users password')
+@click.option('--role', help='User role (0 admin, 1 user)')
+@click.option('--quota', help='User subdomain quota')
+def edit_user(email, password, role, quota):
     with app.app_context():
-        if userid:
-            user = User.query.filter_by(id=userid).first()
-            if user:
-                if email:
-                    user.email = email
-                if password:
-                    user.hash_password(password)
-                if quota:
-                    user.quota = quota
-                if role:
-                    user.role = role
-                db.session.commit()
-                print('User '+user.email+' updated')
-            else:
-                print('User id '+userid+' doesnt exist')
-                return False
-        elif email and not userid:
+        if email:
             user = User.query.filter_by(email=email).first()
             if user:
                 if password:
@@ -135,12 +123,12 @@ def users_subdomains(email):
         return False
 
 @cli.command('add_subdomain')
-@click.argument('email')
+@click.argument('user_email')
 @click.argument('name')
 @click.argument('ip')
-def add_subdomain(email, name, ip):
+def add_subdomain(user_email, name, ip):
     with app.app_context():
-        user = User.query.filter_by(email=email).first()
+        user = User.query.filter_by(email=user_email).first()
         if user:
             if not Subdomain.query.filter_by(name=name).first():
                 ipv6 = False
@@ -165,7 +153,11 @@ def add_subdomain(email, name, ip):
             return False
 
 @cli.command('edit_subdomain')
-def edit_subdomain(name, ip=None, v6=None, user_email=None):
+@click.argument('name')
+@click.option('--ip', help='IP Address to point to')
+@click.option('--v6/--v4', default=False, help='Whether the address is IPv6 or IPv4')
+@click.option('--user_email', help='Email of user who owns the subdomain')
+def edit_subdomain(name, ip, v6, user_email):
     with app.app_context():
         sub = Subdomain.query.filter_by(name=name).first()
         if sub:
