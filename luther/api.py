@@ -307,10 +307,13 @@ def update_ddns(name, ip, v6=False, on_api=True):
         else:
             return False
     else:
-        if not v6:
-            raise LutherBroke('Bad request, invalid IPv4 address')
+        if on_api:
+            if not v6:
+                raise LutherBroke('Bad request, invalid IPv4 address')
+            else:
+                raise LutherBroke('Bad request, invalid IPv6 address')
         else:
-            raise LutherBroke('Bad request, invalid IPv6 address')
+            return False
 
 def delete_ddns(name, on_api=True):
     """delete_ddns formats a dns.update.Update object to delete the RRSET for a subdomain.
