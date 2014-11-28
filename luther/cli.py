@@ -1,92 +1,231 @@
 #!/usr/bin/python
 import config
-from api import app, add_ddns, update_ddns, delete_ddns
+from api import app, new_ddns, update_ddns, delete_ddns, validate_ip
 from models import User, Subdomain, db
 
 from getpass import getpass
 
+from tabulate import tabulate
+
+import click
+
 db.init_app(app)
 
+@click.group()
+def cli():
+    pass
+
+@cli.command('add_user')
 def add_user(email=None, password=None, role=1, quota=config.default_user_quota):
-    if not email:
-        email = input('Email: ')
-    if User.query.filter.filter_by(email=email):
-        print('Email already exists silly.')
-        return False
-    if not password:
-        password = getpass()
-        if not password == getpass(prompt='Confirm Password: '):
-            print('Passwords dont match...')
-            return False
-        if password is '':
-            print('Password cannot be blank.')
-            return False
     with app.app_context():
+        if not email:
+            email = input('Email: ')
+        if User.query.filter.filter_by(email=email):
+            print('Email already exists silly.')
+            return False
+        if not password:
+            password = getpass()
+            if not password == getpass(prompt='Confirm Password: '):
+                print('Passwords dont match...')
+                return False
+            if password is '':
+                print('Password cannot be blank.')
+                return False
         new_user = User(email=email, role=role, quota=quota)
         new_user.hash_password(password)
         db.session.add(new_user)
         db.session.commit()
-    print(email+' added!')
-    return True
+        print(email+' added!')
 
-def edit_user(id=None, email=None, password=None):
-    pass
+@cli.command('edit_user')
+def edit_user(userid=None, email=None, password=None, quota=None, role=None):
+    with app.app_context():
+        if userid:
+            user = User.query.filter_by(id=userid).first()
+            if user:
+                if email:
+                    user.email = email
+                if password:
+                    user.hash_password(password)
+                if quota:
+                    user.quota = quota
+                if role:
+                    user.role = role
+                db.session.commit()
+                print('User '+user.email+' updated')
+            else:
+                print('User id '+userid+' doesnt exist')
+                return False
+        elif email and not userid:
+            user = User.query.filter_by(email=email).first()
+            if user:
+                if password:
+                    user.hash_password(password)
+                if quota:
+                    user.quota = quota
+                if role:
+                    user.role = role
+                db.session.commit()
+                print('User '+user.email+' updated')
+            else:
+                print('User '+email+' doesnt exist')
+                return False
+        else:
+            return False
 
-def delete_user():
-    pass
-
-def view_user(email=None, count=False, all_users=False):
-    if count:
-        with app.app_context():
-            print(str(User.query.all().count())+' users exist.')
-            return True
-    if all_users:
-        with app.app_context():
-            print('email\trole\tquota\tnum subdomains')
-            for user in User.query.all():
-                print(user.email+'\t'+user.role+'\t'+user.quota+'\t'+str(user.subdomains.count()))
-            return True
-    if email:
+@cli.command('delete_user')
+def delete_user(email):
+    with app.app_context():
         user = User.query.filter_by(email=email).first()
         if user:
-            print('email\trole\tquota\tnum subdomains')
-            print(user.email+'\t'+user.role+'\t'+user.quota+'\t'+str(user.subdomains.count()))
-            return True
+            for sub in user.subdomains:
+                if not delete_ddns(sub.name, on_api=False):
+                    print('Error deleting subdomain: '+sub.name+'!')
+                    return False
+            db.session.delete(user)
+            db.session.commit()
+            print('Deleted user: '+user.email)
+        else:
+            print('Error deleting user: '+user.email)
+            return False
+
+@cli.command('view_user')
+def view_user(email):
+    with app.app_context():
+        user = User.query.filter_by(email=email).first()
+        if user:
+            print(tabulate([user.email, user.role, user.quota, user.subdomains.count()], ['email', 'role', 'quota', 'num subdomains']))
         else:
             return False
 
-def add_subdomain():
-    pass
+@cli.command('list_users')
+def list_users():
+    with app.app_context():
+        results = []
+        for user in User.query.all():
+            results.append([user.email, user.role, user.quota, user.subdomains.count()])
+        print(tabulate(results, ['email', 'role', 'quota', 'num subdomains']))
 
-def edit_subdomain():
-    pass
 
-def delete_subdomain():
-    pass
+@cli.command('count_users')
+def count_users():
+    with app.app_context():
+        print(str(User.query.count())+' users exist.')
 
-def regen_subdomain_token():
-    pass
+@cli.command('list_users_subdomains')
+def users_subdomains(email):
+    user = User.query.filter_by(email=email).first()
+    if user:
+        if user.subdomains.count() > 0:
+            results = []
+            print(user.email+' has these subdomains')
+            for sub in user.subdomains:
+                results.append([sub.name, sub.ip, sub.token, sub.last_updated])
+            print(tabulate(results, ['subdomain', 'ip', 'token', 'last updated']))
+        else:
+            print(user.email+' has not subdomains.')
+    else:
+        return False
 
-def view_subdomain(name=None, count=False, all_subdomains=False):
-    if count:
-        with app.app_context():
-            print(str(Subdomain.query.all().count())+' subdomains exist.')
-            return True
-    if all_subdomains:
-        with app.app_context():
-            print('subdomain\tip\ttoken\tlast updated\tuser')
-            for sub in Subdomain.query.all():
-                print(sub.name+'\t'+sub.ip+'\t'+sub.token+'\t'+str(sub.last_updated)+'\t'+sub.user.name)
-            return True
-    if name:
+@cli.command('add_subdomain')
+def add_subdomain(email, name, ip):
+    with app.app_context():
+        user = User.query.filter_by(email=email).first()
+        if user:
+            if not Subdomain.query.filter_by(name=name).first():
+                ipv6 = False
+                if not validate_ip(ip):
+                    if validate_ip(ip, v6=True):
+                        ipv6 = True
+                    else:
+                        print('Invalid IP')
+                        return False
+                if new_ddns(name, ip, v6=ipv6, on_api=False):
+                    sub = Subdomain(name=name, ip=ip, v6=ipv6, user=user)
+                    sub.generate_domain_token()
+                    db.session.add(sub)
+                    db.session.commit()
+                    print('Added new subdomain: '+sub.name+' for '+user.email)
+                else:
+                    return False
+            else:
+                print('Subdomain already exists!')
+                return False
+        else:
+            return False
+
+@cli.command('edit_subdomain')
+def edit_subdomain(name, ip=None, v6=None, user_email=None):
+    with app.app_context():
         sub = Subdomain.query.filter_by(name=name).first()
         if sub:
-            print('subdomain\tip\ttoken\tlast updated\tuser')
-            print(sub.name+'\t'+sub.ip+'\t'+sub.token+'\t'+str(sub.last_updated)+'\t'+sub.user.name)
-            return True
+            if ip:
+                sub.ip = ip
+            if v6:
+                sub.v6 = v6
+            if user_email:
+                user = User.query.filter_by(email=user_email).first()
+                if user:
+                    sub.user = user
+                else:
+                    print('User '+user_email+' doesnt exist')
+                    return False
+            db.session.commit()
+            print('Subdomain '+sub.name+' updated!')
         else:
             return False
 
+@cli.command('delete_subdomain')
+def delete_subdomain(name):
+    with app.app_context():
+        sub = Subdomain.query.filter_by(name=name).first()
+        if sub:
+            if delete_ddns(name, on_api=False):
+                db.session.delete(sub)
+                db.session.commit()
+                print('Deleted subdomain: '+name)
+            else:
+                print('Error deleting subdomain: '+name)
+                return False
+        else:
+            return False
+
+@cli.command('regen_subdomain_token')
+def regen_subdomain_token(name):
+    with app.app_context():
+        sub = Subdomain.query.filter_by(name=name)
+        if sub:
+            sub.generate_domain_token()
+            db.session.commit()
+            print('Subdomain token for '+sub.name+' regenerated: '+sub.token)
+        else:
+            return False
+
+@cli.command('view_subdomain')
+def view_subdomain(name):
+    with app.app_context():
+        sub = Subdomain.query.filter_by(name=name).first()
+        if sub:
+            print(tabulate([sub.name, sub.ip, sub.token, sub.last_updated, sub.user.email], ['subdomain', 'ip', 'token', 'last updated', 'user']))
+        else:
+            return False
+
+@cli.command('count_subdomains')
+def count_subdomains():
+    with app.app_context():
+        print(str(Subdomain.query.count())+' subdomains exist.')
+
+@cli.command('list_subdomains')
+def list_subdomains():
+    with app.app_context():
+        results = []
+        for sub in Subdomain.query.all():
+            results.append([sub.name, sub.ip, sub.token, sub.last_updated, sub.user.email])
+        print(tabulate(results, ['subdomain', 'ip', 'token', 'last updated', 'user']))
 
 if __name__ == "__main__":
-    import argparse
+    # count_users()
+    # list_users()
+    # count_subdomains()
+    # list_subdomains()
+    cli()
