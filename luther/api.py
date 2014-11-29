@@ -367,29 +367,6 @@ def delete_ddns(name, on_api=True):
     else:
         return False
 
-def check_mx(email):
-    try:
-        msg = dns.resolver.query()
-        if msg:
-            if msg.rcode() not in [3, 8]:
-                return True
-            elif msg.rcode() in [1, 2, 4, 5, 6, 7, 8, 9, 10, 16]:
-                raise LutherBroke('Internal server error, weird answer to DNS MX query', status_code=500)
-            else:
-                raise LutherBroke('Invalid email address')
-        else:
-            raise LutherBroke('Invalid email address')
-    except NoAnswer:
-        raise LutherBroke('Internal server error, no answer to DNS MX query', status_code=500)
-    except UnexpectedSource:
-        raise LutherBroke('Internal server error, response came from unexpected source', status_code=500)
-    except BadResponse:
-        raise LutherBroke('Internal server error, malformed response from master dns server', status_code=500)
-    except TimeoutError:
-        raise LutherBroke('Gateway timeout, tcp connection to master DNS server timed out', status_code=504)
-    except OSError:
-        raise LutherBroke('Internal server error, OSError (most likely no route to dns master server)', status_code=500)
-
 #######################
 # Rate limiting logic #
 #######################
@@ -465,8 +442,44 @@ def check_user_network():
 
 RFC_2822_REG = '(?:[a-z0-9!#$%&\'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&\'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f!#-[]-\x7f]|\\[\x01-\t\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f!-ZS-\x7f]|\\[\x01-\t\x0b\x0c\x0e-\x7f])+)\\])'
 def verify_email(email):
+    """Verify an email address with RFC 2822 regex and optional MX record check.
+
+       :param email: The email to verify.
+       :type email: string.
+       :returns: bool -- Whether the email is valid.
+    """
+    if luther.validate_user_email_mx:
+        def check_mx(email):
+            """Check if a MX record exists for provided email.
+
+               :param email: The email to verify.
+               :type email: string.
+               :returns: bool -- Whether the MX record exists.
+            """
+            try:
+                domain = email.split('@')[-1]
+                msg = dns.resolver.query(domain, 'MX')
+                if msg:
+                    if msg.rcode() not in [3, 8]:
+                        return True
+                    elif msg.rcode() in [1, 2, 4, 5, 6, 7, 8, 9, 10, 16]:
+                        raise LutherBroke('Internal server error, weird answer to DNS MX query', status_code=500)
+                    else:
+                        raise LutherBroke('Invalid email address')
+                else:
+                    raise LutherBroke('Invalid email address')
+            except NoAnswer:
+                raise LutherBroke('Internal server error, no answer to DNS MX query', status_code=500)
+            except UnexpectedSource:
+                raise LutherBroke('Internal server error, response came from unexpected source', status_code=500)
+            except BadResponse:
+                raise LutherBroke('Internal server error, malformed response from master dns server', status_code=500)
+            except TimeoutError:
+                raise LutherBroke('Gateway timeout, tcp connection to master DNS server timed out', status_code=504)
+            except OSError:
+                raise LutherBroke('Internal server error, OSError (most likely no route to dns master server)', status_code=500)
     if re.match(RFC_2822_REG, email):
-        if luther.config.check_user_email_mx:
+        if luther.config.validate_user_email_mx:
             if check_mx(email):
                 return True
             else:
