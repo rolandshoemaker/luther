@@ -9,7 +9,7 @@
 """
 .. module:: luther.api
     :platform: Unix
-    :synopsis: lightweight REST API for managing DDNS.
+    :synopsis: lightweight REST API for managing Dynamic DNS.
 
 .. moduleauthor:: Roland Shoemaker <rolandshoemaker@gmail.com>
 """
@@ -28,19 +28,27 @@ from luther.models import db, User, Subdomain
 from flask import Flask, g, request, jsonify, json, render_template, make_response
 from flask.ext.httpauth import HTTPBasicAuth
 
-#################
-# other imports #
-#################
+###############
+# dns imports #
+###############
 
 import dns.query, dns.tsigkeyring, dns.update
-from dns.query import UnexpectedSource, BadResponse, NoAnswer
+from dns.query import UnexpectedSource, BadResponse
+import dns.resolver
+from dns.resolver import NoAnswer
+
+#################
+# redis imports #
+#################
+
 from redis import Redis
-import time
+
+##################
+# system imports #
+##################
+
 from functools import update_wrapper
-import ipaddress
-import re
-import datetime
-import json
+import time, ipaddress, json, re, datetime
 
 ##############################
 # flask + plugin object init #
@@ -178,6 +186,8 @@ def json_status_message(message, code, extra=''):
 ##################
 
 class LutherBroke(Exception):
+    """super special luther Exception.
+    """
     status_code = 400
     message = 'Bad request'
 
@@ -201,7 +211,7 @@ def handle_broken(error):
 
 @auth.error_handler
 def unauthorized():
-    return make_response(jsonify( { 'error': 'Unauthorized access' } ), 403)
+    return make_response(jsonify({'error': 'Unauthorized access'}), 403)
     # return 403 instead of 401 to prevent browsers from displaying the default auth dialog
 
 #################
@@ -357,6 +367,29 @@ def delete_ddns(name, on_api=True):
     else:
         return False
 
+def check_mx(email):
+    try:
+        msg = dns.resolver.query()
+        if msg:
+            if msg.rcode() not in [3, 8]:
+                return True
+            elif msg.rcode() in [1, 2, 4, 5, 6, 7, 8, 9, 10, 16]:
+                raise LutherBroke('Internal server error, weird answer to DNS MX query', status_code=500)
+            else:
+                raise LutherBroke('Invalid email address')
+        else:
+            raise LutherBroke('Invalid email address')
+    except NoAnswer:
+        raise LutherBroke('Internal server error, no answer to DNS MX query', status_code=500)
+    except UnexpectedSource:
+        raise LutherBroke('Internal server error, response came from unexpected source', status_code=500)
+    except BadResponse:
+        raise LutherBroke('Internal server error, malformed response from master dns server', status_code=500)
+    except TimeoutError:
+        raise LutherBroke('Gateway timeout, tcp connection to master DNS server timed out', status_code=504)
+    except OSError:
+        raise LutherBroke('Internal server error, OSError (most likely no route to dns master server)', status_code=500)
+
 #######################
 # Rate limiting logic #
 #######################
@@ -429,6 +462,19 @@ def check_user_network():
     """
     if not in_allowed_network(request.remote_addr):
         raise LutherBroke('You are not in an authorized network', status_code=403)
+
+RFC_2822_REG = '(?:[a-z0-9!#$%&\'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&\'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f!#-[]-\x7f]|\\[\x01-\t\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f!-ZS-\x7f]|\\[\x01-\t\x0b\x0c\x0e-\x7f])+)\\])'
+def verify_email(email):
+    if re.match(RFC_2822_REG, email):
+        if luther.config.check_user_email_mx:
+            if check_mx(email):
+                return True
+            else:
+                raise LutherBroke('Internal server error', status_code=500)
+        else:
+            return True
+    else:
+        raise LutherBroke('Invalid email address')
 
 @auth.verify_password
 def verify_password(email_or_token, password=None):
