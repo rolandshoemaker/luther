@@ -737,6 +737,43 @@ if config.enable_frontend:
     def index():
         return render_template('luther.html', client_ip=request.remote_addr)
 
+    if config.enable_stats:
+        import threading, pickle
+        from redis import StrictRedis
+
+        class PickledRedis(StrictRedis):
+            def get(self, name):
+                pickled_value = super(PickledRedis, self).get(name)
+                if pickled_value is None:
+                    return None
+                return pickle.loads(pickled_value)
+
+            def set(self, name, value, ex=None, px=None, nx=False, xx=False):
+                return super(PickledRedis, self).set(name, pickle.dumps(value), ex, px, nx, xx)
+
+        predis = PickledRedis(host=config.redis_host, port=config.redis_port)
+
+        def update_stats():
+            threading.Timer(config.stats_interval, update_stats).start()
+            with app.app_context():
+                stats = predis.get('luther/stats')
+                now = datetime.datetime.now()
+                if not stats:
+                    stats = {'users': [], 'subdomains': []}
+                if (len(stats['users'])+len(stats['subdomains']))/2 >= config.stats_entries:
+                    stats['users'].pop(0)
+                    stats['subdomains'].pop(0)
+                stats['users'].append([now, User.query.count()])
+                stats['subdomains'].append([now, Subdomain.query.count()])
+                predis.set('luther/stats', stats)
+
+        update_stats()
+
+        @app.route('/stats')
+        def stats():
+            stats = predis.get('luther/stats')
+            return render_template('stats.html')
+
 ##############
 # Dev server #
 ##############
