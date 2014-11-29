@@ -1,4 +1,20 @@
-import config
+#  _         _    _                 
+# | |       | |  | |                
+# | | _   _ | |_ | |__    ___  _ __ 
+# | || | | || __|| '_ \  / _ \| '__|
+# | || |_| || |_ | | | ||  __/| |   
+# |_| \__,_| \__||_| |_| \___||_|   
+#                                   
+
+"""
+.. module:: luther.models
+    :platform: Unix
+    :synopsis: Model definitions for luther.
+
+.. moduleauthor:: Roland Shoemaker <rolandshoemaker@gmail.com>
+"""
+
+import luther.config
 
 from flask.ext.sqlalchemy import SQLAlchemy
 from passlib.apps import custom_app_context as pwd_context
@@ -22,12 +38,12 @@ class User(db.Model):
 		return pwd_context.verify(password, self.password_hash)
 
 	def generate_auth_token(self, expiration=600):
-		s = Serializer(config.secret_key, expires_in=expiration)
+		s = Serializer(luther.luther.config.secret_key, expires_in=expiration)
 		return s.dumps({'id': self.id})
 
 	@staticmethod
 	def verify_auth_token(token):
-		s = Serializer(config.secret_key)
+		s = Serializer(luther.luther.config.secret_key)
 		try:
 			data = s.loads(token)
 		except SignatureExpired:

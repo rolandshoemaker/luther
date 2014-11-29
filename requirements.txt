@@ -1,0 +1,7 @@
+dnspython
+flask
+flask.ext.httpauth
+sqlalchemy
+click
+tabulate
+redis

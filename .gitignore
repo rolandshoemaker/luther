@@ -3,3 +3,4 @@ luther/luther.db
 luther/luther.log
 luther/config.py
 *.pyc
+docs/_build/

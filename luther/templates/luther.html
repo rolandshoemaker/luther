@@ -128,8 +128,26 @@
             <h2 style="text-align: center; cursor: default;">about dnsd.co</h2>
             <p style="width: 95%; margin: 0 auto;"><em>dnsd.co</em> is a (<em>beta</em>) free dynamic DNS service running <em><a href="https://github.com/rolandshoemaker/luther" target="_blank">luther</a></em> both of which are maintained by <a href="http://www.graphite-ink.com/" target="_blank">roland shoemaker</a>. The aim of <em>luther</em> is to create a lightweight, simple, and easily configurable, customizable, and extendable open source REST API for performing dynamic DNS operations. <em>luther</em> utilizes <a href="http://flask.pocoo.org/" target="_blank">flask</a> for the REST API and <a href="http://www.dnspython.org/" target="_blank">dnspython</a> for handling TSIG authenticated DNS updates to a local or remote DNS server, it also offers a simple <a href="http://knockoutjs.com/" target="_blank">Knockout</a> JS frontend client and <a href="" targ="_target">redis</a>-based statistics gatherer.</p>
             <h3 style="text-align: center; cursor: default;">usage</h3>
+            <p style="width: 95%; margin: 0 auto;">By using the web interface you are only scratching the surface. <em>luther</em> is designed to be a highly scriptable service allowing you to perform actions using GET & JSON or URL parameter POST requests.</p>
+            <h3 style="text-align: center; cursor: default;">faq</h3>
+            <h4>How do I change my password / delete my account?</h4>
+            <p style="width: 95%; margin: 0 auto;">Click on the little person icon on the right hand side of the navigation bar at the top of the screen and select the option you would like.</p>
+            <p style="width: 95%; margin: 0 auto;">Your email, hashed password, subdomain names, IP addresses they point to, and the last time they were updated. That is all. We keep no information on <strong>who</strong> is creating/updating/deleting subdomains. The only logs we keep detail DNS errors between our web and DNS servers and activity which may be considered abuse of the service in order to aid in banning users.</p>
+            <h4>Is this platform secure?</h4>
+            <p style="width: 95%; margin: 0 auto;">All traffic is forced over SSL (meaning only https is supported), signed using a 256-bit certificate. You can also audit the source code of <em><a href="https://github.com/rolandshoemaker/luther" target="_blank">luther</a></em> to get a better understanding of what we are doing behind the scenes with the information you provide.</p>
+            <h4>How stable is this service?</h4>
+            <p style="width: 95%; margin: 0 auto;">This service is provided for free and is, <strong>seriously</strong>, in beta. It is provided for free as a demonstration of <em><a href="https://github.com/rolandshoemaker/luther" target="_blank">luther</a></em> and may go down, become unavailable, or have drastic changes in REST API functionality without any notice whatsoever. Our DNS servers are mirrored by the great folks at <a href="https://dns.he.net" target="_blank">hurricane electric</a> so we have great uptime in that respect, but this also imposes a hard limit of 10,000 records (5,000 individual subdomains) on the service.</p>
+            <h4>I found a bug! / I have a feature request!</h4>
+            <p style="width: 95%; margin: 0 auto;">Great! Bug reports can either be sent to <a href="mailto:bugs@dnsd.co" target="_blank">bugs@dnsd.co</a> or (<strong>the much better option</strong>) submitted via the <em>luther</em> github <a href="https://github.com/rolandshoemaker/luther/issues" target="_blank">issues</a> page along with feature requests.</p>
+            <h4>What DNS server do you use?</h4>
+            <p style="width: 95%; margin: 0 auto;">Our central DNS server runs BIND since why bother reinventing the wheel, 90% of the internet uses it.</p>
+            <h4>Why doesn't a reverse lookup of my IP point to my subdomain?</h4>
+            <p style="width: 95%; margin: 0 auto;">We aren't in charge of the reverse zone that your address resides in, this most likely belongs to your ISP, because of this we won't create any PTR records for your subdomain.</p>
+            <h4>I'd like to run this for my own domain!</h4>
+            <p style="width: 95%; margin: 0 auto;">Awesome! That was the real point that drove the development of <em>luther</em>, so if you'd like to setup your own service head over to the <a href="https://github.com/rolandshoemaker/luther" target="_blank">github</a> page to clone the repository and check out the setup instructions.</p>
             <h3 style="text-align: center; cursor: default;">terms of service</h3>
             <h3 style="text-align: center; cursor: default;">abuse complaints</h3>
+            <p style="width: 95%; margin: 0 auto;">If you'd like to file an abuse complaint please email it to <a href="mailto:abuse@dnsd.co" target="_blank">abuse@dnsd.co</a>. We cannot guarantee you will get a response.
             <hr>
             {% endif %}
         </div>

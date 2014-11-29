@@ -59,7 +59,7 @@ function LutherMainViewModel() {
                 });
             }
         }).fail(function(err) {
-            if (jqXHR.status == 403) {
+            if (err.status == 403) {
                 setTimeout(self.beginLogin, 500);
             }
         })
