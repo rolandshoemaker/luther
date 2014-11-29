@@ -1,3 +1,14 @@
+#  _         _    _                 
+# | |       | |  | |                
+# | | _   _ | |_ | |__    ___  _ __ 
+# | || | | || __|| '_ \  / _ \| '__|
+# | || |_| || |_ | | | ||  __/| |   
+# |_| \__,_| \__||_| |_| \___||_|   
+#                                   
+
+"""
+"""
+
 ##################
 # luther imports #
 ##################
@@ -9,7 +20,7 @@ from models import db, User, Subdomain
 # flask imports #
 #################
 
-from flask import Flask, g, request, jsonify, render_template
+from flask import Flask, g, request, jsonify, json, render_template
 from flask.ext.httpauth import HTTPBasicAuth
 
 #################
@@ -24,6 +35,7 @@ from functools import update_wrapper
 import ipaddress
 import re
 import datetime
+import json
 
 ##############################
 # flask + plugin object init #
@@ -179,7 +191,7 @@ class LutherBroke(Exception):
 @app.errorhandler(LutherBroke)
 def handle_broken(error):
     response = jsonify(error.to_dict())
-    response.status_code = error.status_code
+    response.status_code = 403 if error.status_code == 401 and config.enable_frontend else error.status_code
     return response
 
 #################
@@ -735,7 +747,19 @@ def get_interface(domain_name, domain_token, domain_ip=None):
 if config.enable_frontend:
     @app.route('/')
     def index():
-        return render_template('luther.html', client_ip=request.remote_addr)
+        results = {'users': [], 'subdomains': [], 'subdomain_limit': []}
+        if config.enable_stats:
+            stats = predis.get('luther/stats')
+        else:
+            stats = None
+        for a, b in stats['users']:
+            results['users'].append([str(a), b])
+        for a, b in stats['subdomains']:
+            results['subdomains'].append([str(a), b])
+        for a, b in stats['subdomain_limit']:
+            results['subdomain_limit'].append([str(a), b])
+        return render_template('luther.html', client_ip=request.remote_addr, about=config.frontend_show_about, luther_stats=results)
+
 
     if config.enable_stats:
         import threading, pickle
@@ -759,20 +783,17 @@ if config.enable_frontend:
                 stats = predis.get('luther/stats')
                 now = datetime.datetime.now()
                 if not stats:
-                    stats = {'users': [], 'subdomains': []}
+                    stats = {'users': [], 'subdomains': [], 'subdomain_limit': []}
                 if (len(stats['users'])+len(stats['subdomains']))/2 >= config.stats_entries:
                     stats['users'].pop(0)
                     stats['subdomains'].pop(0)
+                    stats['subdomain_limit'].pop(0)
                 stats['users'].append([now, User.query.count()])
                 stats['subdomains'].append([now, Subdomain.query.count()])
+                stats['subdomain_limit'].append([now, config.total_subdomain_limit])
                 predis.set('luther/stats', stats)
 
-        update_stats()
-
-        @app.route('/stats')
-        def stats():
-            stats = predis.get('luther/stats')
-            return render_template('stats.html')
+        # update_stats()
 
 ##############
 # Dev server #

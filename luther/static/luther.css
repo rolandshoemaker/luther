@@ -21,10 +21,19 @@ body {
 }
 
 hr {
-    width: 80%;
+    width: 90%;
     border-top: 1px solid #575757;
 }
 
-h1, h3 {
+h1, h2, h3 {
     color: rgb(176, 128, 215);
+}
+
+#login .modal-backdrop, #login   .modal-backdrop.in {
+    background-color: white;
+    opacity: 1;
+}
+
+#login .modal-content {
+    box-shadow: none;
 }

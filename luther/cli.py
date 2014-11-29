@@ -1,6 +1,17 @@
 #!/usr/bin/python
+#  _         _    _                 
+# | |       | |  | |                
+# | | _   _ | |_ | |__    ___  _ __ 
+# | || | | || __|| '_ \  / _ \| '__|
+# | || |_| || |_ | | | ||  __/| |   
+# |_| \__,_| \__||_| |_| \___||_|   
+#                                   
+
+"""
+"""
+
 import config
-from api import app, new_ddns, update_ddns, delete_ddns, validate_ip
+from api import app, new_ddns, update_ddns, delete_ddns, validate_ip, predis
 from models import User, Subdomain, db
 
 from getpass import getpass
@@ -19,7 +30,8 @@ db.init_app(app)
 def cli():
     """CLI tool for interacting with luther -- v0.1 -- roland shoemaker
 
-    [this is somewhat dangerous to luther, i guess. so be careful ._.]"""
+    [this is somewhat dangerous to luther, i guess. so be careful ._.]
+    """
     pass
 
 @cli.command('add_user')
@@ -349,6 +361,13 @@ def init_db():
         db.create_all()
         db.commit()
         click.secho('Initialized database, you may want to add a (admin) user now!\n', fg='green')
+
+@cli.command('check_stats')
+def check_stats():
+    """Get the most recent stats from redis (relies on config.enable_stats = True)"""
+    stats = predis.get('luther/stats')
+    click.echo(tabulate([[stats['users'][len(stats['users'])-1][1], stats['subdomains'][len(stats['subdomains'])-1][1], stats['users'][len(stats['users'])-1][0]]], ['num users', 'num subdomains', 'updated']))
+    return True
 
 if __name__ == "__main__":
     cli()

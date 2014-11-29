@@ -8,7 +8,7 @@
         <meta name="description" content="">
         <meta name="author" content="">
 
-        <title>luther</title>
+        <title>dnsd.co</title>
 
         <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css">
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
@@ -23,6 +23,55 @@
                 </div>
             </div>
         </nav>
+        <div class="modal fade" id="login" tabindex="-1" role="dialog" aria-labelledby="loginLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 class="modal-title" id="loginLabel" style="text-align: center;">dnsd.co</h2>
+                    </div>
+                    <div class="modal-body">
+                        <h3 style="text-align: center;">Login</h3>
+                        <form>
+                            <div class="control-group form-group">
+                                <label class="control-label" for="email">Email</label>
+                                <div class="controls">
+                                    <input data-bind="value: email" id="email" class="form-control" placeholder="you@email.com">
+                                </div>
+                            </div>
+                             <div class="control-group form-group">
+                                <label class="control-label" for="password">Password</label>
+                                <div class="controls">
+                                    <input data-bind="value: password" type="password" id="password" class="form-control" placeholder="">
+                                </div>
+                            </div>
+                            <button data-bind="click: login" class="btn btn-primary">Login</button>
+                        </form>
+                        <h3 style="text-align: center;">or register</h3>
+                        <form>
+                            <div class="control-group form-group">
+                                <label class="control-label" for="new_email">Email</label>
+                                <div class="controls">
+                                    <input data-bind="value: new_email" id="new_email" class="form-control" placeholder="you@email.com">
+                                </div>
+                            </div>
+                            <div class="control-group form-group">
+                                <label class="control-label" for="new_password">Password</label>
+                                <div class="controls">
+                                    <input data-bind="value: new_password" type="new_password" type="password" id="password" class="form-control" placeholder="">
+                                </div>
+                            </div>
+                            <div class="control-group form-group">
+                                <label class="control-label" for="new_password_two">Password</label>
+                                <div class="controls">
+                                    <input data-bind="value: new_password_two" type="new_password_two" type="password" id="password" class="form-control" placeholder="">
+                                </div>
+                            </div>
+                            <button data-bind="click: register" class="btn btn-primary">Register</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div id="main" class="container">
             <!-- ko if: api_errors().length -->
             <div class="row">
@@ -40,7 +89,7 @@
             <!-- /ko -->
             <div class="row">
                 <div class="col-lg-12 col-centered">
-                    <h1 style="text-align: center; cursor: default;">luther</h1>
+                    <h1 style="text-align: center; cursor: default;">dnsd.co</h1>
                     <br>
                     <table class="table table-striped">
                         <tr><td><b>Subdomain</b></td><td><b>IP Address</b></td><td><b>Token</b></td><td><b>Last update</b></td><td><b>Options</b></td></tr>
@@ -69,6 +118,20 @@
                     <button data-bind="click: beginAdd" class="btn">Add new subdomain</button>
                 </div>
             </div>
+            <hr>
+            {% if luther_stats %}
+            <h2 style="text-align: center; cursor: default;">stats</h3>
+            <div id="luther-stats"></div>
+            <hr>
+            {% endif %}
+            {% if about %}
+            <h2 style="text-align: center; cursor: default;">about dnsd.co</h2>
+            <p style="width: 95%; margin: 0 auto;"><em>dnsd.co</em> is a (<em>beta</em>) free dynamic DNS service running <em><a href="https://github.com/rolandshoemaker/luther" target="_blank">luther</a></em> both of which are maintained by <a href="http://www.graphite-ink.com/" target="_blank">roland shoemaker</a>. The aim of <em>luther</em> is to create a lightweight, simple, and easily configurable, customizable, and extendable open source REST API for performing dynamic DNS operations. <em>luther</em> utilizes <a href="http://flask.pocoo.org/" target="_blank">flask</a> for the REST API and <a href="http://www.dnspython.org/" target="_blank">dnspython</a> for handling TSIG authenticated DNS updates to a local or remote DNS server, it also offers a simple <a href="http://knockoutjs.com/" target="_blank">Knockout</a> JS frontend client and <a href="" targ="_target">redis</a>-based statistics gatherer.</p>
+            <h3 style="text-align: center; cursor: default;">usage</h3>
+            <h3 style="text-align: center; cursor: default;">terms of service</h3>
+            <h3 style="text-align: center; cursor: default;">abuse complaints</h3>
+            <hr>
+            {% endif %}
         </div>
         <div class="modal fade" id="addSub" tabindex="-1" role="dialog" aria-labelledby="addSubLabel" aria-hidden="true">
             <div class="modal-dialog">
@@ -113,12 +176,6 @@
                         <p style="text-align: center;"><strong>{{client_ip}}</strong></p>
                         <form>
                             <div class="control-group form-group">
-                                <label class="control-label" for="inputSubdomain">Subdomain name</label>
-                                <div class="controls">
-                                    <input data-bind="value: subdomain" id="inputSubdomain" class="form-control" placeholder="rad">
-                                </div>
-                            </div>
-                            <div class="control-group form-group">
                                 <label class="control-label" for="inputIP">IP address</label>
                                 <div class="controls">
                                     <input data-bind="value: ip" id="inputIP" class="form-control" placeholder="1.2.3.4">
@@ -133,12 +190,64 @@
                 </div>
             </div>
         </div>
-        <script>
-        var luther_client_address = '{{client_ip}}';
-        </script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
         <script src="http://cdnjs.cloudflare.com/ajax/libs/knockout/3.1.0/knockout-min.js"></script>
+        <script src="https://code.highcharts.com/highcharts.js"></script>
         <script src="/static/luther.js"></script>
+        <script>
+        var luther_client_address = '{{client_ip}}';
+        {% if luther_stats %}
+        $(function () {
+            var stuff = JSON.parse('{{luther_stats|tojson|safe}}');
+            for (var i = 0; i < stuff.users.length; i++) {
+                stuff.users[i][0] = Date.parse(stuff.users[i][0])
+            }
+            for (var i = 0; i < stuff.subdomains.length; i++) {
+                stuff.subdomains[i][0] = Date.parse(stuff.subdomains[i][0])
+            }
+            for (var i = 0; i < stuff.subdomain_limit.length; i++) {
+                stuff.subdomain_limit[i][0] = Date.parse(stuff.subdomain_limit[i][0])
+            }
+            $('#luther-stats').highcharts({
+                chart: {
+                    type: 'line'
+                },
+                plotOptions: {
+                    line: {
+                        marker: {
+                            enabled: false
+                        }
+                    }
+                },
+                title: {
+                    text: 'Stats for dnsd.co'
+                },
+                xAxis: {
+                    type: 'datetime',
+                    title: {
+                        text: 'Date'
+                    }
+                },
+                yAxis: {
+                    min: 0
+                },
+                series: [{
+                    name: 'Number of Users',
+                    data: stuff.users
+                },{
+                    name: 'Number of Subdomains',
+                    data: stuff.subdomains
+                },{
+                    name: 'Subdomain limit',
+                    data: stuff.subdomain_limit,
+                    dashStyle: 'longdash',
+                    color: '#ff0000',
+                    lineWidth: 1
+                }]
+            })
+        })
+        {% endif %}
+        </script>
     </body>
 </html>
