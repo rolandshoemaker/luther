@@ -39,7 +39,7 @@ class User(db.Model):
 
 class Subdomain(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
-	name = db.Column(db.String)
+	name = db.Column(db.String, unique=True)
 	ip = db.Column(db.String)
 	v6 = db.Column(db.Boolean)
 	token = db.Column(db.String)
