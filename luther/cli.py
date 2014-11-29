@@ -9,6 +9,8 @@ from tabulate import tabulate
 
 import click
 
+import dns.message
+import dns.query
 import dns.resolver
 
 db.init_app(app)
@@ -31,21 +33,21 @@ def add_user(email, password, role, quota):
         if not email:
             email = input('Email: ')
         if User.query.filter_by(email=email).first():
-            click.secho('Email already exists silly.', fg='red')
+            click.secho('Email already exists silly.\n', fg='red')
             return False
         if not password:
             password = getpass()
             if not password == getpass(prompt='Confirm Password: '):
-                click.secho('Passwords dont match...', fg='red')
+                click.secho('Passwords dont match...\n', fg='red')
                 return False
             if password is '':
-                click.secho('Password cannot be blank.', fg='red')
+                click.secho('Password cannot be blank.\n', fg='red')
                 return False
         new_user = User(email=email, role=role, quota=quota)
         new_user.hash_password(password)
         db.session.add(new_user)
         db.session.commit()
-        click.secho(email+' added!', fg='green')
+        click.secho(email+' added!\n', fg='green')
 
 @cli.command('edit_user')
 @click.argument('email')
@@ -65,12 +67,12 @@ def edit_user(email, password, role, quota):
                 if role:
                     user.role = role
                 db.session.commit()
-                click.secho('User '+user.email+' updated', fg='green')
+                click.secho('User '+user.email+' updated.\n', fg='green')
             else:
-                click.secho('User '+email+' doesnt exist', fg='red')
+                click.secho('User '+email+' doesnt exist.\n', fg='red')
                 return False
         else:
-            click.secho('No user: '+email, fg='red')
+            click.secho('No user: '+email+'.\n', fg='red')
 
 @cli.command('delete_user')
 @click.argument('email')
@@ -81,14 +83,13 @@ def delete_user(email):
         if user:
             for sub in user.subdomains:
                 if not delete_ddns(sub.name, on_api=False):
-                    click.secho('Error deleting subdomain: '+sub.name+'!', fg='red')
+                    click.secho('Error deleting subdomain: '+sub.name+'!\n', fg='red')
                     return False
             db.session.delete(user)
             db.session.commit()
-            click.secho('Deleted user: '+user.email, fg='green')
+            click.secho('Deleted user: '+user.email+'.\n', fg='green')
         else:
-            click.secho('Error deleting user: '+user.email, fg='red')
-            click.secho('No user: '+email, fg='red')
+            click.secho('No user: '+email+'.\n', fg='red')
 
 @cli.command('view_user')
 @click.argument('email')
@@ -102,22 +103,32 @@ def view_user(ctx, email):
             click.echo()
             ctx.invoke(users_subdomains, email=email)
         else:
-            click.secho('No user: '+email+'\n', fg='red')
+            click.secho('No user: '+email+'.\n', fg='red')
 
 @cli.command('count_users')
-def count_users():
+@click.option('--role', help='Role to filter users by (0/1)')
+def count_users(role):
     """Count all users"""
     with app.app_context():
-        click.secho(str(User.query.count())+' users exist.\n', fg='yellow')
+        if role:
+            click.secho(str(User.query.filter_by(role=role).count())+' users exist.\n', fg='yellow')
+        else:
+            click.secho(str(User.query.count())+' users exist.\n', fg='yellow')
 
 @cli.command('list_users')
+@click.option('--role', help='Role to filter users by (0/1)')
 @click.pass_context
-def list_users(ctx):
+def list_users(ctx, role):
     """List all users"""
-    ctx.forward(count_users)
     with app.app_context():
         results = []
-        for user in User.query.all():
+        if role:
+            ctx.invoke(count_users, role=role)
+            users = User.query.filter_by(role=role).all()
+        else:
+            ctx.invoke(count_users)
+            users = User.query.all()
+        for user in users:
             results.append([user.email, user.role, user.quota, user.subdomains.count()])
         click.echo(tabulate(results, ['email', 'role', 'quota', 'num subdomains']))
         click.echo()
@@ -131,7 +142,7 @@ def users_subdomains(email):
         if user:
             if user.subdomains.count() > 0:
                 results = []
-                click.secho(user.email+' has these subdomains\n', fg='green')
+                click.secho(user.email+' has these subdomains.\n', fg='green')
                 for sub in user.subdomains:
                     results.append([sub.name, sub.ip, sub.token, sub.last_updated])
                 click.echo(tabulate(results, ['subdomain', 'ip', 'token', 'last updated']))
@@ -139,7 +150,7 @@ def users_subdomains(email):
             else:
                 click.secho(user.email+' has no subdomains.\n', fg='yellow')
         else:
-            click.secho('No user: '+email+'\n', fg='red')
+            click.secho('No user: '+email+'.\n', fg='red')
 
 @cli.command('add_subdomain')
 @click.argument('user_email')
@@ -163,14 +174,14 @@ def add_subdomain(user_email, name, ip):
                     sub.generate_domain_token()
                     db.session.add(sub)
                     db.session.commit()
-                    click.secho('Added new subdomain: '+sub.name+' for '+user.email+'\n', fg='green')
+                    click.secho('Added new subdomain: '+sub.name+' for '+user.email+'.\n', fg='green')
                 else:
                     return False
             else:
                 click.secho('Subdomain already exists!\n', fg='red')
                 return False
         else:
-            click.secho('No user: '+user_email+'\n', fg='red')
+            click.secho('No user: '+user_email+'.\n', fg='red')
 
 @cli.command('edit_subdomain')
 @click.argument('name')
@@ -191,12 +202,12 @@ def edit_subdomain(name, ip, v6, user_email):
                 if user:
                     sub.user = user
                 else:
-                    click.secho('User '+user_email+' doesnt exist\n', fg='red')
+                    click.secho('User '+user_email+' doesnt exist.\n', fg='red')
                     return False
             db.session.commit()
             click.secho('Subdomain '+sub.name+' updated!\n', fg='green')
         else:
-            click.secho('No subdomain: '+name+'\n', fg='red')
+            click.secho('No subdomain: '+name+'.\n', fg='red')
 
 @cli.command('delete_subdomain')
 @click.argument('name')
@@ -208,12 +219,12 @@ def delete_subdomain(name):
             if delete_ddns(name, on_api=False):
                 db.session.delete(sub)
                 db.session.commit()
-                click.secho('Deleted subdomain: '+name+'\n', fg='green')
+                click.secho('Deleted subdomain: '+name+'.\n', fg='green')
             else:
-                click.secho('Error deleting subdomain: '+name+'\n', fg='ref')
+                click.secho('Error deleting subdomain: '+name+'.\n', fg='ref')
                 return False
         else:
-            click.secho('No subdomain: '+name+'\n', fg='red')
+            click.secho('No subdomain: '+name+'.\n', fg='red')
 
 @cli.command('regen_subdomain_token')
 @click.argument('name')
@@ -224,9 +235,9 @@ def regen_subdomain_token(name):
         if sub:
             sub.generate_domain_token()
             db.session.commit()
-            click.secho('Subdomain token for '+sub.name+' regenerated: '+sub.token+'\n', fg='green')
+            click.secho('Subdomain token for '+sub.name+' regenerated: '+sub.token+'.\n', fg='green')
         else:
-            click.secho('No subdomain: '+name+'\n', fg='red')
+            click.secho('No subdomain: '+name+'.\n', fg='red')
 
 @cli.command('regen_users_subdomain_tokens')
 @click.argument('email')
@@ -237,9 +248,9 @@ def regen_users_subdomain_tokens(email):
         if user:
             for sub in user.subdomains:
                 sub.regen_subdomain_token()
-            click.secho('Regenerated all of the subdomain tokens for '+user.email+'\n', fg='green')
+            click.secho('Regenerated all of the subdomain tokens for '+user.email+'.\n', fg='green')
         else:
-            click.secho('No user: '+email+'\n', fg='red')
+            click.secho('No user: '+email+'.\n', fg='red')
 
 @cli.command('view_subdomain')
 @click.argument('name')
@@ -251,7 +262,7 @@ def view_subdomain(name):
             click.echo(tabulate([[sub.name, sub.ip, sub.token, sub.last_updated, sub.user.email]], ['subdomain', 'ip', 'token', 'last updated', 'user']))
             click.echo()
         else:
-            click.secho('No subdomain: '+name+'\n', fg='red')
+            click.secho('No subdomain: '+name+'.\n', fg='red')
 
 @cli.command('count_subdomains')
 def count_subdomains():
@@ -271,25 +282,65 @@ def list_subdomains(ctx):
         click.echo(tabulate(results, ['subdomain', 'ip', 'token', 'last updated', 'user']))
         click.echo()
 
+@cli.command('search_subdomains')
+@click.option('--name', help='Name to search for')
+@click.option('--ip', help='IP address to search for')
+def search_users(name, ip):
+    """Search for users by email"""
+    with app.app_context():
+        results = []
+        if name and not ip:
+            subdomains = Subdomain.query.filter(Subdomain.name.like('%'+name+'%')).all()
+        elif ip and not name:
+            subdomains = Subdomain.query.filter(Subdomain.ip.like('%'+ip+'%')).all()
+        else:
+            return False
+        for sub in subdomains:
+            results.append([sub.name, sub.ip, sub.token, sub.last_updated, sub.user.email])
+        click.echo(tabulate(results, ['subdomain', 'ip', 'token', 'last updated', 'user']))
+        click.echo()
+
+@cli.command('search_users')
+@click.argument('email')
+def search_users(email):
+    """Search for users by email"""
+    with app.app_context():
+        results = []
+        users = User.query.filter(User.email.like('%'+email+'%')).all()
+        for user in users:
+            results.append([user.email, user.role, user.quota, user.subdomains.count()])
+        click.echo(tabulate(results, ['email', 'role', 'quota', 'num subdomains']))
+        click.echo()
+
 @cli.command('dig_subdomain')
 @click.argument('name')
-def dig_subdomain(name):
+@click.option('--nameserver', default='localhost', help='Specific nameserver to query')
+def dig_subdomain(name, nameserver):
     """Check subdomain IP address in database against the address returned from nameservers"""
     with app.app_context():
         sub = Subdomain.query.filter_by(name=name).first()
         if sub:
-            answer = dns.resolver.query(sub.name+'.'+config.dns_root_domain, 'A')
+            if sub.v6:
+                rtype = 'AAAA'
+            else:
+                rtype = 'A'
+            dns.resolver.nameservers = [nameserver]
+            answer = dns.resolver.query(sub.name+'.'+config.dns_root_domain, rtype)
             match = bool()
+            returned_ips = []
             for rdata in answer:
-                if rdata.address is sub.ip:
+                returned_ips.append([rdata.address])
+                if rdata.address == sub.ip:
                     match = True
             if match:
-                click.secho('IP address returned from nameservers matches address in database.\n', fg='green')
+                click.secho('IP address returned from nameservers matches address in database ('+sub.ip+').\n', fg='green')
             else:
-                click.secho('IP address returned from nameservers doesnt match address in database.\n', fg='red')
+                click.secho('IP address returned from nameservers doesnt match address in database. Returned addresses where:', fg='red')
+                click.echo(tabulate(returned_ips))
+                click.echo()
                 return False
         else:
-            click.secho('No subdomain: '+name+'\n', fg='red')
+            click.secho('No subdomain: '+name+'.\n', fg='red')
 
 @cli.command('init_db')
 def init_db():
