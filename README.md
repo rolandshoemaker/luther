@@ -55,7 +55,7 @@ To generate a TSIG key for the zone you want to use, if you don't already have o
 
 Open the resulting `.key` file and copy the shared secret at the end of the KEY record, highlighted here in bold (the key here is truncated because 512 bits is long)
 
-    example.com. IN KEY 512 3 157 **ZGep1GQGC7l5vPSevN2q9+H55/2eiok7ejwxNAO6Pniv0Zh...**
+<pre><code>example.com. IN KEY 512 3 157 <strong>ZGep1GQGC7l5vPSevN2q9+H55/2eiok7ejwxNAO6Pniv0Zh...</strong></code></pre>
 
 To allow this key to be used to update a DNS server you need to add the key configuration to your `named.conf` / `named.conf.keys` configuration file on the DNS server, like this
 
