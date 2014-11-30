@@ -13,9 +13,13 @@
   "your non-lutheran ddns worries me" - Martin Luther, 1538
 </p>
 
-a lightweight dynamic dns REST API backend for BIND written in Python using the 
-[Flask](http://flask.pocoo.org/) web application framework. this repo makes up the 
-infrastructure for the free (*beta*) dynamic dns service [dnsd.co](https://dnsd.co).
+## Introduction
+
+luther is an open source lightweight Dynamic DNS REST API that allows users 
+to setup a DDNS service (similar to dyndns, duckdns, no-ip, etc) for their 
+own domains quickly and painlessly.
+
+luther is also the backend infrastructure for the free (***beta**, 5 subdomain limit per user*) dynamic dns service [dnsd.co](https://dnsd.co).
 
 ## Quickstart
 
@@ -28,21 +32,58 @@ If you install *luther* using `setup.py` all these modules will attempt to be in
   * flask
   * flask.ext.httpauth
   * sqlalchemy
-  * tabulate
+  * tabulate (for the cli tool)
   * click (for the cli tool)
-  * redis (for storing stats
+  * redis (for storing stats)
 * Local or remote services not provided by *luther*
-  * DNS server that supports RFC 2136 DNS Updates (BIND > 8, PowerDNS > 3.4, etc) and a TSIG zone key
+  * DNS server that supports RFC 2136 DNS Updates (BIND > 8, PowerDNS > 3.4, etc)
   * SQL database (MySQL, PostgreSQL, SQLite, etc)
-  * redis-server
+  * Redis database
 
 ### Installation
 
+    python setup.py install
+
 ### Configuration
+
+#### DNS TSIG Key
+
+To generate a TSIG key for the zone you want to use, if you don't already have one, run `dnssec-keygen` to generate the TSIG key files (make sure you use the FQDN, including the trailing **.**)
+
+    # dnssec-keygen -a HMAC-MD5 -b 512 -n HOST example.com.
+    Kexample.com.+157+32502
+
+Open the resulting `.key` file and copy the shared secret at the end of the KEY record, highlighted here in bold (the key here is truncated because 512 bits is long)
+
+    example.com. IN KEY 512 3 157 **ZGep1GQGC7l5vPSevN2q9+H55/2eiok7ejwxNAO6Pniv0Zh...**
+
+To allow this key to be used to update a DNS server you need to add the key configuration to your `named.conf` / `named.conf.keys` configuration file on the DNS server, like this
+
+    key example.com. {
+        algorithm hmac-md5;
+        secret "ZGep1GQGC7l5vPSevN2q9+H55/2eiok7ejwxNAO6Pniv0Zh...";
+    };
+
+and in your zone definition file append an `allow-update` statement to the relevant zone
+
+    zone "example.com" {
+        ...
+        allow-update {
+            key example.com.;
+        };
+    };
+
+#### luther.config
+
+#### WSGI Server
+
+### Using the CLI tool
+
+### You're ready!
 
 ## Documentation
 
-Sphinx documentation can be built from source be navigating to `docs` and typing
+Sphinx documentation can be built from source be navigating to `docs/` and typing
 
     # make html
 
@@ -50,11 +91,14 @@ or you can view the documentation for the latest release at [https://docs.luther
 
 ## TODO
 
+* ADD: `setup.py` installer file
 * FIX: table doesn't update properly when you add a domain :<
 * ADD: registration stuff in luther.js
 * ADD: change pass/delete user drop down to frontend
+* ADD: write tests
 * finish writing the README (._.)
 * finish writing all the documentation
+
 
 ## License
 
