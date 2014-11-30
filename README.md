@@ -19,7 +19,7 @@ luther is an open source lightweight Dynamic DNS REST API that allows users
 to setup a DDNS service (similar to dyndns, duckdns, no-ip, etc) for their 
 own domains quickly and painlessly.
 
-luther is also the backend infrastructure for the free (***beta**, 5 subdomain limit per user*) dynamic dns service [dnsd.co](https://dnsd.co).
+luther is also the backend infrastructure for the free (*__beta__, 5 subdomain limit per user*) dynamic dns service [dnsd.co](https://dnsd.co).
 
 ## Quickstart
 
