@@ -1,10 +1,10 @@
-#  _         _    _                 
-# | |       | |  | |                
-# | | _   _ | |_ | |__    ___  _ __ 
+#  _         _    _
+# | |       | |  | |
+# | | _   _ | |_ | |__    ___  _ __
 # | || | | || __|| '_ \  / _ \| '__|
-# | || |_| || |_ | | | ||  __/| |   
-# |_| \__,_| \__||_| |_| \___||_|   
-#                                   
+# | || |_| || |_ | | | ||  __/| |
+# |_| \__,_| \__||_| |_| \___||_|
+#
 
 """
 .. module:: luther.api
@@ -25,14 +25,17 @@ from luther.models import db, User, Subdomain
 # flask imports #
 #################
 
-from flask import Flask, g, request, jsonify, json, render_template, make_response
+from flask import Flask, g, request, jsonify, \
+    render_template, make_response
 from flask.ext.httpauth import HTTPBasicAuth
 
 ###############
 # dns imports #
 ###############
 
-import dns.query, dns.tsigkeyring, dns.update
+import dns.query
+import dns.tsigkeyring
+import dns.update
 from dns.query import UnexpectedSource, BadResponse
 import dns.resolver
 from dns.resolver import NoAnswer
@@ -48,7 +51,10 @@ from redis import Redis
 ##################
 
 from functools import update_wrapper
-import time, ipaddress, json, re, datetime
+import time
+import ipaddress
+import re
+import datetime
 
 ##############################
 # flask + plugin object init #
@@ -74,12 +80,17 @@ keyring = dns.tsigkeyring.from_text({
 ##################
 
 if not app.debug:
-    import logging, logging.handlers
+    import logging
+    import logging.handlers
     from logging import Formatter
-    fh = logging.handlers.RotatingFileHandler(luther.config.log_file_path, maxBytes=luther.config.log_max_bytes, backupCount=luther.config.log_backup_count) # maybe timedrotating?
+    fh = logging.handlers.RotatingFileHandler(
+        luther.config.log_file_path,
+        maxBytes=luther.config.log_max_bytes,
+        backupCount=luther.config.log_backup_count
+    )
     fh.setLevel(logging.WARNING)
-    fh.setFormatter(Formatter('%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'))
-    loggers = [app.logger] # , getLogger('sqlalchemy')]
+    fh.setFormatter(Formatter(luther.config.log_format))
+    loggers = [app.logger]
     for logger in loggers:
         logger.addHandler(fh)
 
@@ -87,8 +98,10 @@ if not app.debug:
 # Util functions #
 ##################
 
+
 def validate_ip(ip, v6=False):
-    """validate_ip uses the ipaddress library to validate IPv4 and IPv6 Addresses.
+    """validate_ip uses the ipaddress library to validate IPv4 and IPv6
+    Addresses.
 
     :param ip: The IP Address to test.
     :type ip: string.
@@ -111,14 +124,18 @@ def validate_ip(ip, v6=False):
             for subnet in luther.config.allowed_ddns_ipv6_subnets:
                 if test in ipaddress.IPv6Network(subnet):
                     correct_subnet = True
-        if (test.is_private and not luther.config.allow_private_addresses) or not correct_subnet:
+        if (test.is_private and not luther.config.allow_private_addresses) \
+                or not correct_subnet:
             return False
         return test.exploded
     except ipaddress.AddressValueError:
         return False
 
-def in_allowed_network(ip, v4_networks=luther.config.allowed_user_v4_subnets, v6_networks=luther.config.allowed_user_v6_subnets):
-    """in_allowed_network tests whether an IP Address is within a list of defined networks (v4/v6).
+
+def in_allowed_network(ip, v4_networks=luther.config.allowed_user_v4_subnets,
+                       v6_networks=luther.config.allowed_user_v6_subnets):
+    """in_allowed_network tests whether an IP Address
+    is within a list of defined networks (v4/v6).
 
     :param ip: The IP Address to test.
     :type ip: string.
@@ -149,21 +166,29 @@ def in_allowed_network(ip, v4_networks=luther.config.allowed_user_v4_subnets, v6
                 in_net = True
     return in_net
 
+
 def validate_subdomain(subdomain):
-    """validate_subdomain checks to see if a subdomain is valid and not in a list of restricted names.
+    """validate_subdomain checks to see if a subdomain is valid
+    and not in a list of restricted names.
 
     :param subdomain: The subdomain to test.
     :type subdomain: string.
     :returns: bool -- If the subdomain is valid and not restricted.
 
     """
-    if re.match('^[0-9a-z-]{'+str(luther.config.min_subdomain_length)+','+str(luther.config.max_subdomain_length)+'}$', subdomain, re.IGNORECASE) and subdomain not in luther.config.restricted_subdomains:
+    configured_pattern = '^[0-9a-z-]{MIN,MAX}$'
+    configured_pattern.replace('MIN', str(luther.config.min_subdomain_length))
+    configured_pattern.replace('MAX', str(luther.config.max_subdomain_length))
+    if re.match(configured_pattern, subdomain, re.IGNORECASE) \
+            and subdomain not in luther.config.restricted_subdomains:
         return True
     else:
         return False
 
+
 def json_status_message(message, code, extra=''):
-    """json_status_message builds a JSON status response with assosiated HTTP status code, and extra stuff if you want.
+    """json_status_message builds a JSON status response with
+    assosiated HTTP status code, and extra stuff if you want.
 
     :param message: The message to to return.
     :type message: string.
@@ -185,9 +210,9 @@ def json_status_message(message, code, extra=''):
 # Error handling #
 ##################
 
+
 class LutherBroke(Exception):
-    """super special luther Exception.
-    """
+    """super special luther Exception."""
     status_code = 400
     message = 'Bad request'
 
@@ -203,53 +228,72 @@ class LutherBroke(Exception):
         rv['message'] = self.message
         return rv
 
+
 @app.errorhandler(LutherBroke)
 def handle_broken(error):
     response = jsonify(error.to_dict())
     response.status_code = error.status_code
     return response
 
+
 @auth.error_handler
 def unauthorized():
     return make_response(jsonify({'error': 'Unauthorized access'}), 403)
-    # return 403 instead of 401 to prevent browsers from displaying the default auth dialog
+    # return 403 instead of 401 to prevent browsers from
+    # displaying the default auth dialog
 
 #################
 # DNS functions #
 #################
+
 
 def dns_message_check(msg, on_api):
     """dns_message_check checks the rcode of a dns.message.Message response.
 
     :param msg: The dns.message.Message object.
     :type msg: object.
-    :returns: object -- None on success or a internal_error() JSON response based on the rcode.
-    
+    :returns: object -- None on success or a internal_error()
+        JSON response based on the rcode.
+
     """
-    rcode_errors = {1: 'malformed dns message',
+    rcode_errors = {
+        1: 'malformed dns message',
         2: '',
         3: 'subdomain does not exist on master dns server',
         4: 'master dns server does not support that opcode',
-        5: 'master dns server refuses to perform the specified operation for policy or security reasons',
+        5: 'master dns server refuses to perform the specified \
+            operation for policy or security reasons',
         6: 'subdomain already exists on master dns server',
         7: 'record that shouldnt exist does exist',
         8: 'record that should exist doesnt exist',
-        9: 'server is not authorized or is using bad tsig key to make updates to zone \''+luther.config.tsig_zone+'\' on master dns server',
-        10: 'zone \''+luther.config.tsig_zone+'\' does not exist on master dns server',
-        16: ''}
+        9: 'server is not authorized or is using bad tsig key to \
+            make updates to zone \''+luther.config.tsig_zone+'\' \
+            on master dns server',
+        10: 'zone \''+luther.config.tsig_zone+'\' does not exist \
+            on master dns server',
+        16: ''
+        }
     error_info = rcode_errors.get(msg.rcode())
     if error_info is not None:
         if error_info is not '':
             error_info = ', '+error_info
         if on_api:
-            raise LutherBroke('Internal server error'+error_info, status_code=500)
+            raise LutherBroke('Internal server error'+error_info,
+                              status_code=500)
         else:
             return False
     else:
         return True
 
-def dns_query(update, on_api, server=luther.config.dns_master_server, port=luther.config.dns_master_port, source_port=luther.config.dns_master_source_port, timeout=luther.config.dns_master_timeout):
-    """dns_query sends dns.update.Update objects to a dns server and parses the response.
+
+def dns_query(update,
+              on_api,
+              server=luther.config.dns_master_server,
+              port=luther.config.dns_master_port,
+              source_port=luther.config.dns_master_source_port,
+              timeout=luther.config.dns_master_timeout):
+    """dns_query sends dns.update.Update objects to a dns
+    server and parses the response.
 
     :param update:
     :type update: object.
@@ -267,22 +311,45 @@ def dns_query(update, on_api, server=luther.config.dns_master_server, port=luthe
 
     """
     try:
-        resp = dns.query.tcp(update, server, port=port, source_port=source_port, timeout=timeout)
+        resp = dns.query.tcp(update,
+                             server,
+                             port=port,
+                             source_port=source_port,
+                             timeout=timeout)
         if dns_message_check(resp, on_api):
             return True
     except NoAnswer:
-        raise LutherBroke('Internal server error, response contained no answer', status_code=500)
+        raise LutherBroke(
+            'Internal server error, response contained no answer',
+            status_code=500
+        )
     except UnexpectedSource:
-        raise LutherBroke('Internal server error, response came from unexpected source', status_code=500)
+        raise LutherBroke(
+            'Internal server error, response came from unexpected source',
+            status_code=500
+        )
     except BadResponse:
-        raise LutherBroke('Internal server error, malformed response from master dns server', status_code=500)
+        raise LutherBroke(
+            'Internal server error, malformed response from master dns server',
+            status_code=500
+        )
     except TimeoutError:
-        raise LutherBroke('Gateway timeout, tcp connection to master DNS server timed out', status_code=504)
+        raise LutherBroke(
+            'Gateway timeout, tcp connection to master DNS server timed out',
+            status_code=504
+        )
     except OSError:
-        raise LutherBroke('Internal server error, OSError (most likely no route to dns master server)', status_code=500)
+        raise LutherBroke(
+            'Internal server error, OSError \
+            (most likely no route to dns master server)',
+            status_code=500
+        )
+
 
 def new_ddns(name, ip, v6=False, on_api=True):
-    """new_ddns formats a dns.update.Update object to add A/AAA (and optionally TXT) records for a subdomain and sends it to a dns server via dns_query().
+    """new_ddns formats a dns.update.Update object to add A/AAA
+    (and optionally TXT) records for a subdomain and sends it to
+    a dns server via dns_query().
 
     :param name: The subdomain name
     :type name: string.
@@ -295,24 +362,42 @@ def new_ddns(name, ip, v6=False, on_api=True):
     :returns: object -- None on success or JSON response indicating the error.
 
     """
-    new_record = dns.update.Update(luther.config.dns_root_domain, keyring=keyring)
+    new_record = dns.update.Update(
+        luther.config.dns_root_domain,
+        keyring=keyring
+    )
     addr = validate_ip(ip, v6=v6)
     if not v6:
         new_record.add(name, luther.config.default_ttl, 'A', addr)
         if luther.config.add_txt_records:
-            new_record.add(name, luther.config.default_ttl, 'TXT', '"Record for '+name+'.'+luther.config.root_domain+' last updated at '+str(datetime.datetime.utcnow())+' UTC"')
+            new_record.add(
+                name,
+                luther.config.default_ttl,
+                'TXT',
+                '"Record for '+name+'.'+luther.config.root_domain+' last \
+                updated at '+str(datetime.datetime.utcnow())+' UTC"'
+            )
     else:
         new_record.add(name, luther.config.default_ttl, 'AAAA', addr)
         if luther.config.add_txt_records:
-            new_record.add(name, luther.config.default_ttl, 'TXT', '"Record for '+name+'.'+luther.config.root_domain+' last updated at '+str(datetime.datetime.utcnow())+' UTC"')
+            new_record.add(
+                name,
+                luther.config.default_ttl,
+                'TXT',
+                '"Record for '+name+'.'+luther.config.root_domain+' last \
+                updated at '+str(datetime.datetime.utcnow())+' UTC"'
+            )
     new_record.absent(name)
     if dns_query(new_record, on_api):
         return True
     else:
         return False
 
+
 def update_ddns(name, ip, v6=False, on_api=True):
-    """update_ddns formats a dns.update.Update object to update A/AAA (and optionally TXT) records for a subdomain and sends it to a dns server via dns_query().
+    """update_ddns formats a dns.update.Update object to update A/AAA
+    (and optionally TXT) records for a subdomain and sends it to a dns
+    server via dns_query().
 
     :param name: The subdomain name
     :type name: string.
@@ -327,15 +412,30 @@ def update_ddns(name, ip, v6=False, on_api=True):
     """
     addr = validate_ip(ip, v6=v6)
     if addr:
-        update = dns.update.Update(luther.config.dns_root_domain, keyring=keyring)
+        update = dns.update.Update(
+            luther.config.dns_root_domain,
+            keyring=keyring
+        )
         if not v6:
             update.replace(name, luther.config.default_ttl, 'A', addr)
             if luther.config.add_txt_records:
-                update.replace(name, luther.config.default_ttl, 'TXT', '"Record for '+name+'.'+luther.config.root_domain+' last updated at '+str(datetime.datetime.utcnow())+' UTC"')
+                update.replace(
+                    name,
+                    luther.config.default_ttl,
+                    'TXT',
+                    '"Record for '+name+'.'+luther.config.root_domain+' last \
+                    updated at '+str(datetime.datetime.utcnow())+' UTC"'
+                )
         else:
             update.replace(name, luther.config.default_ttl, 'AAAA', addr)
             if luther.config.add_txt_records:
-                update.replace(name, luther.config.default_ttl, 'TXT', '"Record for '+name+'.'+luther.config.root_domain+' last updated at '+str(datetime.datetime.utcnow())+' UTC"')
+                update.replace(
+                    name,
+                    luther.config.default_ttl,
+                    'TXT',
+                    '"Record for '+name+'.'+luther.config.root_domain+' last \
+                    updated at '+str(datetime.datetime.utcnow())+' UTC"'
+                )
         if dns_query(update, on_api):
             return True
         else:
@@ -349,8 +449,10 @@ def update_ddns(name, ip, v6=False, on_api=True):
         else:
             return False
 
+
 def delete_ddns(name, on_api=True):
-    """delete_ddns formats a dns.update.Update object to delete the RRSET for a subdomain.
+    """delete_ddns formats a dns.update.Update object to delete
+    the RRSET for a subdomain.
 
     :param name: The subdomain name
     :type name: string.
@@ -371,9 +473,10 @@ def delete_ddns(name, on_api=True):
 # Rate limiting logic #
 #######################
 
-class RateLimit(object):
-    """The RateLimit class implements... well rate limiting! (borrowed from http://flask.pocoo.org/snippets/70/ and slightly modified)
 
+class RateLimit(object):
+    """The RateLimit class implements... well rate limiting!
+    (borrowed from http://flask.pocoo.org/snippets/70/ and slightly modified)
     """
     expiration_window = 10
 
@@ -391,29 +494,39 @@ class RateLimit(object):
     remaining = property(lambda x: x.limit - x.current)
     over_limit = property(lambda x: x.current >= x.limit)
 
+
 def get_view_rate_limit():
     return getattr(g, '_view_rate_limit', None)
 
+
 def on_over_limit(limit):
     if not limit.send_x_headers:
-        raise LutherBroke('You have reached the rate limit (limit: '+str(limit.limit)+', per: '+str(limit.per)+' seconds)', status_code=429)
+        raise LutherBroke(
+            'You have reached the rate limit \
+            (limit: '+str(limit.limit)+', per: '+str(limit.per)+' seconds)',
+            status_code=429
+        )
     else:
         raise LutherBroke('You have reached the rate limit', status_code=429)
 
-def ratelimit(limit, per=225, send_x_headers=True,
-    over_limit=on_over_limit,
-    scope_func=lambda: request.remote_addr,
-    key_func=lambda: request.endpoint):
+
+def ratelimit(limit, per=225,
+              send_x_headers=True,
+              over_limit=on_over_limit,
+              scope_func=lambda: request.remote_addr,
+              key_func=lambda: request.endpoint):
     def decorator(f):
         def rate_limited(*args, **kwargs):
             key = 'rate-limit/%s/%s/' % (key_func(), scope_func())
             rlimit = RateLimit(key, limit, per, send_x_headers)
             g._view_rate_limit = rlimit
-            if over_limit is not None and rlimit.over_limit and not g.user.role is 0:
+            if over_limit is not None and rlimit.over_limit \
+                    and not g.user.role is 0:
                 return over_limit(rlimit)
             return f(*args, **kwargs)
         return update_wrapper(rate_limited, f)
     return decorator
+
 
 @app.after_request
 def inject_x_rate_headers(response):
@@ -432,17 +545,29 @@ def inject_x_rate_headers(response):
 # User/Auth functions + routes #
 ################################
 
+
 @app.before_request
 def check_user_network():
-    """Before request is processed check if the users remote addreses is within the configured allowed networks using in_allowed_network().
-
+    """Before request is processed check if the users remote addreses
+    is within the configured allowed networks using in_allowed_network().
     """
     if not in_allowed_network(request.remote_addr):
-        raise LutherBroke('You are not in an authorized network', status_code=403)
+        raise LutherBroke('You are not in an authorized network',
+                          status_code=403)
 
-RFC_2822_REG = '(?:[a-z0-9!#$%&\'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&\'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f!#-[]-\x7f]|\\[\x01-\t\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f!-ZS-\x7f]|\\[\x01-\t\x0b\x0c\x0e-\x7f])+)\\])'
+RFC_2822_REG = '(?:[a-z0-9!#$%&\'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&\'*\
+                +/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f!#-[]\
+                -\x7f]|\\[\x01-\t\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9\
+                ](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-\
+                z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?\
+                )\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0\
+                -9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f!-ZS-\x7f\
+                ]|\\[\x01-\t\x0b\\x0c\x0e-\x7f])+)\\])'
+
+
 def verify_email(email):
-    """Verify an email address with RFC 2822 regex and optional MX record check.
+    """Verify an email address with RFC 2822 regex
+    and optional MX record check.
 
        :param email: The email to verify.
        :type email: string.
@@ -463,21 +588,44 @@ def verify_email(email):
                     if msg.rcode() not in [3, 8]:
                         return True
                     elif msg.rcode() in [1, 2, 4, 5, 6, 7, 8, 9, 10, 16]:
-                        raise LutherBroke('Internal server error, weird answer to DNS MX query', status_code=500)
+                        raise LutherBroke(
+                            'Internal server error, weird answer to DNS \
+                            MX query',
+                            status_code=500
+                        )
                     else:
                         raise LutherBroke('Invalid email address')
                 else:
                     raise LutherBroke('Invalid email address')
             except NoAnswer:
-                raise LutherBroke('Internal server error, no answer to DNS MX query', status_code=500)
+                raise LutherBroke(
+                    'Internal server error, no answer to DNS MX query',
+                    status_code=500
+                )
             except UnexpectedSource:
-                raise LutherBroke('Internal server error, response came from unexpected source', status_code=500)
+                raise LutherBroke(
+                    'Internal server error, response came from \
+                    unexpected source',
+                    status_code=500
+                )
             except BadResponse:
-                raise LutherBroke('Internal server error, malformed response from master dns server', status_code=500)
+                raise LutherBroke(
+                    'Internal server error, malformed response from \
+                    master dns server',
+                    status_code=500
+                )
             except TimeoutError:
-                raise LutherBroke('Gateway timeout, tcp connection to master DNS server timed out', status_code=504)
+                raise LutherBroke(
+                    'Gateway timeout, tcp connection to master DNS \
+                    server timed out',
+                    status_code=504
+                )
             except OSError:
-                raise LutherBroke('Internal server error, OSError (most likely no route to dns master server)', status_code=500)
+                raise LutherBroke(
+                    'Internal server error, OSError (most likely no route \
+                    to dns master server)',
+                    status_code=500
+                )
     if re.match(RFC_2822_REG, email):
         if luther.config.validate_user_email_mx:
             if check_mx(email):
@@ -489,16 +637,17 @@ def verify_email(email):
     else:
         raise LutherBroke('Invalid email address')
 
+
 @auth.verify_password
 def verify_password(email_or_token, password=None):
     """Verify a supplied token or email and password credentials.
 
-    :param email_or_token: Users email or an authentication token from /api/v1/auth_token.
+    :param email_or_token: Users email or an authentication
+        token from /api/v1/auth_token.
     :type email_or_token: string.
     :param password: The users password.
     :type password: string or None.
     :returns: bool -- Whether the credentials were verified.
-
     """
     # first try to authenticate by token
     user = User.verify_auth_token(email_or_token)
@@ -513,23 +662,13 @@ def verify_password(email_or_token, password=None):
     g.user = user
     return True
 
-# @app.route('/api/v1/auth_token')
-# @auth.login_required
-# def get_auth_token():
-#     """Generate or retrieve an authentication that can be used instead of email/password credentials to authenticate.
-
-#     :returns: string -- The users current authentication token.
-
-#     """
-#     token = g.user.generate_auth_token()
-#     return jsonify({'status': 201, 'token': token.decode('ascii')})
 
 @app.route('/api/v1/user', methods=['POST'])
 def new_user():
-    """Add a new user, parameters can be passed as either JSON or URL arguments.
+    """Add a new user, parameters can be passed as
+    either JSON or URL arguments.
 
     :returns: object -- JSON response indicating the outcome of action.
-
     """
     if request.json and not request.args:
         email = request.json.get('email')
@@ -540,24 +679,37 @@ def new_user():
     else:
         raise LutherBroke('Bad request, no data')
     if email is None or password is None:
-        raise LutherBroke('Bad request, missing arguments') # missing arguments
+        raise LutherBroke('Bad request, missing arguments')
     if User.query.filter_by(email=email).first() is not None:
-        raise LutherBroke('Conflict in request, existing user', status_code=409) # existing user
+        raise LutherBroke(
+            'Conflict in request, existing user',
+            status_code=409
+        )
     user = User(email=email, quota=luther.config.default_user_quota, role=1)
     user.hash_password(password)
     db.session.add(user)
     db.session.commit()
-    resp = jsonify({'status': 201, 'email': user.email, 'resources': {'Subdomains': {'url': 'https://'+luther.config.root_domain+'/api/v1/subdomains'}, 'Subdomain updates': 'https://'+luther.config.root_domain+'/api/v1/update'}})
+    resp = jsonify({
+        'status': 201,
+        'email': user.email,
+        'resources': {
+            'Subdomains':
+            'https://'+luther.config.root_domain+'/api/v1/subdomains',
+            'Subdomain updates':
+            'https://'+luther.config.root_domain+'/api/v1/update'
+        }
+    })
     resp.status_code = 201
     return resp
+
 
 @app.route('/api/v1/user', methods=['DELETE', 'POST'])
 @auth.login_required
 def edit_user():
-    """Delete an existing user or change it's password, parameters can be passed as either JSON or URL arguments.
+    """Delete an existing user or change it's password, parameters
+    can be passed as either JSON or URL arguments.
 
     :returns: object -- JSON response indicating the outcome of action.
-
     """
     if request.method == 'DELETE':
         if request.json and not request.args:
@@ -591,14 +743,15 @@ def edit_user():
 # Domain create / delete route #
 ################################
 
+
 @app.route('/api/v1/subdomains', methods=['GET', 'POST', 'DELETE'])
 # @ratelimit(limit=100, per=60*60)
 @auth.login_required
 def domain_mainuplator():
-    """Create subdomain, delete subdomain, or get list of users subdomains, parameters can be passed as either JSON or URL arguments.
+    """Create subdomain, delete subdomain, or get list of users subdomains,
+    parameters can be passed as either JSON or URL arguments.
 
     :returns: object -- JSON response indicating the outcome of action.
-
     """
     if request.method == 'GET':
         if g.user.role is 1:
@@ -607,16 +760,34 @@ def domain_mainuplator():
             domains = Subdomain.query.all()
         info = {'email': g.user.email, 'subdomains': []}
         for d in domains:
-            info['subdomains'].append({'subdomain': d.name, 'full_domain': d.name+"."+luther.config.root_domain, 'ip': d.ip, 'subdomain_token': d.token, 'regenerate_subdomain_token_endpoint': 'https://'+luther.config.root_domain+'/api/v1/regen_subdomain_token/'+d.name, 'GET_update_endpoint': 'https://'+luther.config.root_domain+'/api/v1/update/'+d.name+'/'+d.token, 'last_updated': str(d.last_updated)})
+            info['subdomains'].append({
+                'subdomain': d.name,
+                'full_domain': d.name+".\
+                    "+luther.config.root_domain,
+                'ip': d.ip,
+                'subdomain_token': d.token,
+                'regenerate_subdomain_token_endpoint': 'https://\
+                    '+luther.config.root_domain+'/api/v1/\
+                    regen_subdomain_token/'+d.name,
+                'GET_update_endpoint': 'https://\
+                    '+luther.config.root_domain+'\
+                    /api/v1/update/'+d.name+'/'+d.token,
+                'last_updated': str(d.last_updated)})
         if len(info['subdomains']) > 0:
             resp = jsonify(info)
             resp.status_code = 200
             return resp
         else:
-            return jsonify({'subdomains': [], 'message': 'You have no '+luther.config.root_domain+' subdomains', 'status': 200})
+            return jsonify({
+                'subdomains': [],
+                'message': 'You have no \
+                    '+luther.config.root_domain+' subdomains',
+                'status': 200
+                })
     elif request.method == 'POST':
         if Subdomain.query.count() <= luther.config.total_subdomain_limit:
-            if g.user.quota is 0 or not g.user.subdomains.count() == g.user.quota:
+            if g.user.quota is 0 \
+                    or not g.user.subdomains.count() == g.user.quota:
                 if request.json and not request.args:
                     domain_name = request.json.get('subdomain')
                     ip = request.json.get('ip')
@@ -625,7 +796,6 @@ def domain_mainuplator():
                     ip = request.args.get('ip')
                 else:
                     raise LutherBroke('Bad request, no data')
-                print(request.json)
                 if not domain_name:
                     raise LutherBroke('Bad request, missing arguments')
                 if not ip:
@@ -638,20 +808,43 @@ def domain_mainuplator():
                     if validate_ip(ip, v6=True):
                         ipv6 = True
                     else:
-                        raise LutherBroke('Bad request, IP address invalid or not in allowed subnets')
-                new_domain = Subdomain(name=domain_name, ip=ip, v6=ipv6, user=g.user)
+                        raise LutherBroke('Bad request, IP address \
+                            invalid or not in allowed subnets')
+                new_domain = Subdomain(
+                    name=domain_name,
+                    ip=ip,
+                    v6=ipv6,
+                    user=g.user
+                )
                 new_domain.generate_domain_token()
                 ddns_result = new_ddns(domain_name, ip, ipv6)
                 if ddns_result:
                     db.session.add(new_domain)
                     db.session.commit()
-                    return jsonify({'status': 201, 'subdomain': domain_name, 'full_domain': new_domain.name+"."+luther.config.root_domain, 'ip': ip, 'subdomain_token': new_domain.token, 'GET_update_endpoint': 'https://'+luther.config.root_domain+'/api/v1/update/'+new_domain.name+'/'+new_domain.token, 'last_updated': str(new_domain.last_updated)})
+                    return jsonify({
+                        'status': 201,
+                        'subdomain': domain_name,
+                        'full_domain': new_domain.name+".\
+                            "+luther.config.root_domain,
+                        'ip': ip,
+                        'subdomain_token': new_domain.token,
+                        'GET_update_endpoint': 'https://\
+                            '+luther.config.root_domain+'\
+                            /api/v1/update/\
+                            '+new_domain.name+'/'+new_domain.token,
+                        'last_updated': str(new_domain.last_updated)
+                    })
                 else:
                     raise LutherBroke()
             else:
-                return json_status_message('You have reached your subdomain quota', 200)
+                return json_status_message(
+                    'You have reached your subdomain quota',
+                    200
+                )
         else:
-            raise LutherBroke('Bad request, service subdomain limit reached!') # prob wrong error...
+            raise LutherBroke(
+                'Bad request, service subdomain limit reached!'
+            )
     elif request.method == 'DELETE':
         if request.json and not request.args:
             domain_name = request.json.get('subdomain')
@@ -665,7 +858,8 @@ def domain_mainuplator():
             raise LutherBroke('Bad request, missing arguments')
         if not validate_subdomain(domain_name):
             raise LutherBroke('Bad request, invalid subdomain')
-        sub_iterator = g.user.subdomains if g.user.role is 1 else Subdomain.query.all()
+        sub_iterator = g.user.subdomains if \
+            g.user.role is 1 else Subdomain.query.all()
         for d in sub_iterator:
             if d.name == domain_name:
                 if d.verify_domain_token(domain_token):
@@ -680,14 +874,15 @@ def domain_mainuplator():
                     raise LutherBroke('Bad request, invalid subdomain_token')
         raise LutherBroke('Bad request, invalid subdomain')
 
+
 @app.route('/api/v1/regen_subdomain_token/<subdomain_name>/', methods=['POST'])
 # @ratelimit(limit=100, per=60*60)
 @auth.login_required
 def regen_subdomain_token(subdomain_name=None):
-    """Regenerate subdomain token, parameters can be passed as either JSON or URL arguments.
+    """Regenerate subdomain token, parameters can be passed as either
+    JSON or URL arguments.
 
     :returns: object -- JSON response indicating the outcome of action.
-
     """
     if request.json and not request.args and not subdomain_name:
         domain_name = request.json.get('subdomain')
@@ -697,13 +892,24 @@ def regen_subdomain_token(subdomain_name=None):
         domain_name = subdomain_name
     else:
         raise LutherBroke('Bad request, no data')
-    if not domain_token or not domain_name:
+    if not domain_name:
         raise LutherBroke('Bad request, missing arguments')
     for d in g.user.domains:
         if domain_name is d.name:
             d.generate_domain_token()
             db.session.commit()
-            return jsonify({'status': 200, 'subdomain': d.name, 'full_domain': d.name+"."+luther.config.root_domain, 'ip': d.ip,  'subdomain_token': d.token, 'GET_update_endpoint': 'https://'+luther.config.root_domain+'/api/v1/update/'+d.name+'/'+d.token, 'last_updated': str(d.last_updated), 'message': 'Subdomain token regenerated.'})
+            return jsonify({
+                'status': 200,
+                'subdomain': d.name,
+                'full_domain': d.name+"."+luther.config.root_domain,
+                'ip': d.ip,
+                'subdomain_token': d.token,
+                'GET_update_endpoint': 'https://\
+                    '+luther.config.root_domain+'\
+                    /api/v1/update/'+d.name+'/'+d.token,
+                'last_updated': str(d.last_updated),
+                'message': 'Subdomain token regenerated.'
+            })
         else:
             raise LutherBroke('Bad request, invalid subdomain')
 
@@ -711,19 +917,23 @@ def regen_subdomain_token(subdomain_name=None):
 # JSON / URL param update route #
 #################################
 
+
 @app.route('/api/v1/update', methods=['POST'])
 # @ratelimit(limit=100, per=60*60)
 def fancy_interface():
-    """The fancy interface for updating subdomain IP addresses, this is the only for a user to update multiple subdomains at once. Parameters can be passed as either JSON or URL arguments.
+    """The fancy interface for updating subdomain IP addresses,
+    this is the only for a user to update multiple subdomains
+    at once. Parameters can be passed as either JSON or URL arguments.
 
     :returns: object -- JSON response indicating the outcome of action.
-
     """
     if request.json and not request.args:
         domain_list = []
         for d in request.json:
             if not d.name or not d.token:
-                raise LutherBroke('Bad request, missing or malformed arguments')
+                raise LutherBroke(
+                    'Bad request, missing or malformed arguments'
+                )
             if not d.get('address'):
                 d['address'] = request.remote_addr
             domain_list.append([d.name, d.token, d['address']])
@@ -754,16 +964,42 @@ def fancy_interface():
         domain = Subdomain.query.filter_by(name=domain_obj[0]).first()
         if domain and domain.verify_domain_token(domain_obj[1]):
             if domain_obj[2] == domain.ip:
-                results.append({'status': 200, 'subdomain': domain.name, 'full_domain': domain.name+"."+luther.config.root_domain, 'ip': domain.ip,  'subdomain_token': domain.token, 'GET_update_endpoint': 'https://'+luther.config.root_domain+'/api/v1/update/'+domain.name+'/'+domain.token, 'last_updated': str(domain.last_updated), 'message': 'Nothing to do, supplied IP is the same as current IP.'})
+                results.append({
+                    'status': 200,
+                    'subdomain': domain.name,
+                    'full_domain': domain.name+"."+luther.config.root_domain,
+                    'ip': domain.ip,
+                    'subdomain_token': domain.token,
+                    'GET_update_endpoint': 'https://\
+                        '+luther.config.root_domain+'\
+                        /api/v1/update/'+domain.name+'/'+domain.token,
+                    'last_updated': str(domain.last_updated),
+                    'message': 'Nothing to do, supplied IP is the \
+                        same as current IP.'})
             else:
                 if domain.v6:
-                    ddns_result = update_ddns(domain.name, domain_obj[2], v6=True)
+                    ddns_result = update_ddns(
+                        domain.name,
+                        domain_obj[2],
+                        v6=True
+                    )
                 else:
                     ddns_result = update_ddns(domain.name, domain_obj[2])
                 if ddns_result:
                     domain.ip = domain_obj[2]
                     db.session.commit()
-                    results.append({'status': 200, 'subdomain': domain.name, 'full_domain': domain.name+"."+luther.config.root_domain, 'ip': domain.ip,  'subdomain_token': domain.token, 'GET_update_endpoint': 'https://'+luther.config.root_domain+'/api/v1/update/'+domain.name+'/'+domain.token, 'last_updated': str(domain.last_updated), 'message': 'Subdomain updated.'})
+                    results.append({
+                        'status': 200,
+                        'subdomain': domain.name,
+                        'full_domain': domain.name+".\
+                            "+luther.config.root_domain,
+                        'ip': domain.ip,
+                        'subdomain_token': domain.token,
+                        'GET_update_endpoint': 'https://\
+                            '+luther.config.root_domain+'\
+                            /api/v1/update/'+domain.name+'/'+domain.token,
+                        'last_updated': str(domain.last_updated),
+                        'message': 'Subdomain updated.'})
                 else:
                     raise LutherBroke()
         else:
@@ -777,10 +1013,15 @@ def fancy_interface():
 # GET only update route #
 #########################
 
-@app.route('/api/v1/update/<domain_name>/<domain_token>/<domain_ip>', methods=['GET'])
+
+@app.route(
+    '/api/v1/update/<domain_name>/<domain_token>/<domain_ip>',
+    methods=['GET']
+)
 # @ratelimit(limit=100, per=60*60)
 def get_interface(domain_name, domain_token, domain_ip=None):
-    """The (stone age) GET interface for updating a single subdomain IP address.
+    """The (stone age) GET interface for updating a single subdomain
+    IP address.
 
     :param domain_name: The subdomain name to update.
     :type domain_name: string.
@@ -789,14 +1030,25 @@ def get_interface(domain_name, domain_token, domain_ip=None):
     :param domain_ip: The IP address point to.
     :type domain_ip: string.
     :returns: object -- JSON response indicating the outcome of action.
-
     """
     domain = Subdomain.query.filter_by(name=domain_name).first()
     if domain and domain.verify_domain_token(domain_token):
         if domain_ip is None:
             domain_ip = request.remote_addr
         if domain_ip == domain.ip:
-            return jsonify({'status': 200, 'subdomain': domain.name, 'full_domain': domain.name+"."+luther.config.root_domain, 'ip': domain.ip,  'subdomain_token': domain.token, 'GET_update_endpoint': 'https://'+luther.config.root_domain+'/api/v1/update/'+domain.name+'/'+domain.token, 'last_updated': str(domain.last_updated), 'message': 'Nothing to do, supplied IP is the same as current IP.'})
+            return jsonify({
+                'status': 200,
+                'subdomain': domain.name,
+                'full_domain': domain.name+"."+luther.config.root_domain,
+                'ip': domain.ip,
+                'subdomain_token': domain.token,
+                'GET_update_endpoint': 'https://\
+                    '+luther.config.root_domain+'\
+                    /api/v1/update/'+domain.name+'/'+domain.token,
+                'last_updated': str(domain.last_updated),
+                'message': 'Nothing to do, supplied IP is the same as \
+                    current IP.'
+            })
         else:
             if domain.v6:
                 ddns_result = update_ddns(domain.name, domain_ip, v6=True)
@@ -805,7 +1057,18 @@ def get_interface(domain_name, domain_token, domain_ip=None):
             if ddns_result:
                 domain.ip = domain_ip
                 db.session.commit()
-                return jsonify({'status': 200, 'subdomain': domain.name, 'full_domain': domain.name+"."+luther.config.root_domain, 'ip': domain.ip,  'subdomain_token': domain.token, 'GET_update_endpoint': 'https://'+luther.config.root_domain+'/api/v1/update/'+domain.name+'/'+domain.token, 'last_updated': str(domain.last_updated), 'message': 'Subdomain updated.'})
+                return jsonify({
+                    'status': 200,
+                    'subdomain': domain.name,
+                    'full_domain': domain.name+"."+luther.config.root_domain,
+                    'ip': domain.ip,
+                    'subdomain_token': domain.token,
+                    'GET_update_endpoint': 'https://\
+                        '+luther.config.root_domain+'\
+                        /api/v1/update/'+domain.name+'/'+domain.token,
+                    'last_updated': str(domain.last_updated),
+                    'message': 'Subdomain updated.'
+                })
             else:
                 raise LutherBroke()
     else:
@@ -814,6 +1077,7 @@ def get_interface(domain_name, domain_token, domain_ip=None):
 ################
 # GET IP route #
 ################
+
 
 @app.route('/api/v1/get-ip', methods=['GET'])
 def get_ip():
@@ -843,11 +1107,15 @@ if luther.config.enable_frontend:
             results['subdomains'].append([str(a), b])
         for a, b in stats['subdomain_limit']:
             results['subdomain_limit'].append([str(a), b])
-        return render_template('luther.html', client_ip=request.remote_addr, about=luther.config.frontend_show_about, luther_stats=results)
-
+        return render_template(
+            'luther.html',
+            client_ip=request.remote_addr,
+            luther_stats=results
+        )
 
     if luther.config.enable_stats:
-        import threading, pickle
+        import threading
+        import pickle
         from redis import StrictRedis
 
         class PickledRedis(StrictRedis):
@@ -858,9 +1126,19 @@ if luther.config.enable_frontend:
                 return pickle.loads(pickled_value)
 
             def set(self, name, value, ex=None, px=None, nx=False, xx=False):
-                return super(PickledRedis, self).set(name, pickle.dumps(value), ex, px, nx, xx)
+                return super(PickledRedis, self).set(
+                    name,
+                    pickle.dumps(value),
+                    ex,
+                    px,
+                    nx,
+                    xx
+                )
 
-        predis = PickledRedis(host=luther.config.redis_host, port=luther.config.redis_port)
+        predis = PickledRedis(
+            host=luther.config.redis_host,
+            port=luther.config.redis_port
+        )
 
         def update_stats():
             threading.Timer(luther.config.stats_interval, update_stats).start()
@@ -868,15 +1146,31 @@ if luther.config.enable_frontend:
                 stats = predis.get('luther/stats')
                 now = datetime.datetime.now()
                 if not stats:
-                    stats = {'users': [], 'subdomains': [], 'subdomain_limit': []}
-                if (len(stats['users'])+len(stats['subdomains']))/2 >= luther.config.stats_entries:
+                    stats = {
+                        'users': [],
+                        'subdomains': [],
+                        'subdomain_limit': [],
+                        'updates': []
+                    }
+
+                if len(stats['users']) >= luther.config.stats_entries:
                     stats['users'].pop(0)
                     stats['subdomains'].pop(0)
                     stats['subdomain_limit'].pop(0)
+                    stats['updates'].pop(0)
                 stats['users'].append([now, User.query.count()])
                 stats['subdomains'].append([now, Subdomain.query.count()])
-                stats['subdomain_limit'].append([now, luther.config.total_subdomain_limit])
+                stats['subdomain_limit'].append([
+                    now,
+                    luther.config.total_subdomain_limit
+                ])
                 last_update = stats['users'][len(stats['users'])-1][0]
+                stats['updates'].append([
+                    now,
+                    Subdomain.query.filter_by(
+                        Subdomain.last_updated > last_update
+                    ).count()
+                ])
                 predis.set('luther/stats', stats)
 
         # update_stats()

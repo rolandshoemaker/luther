@@ -1,11 +1,11 @@
 #!/usr/bin/python
-#  _         _    _                 
-# | |       | |  | |                
-# | | _   _ | |_ | |__    ___  _ __ 
+#  _         _    _
+# | |       | |  | |
+# | | _   _ | |_ | |__    ___  _ __
 # | || | | || __|| '_ \  / _ \| '__|
-# | || |_| || |_ | | | ||  __/| |   
-# |_| \__,_| \__||_| |_| \___||_|   
-#                                   
+# | || |_| || |_ | | | ||  __/| |
+# |_| \__,_| \__||_| |_| \___||_|
+#
 
 """
 .. module:: luther.cli
@@ -16,7 +16,8 @@
 """
 
 import luther.config
-from luther.api import app, new_ddns, update_ddns, delete_ddns, validate_ip, predis
+from luther.api import app, new_ddns, update_ddns, \
+    delete_ddns, validate_ip, predis
 from luther.models import User, Subdomain, db
 
 from getpass import getpass
@@ -31,6 +32,7 @@ import dns.resolver
 
 db.init_app(app)
 
+
 @click.group()
 def cli():
     """CLI tool for interacting with luther -- v0.1 -- roland shoemaker
@@ -38,6 +40,7 @@ def cli():
     [this is somewhat dangerous to luther, i guess. so be careful ._.]
     """
     pass
+
 
 @cli.command('add_user')
 @click.argument('email')
@@ -221,10 +224,15 @@ def edit_subdomain(name, ip, v6, user_email):
                 else:
                     click.secho('User '+user_email+' doesnt exist.\n', fg='red')
                     return False
-            db.session.commit()
-            click.secho('Subdomain '+sub.name+' updated!\n', fg='green')
+            if update_ddns(sub.name, ip, v6=v6, on_api=False):
+                db.session.commit()
+                click.secho('Subdomain '+sub.name+' updated!\n', fg='green')
+            else:
+                click.secho('DNS Update for '+sub.name+' failed.')
+                return False
         else:
             click.secho('No subdomain: '+name+'.\n', fg='red')
+            return False
 
 @cli.command('delete_subdomain')
 @click.argument('name')
