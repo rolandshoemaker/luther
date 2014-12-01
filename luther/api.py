@@ -1080,7 +1080,7 @@ def get_ip():
 if app.config['ENABLE_FRONTEND']:
     @app.route('/')
     def index():
-        results = {'users': [], 'subdomains': [], 'subdomain_limit': []}
+        results = {'users': [], 'subdomains': [], 'subdomain_limit': [], 'updates': []}
         if app.config['ENABLE_STATS']:
             stats = predis.get('luther/stats')
         else:
@@ -1091,6 +1091,8 @@ if app.config['ENABLE_FRONTEND']:
             results['subdomains'].append([str(a), b])
         for a, b in stats['subdomain_limit']:
             results['subdomain_limit'].append([str(a), b])
+        for a, b in stats['updates']:
+            results['updates'].append([str(a), b])
         return render_template(
             'luther.html',
             client_ip=request.remote_addr,
@@ -1148,13 +1150,16 @@ if app.config['ENABLE_FRONTEND']:
                     now,
                     app.config['TOTAL_SUBDOMAIN_LIMIT']
                 ])
-                last_update = stats['users'][len(stats['users'])-1][0]
-                stats['updates'].append([
-                    now,
-                    Subdomain.query.filter(
-                        Subdomain.last_updated > last_update
-                    ).count()
-                ])
+                if len(stats['updates']) > 0:
+                    last_update = stats['updates'][len(stats['updates'])-1][0]
+                    stats['updates'].append([
+                        now,
+                        Subdomain.query.filter(
+                            Subdomain.last_updated > last_update
+                        ).count()
+                    ])
+                else:
+                    stats['updates'].append([now, 0])
                 predis.set('luther/stats', stats)
 
-        # update_stats()
+        update_stats()
