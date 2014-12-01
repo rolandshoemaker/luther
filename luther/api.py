@@ -62,8 +62,8 @@ import datetime
 from luther import app
 
 
-app.config.from_object('luther.config')
-app.config.from_envvar('LUTHER_SETTINGS', silent=True)
+# app.config.from_object('luther.config')
+app.config.from_envvar('LUTHER_SETTINGS')
 
 auth = HTTPBasicAuth()
 
