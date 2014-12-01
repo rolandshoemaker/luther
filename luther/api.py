@@ -18,7 +18,6 @@
 # luther imports #
 ##################
 
-import luther.config
 from luther.models import db, User, Subdomain
 
 #################
@@ -61,6 +60,7 @@ import datetime
 ##############################
 
 from luther import app
+
 
 app.config.from_object('luther.config')
 app.config.from_envvar('LUTHER_SETTINGS', silent=True)
@@ -711,7 +711,7 @@ def new_user():
     return resp
 
 
-@app.route('/api/v1/user', methods=['DELETE', 'POST'])
+@app.route('/api/v1/edit_user', methods=['DELETE', 'POST'])
 @auth.login_required
 def edit_user():
     """Delete an existing user or change it's password, parameters
@@ -1157,4 +1157,4 @@ if app.config['ENABLE_FRONTEND']:
                 ])
                 predis.set('luther/stats', stats)
 
-        update_stats()
+        # update_stats()

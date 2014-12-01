@@ -75,6 +75,16 @@ and in your zone definition file append an `allow-update` statement to the relev
 
 #### luther.config
 
+#### Dev server
+
+To run the development server run
+
+    # python3 scripts/dev_server.py
+    
+    -- or --
+    
+    # luther-cli devserver
+
 #### WSGI Server
 
 ### Using the CLI tool
@@ -96,7 +106,7 @@ or you can view the documentation for the latest release at [https://docs.luther
 * ADD: registration stuff in luther.js
 * ADD: change pass/delete user drop down to frontend
 * ADD: write tests
-* REWRITE: Slim down configuration file, there is a bit of duplication
+* FIX: Slim down configuration file, there is a bit of duplication
 * finish writing the README (._.)
 * finish writing all the documentation
 

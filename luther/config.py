@@ -32,7 +32,7 @@ SECRET_KEY = str(uuid.uuid4())
 ##############
 
 # Root domain of REST API
-ROOT_DOMAIN = '192.168.1.8'  # 'dnsd.co'
+ROOT_DOMAIN = 'example.com'
 # Minimum length for subdomains
 MIN_SUBDOMAIN_LENGTH = 1
 # Maximum length for subdomains
@@ -65,9 +65,9 @@ STATS_INTERVAL = 43200
 ##############
 
 # Root domain subdomains will be provided for
-DNS_ROOT_DOMAIN = 'dnsd.co'
+DNS_ROOT_DOMAIN = 'example.com'
 # DNS master server hostname/address
-DNS_MASTER_SERVER = '192.168.1.8'
+DNS_MASTER_SERVER = 'ns.example.com'
 # DNS master server port
 DNS_MASTER_PORT = 53
 # Port luther should send DNS messages from
@@ -75,9 +75,9 @@ DNS_MASTER_SOURCE_PORT = 0
 # How long to wait before DNS messages timeout (in seconds)
 DNS_MASTER_TIMEOUT = 60
 # Zone FQDN for updates (DNS_ROOT_DOMAIN with a . on the end)
-TSIG_ZONE = 'dnsd.co.'
+TSIG_ZONE = 'example.com.'
 # Zone TSIG Key
-TSIG_KEY = 'FbpOCJbGUchAZG1iKSfhJQ=='
+TSIG_KEY = '========================'
 # Default TTL for A, AAAA, and TXT records
 DEFAULT_TTL = 86400
 # IPv4 subnets that A record addresses are allowed in (default is IPv4 default route, i.e. everyone)
