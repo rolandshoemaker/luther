@@ -6,14 +6,4 @@
 # |_| \__,_| \__||_| |_| \___||_|
 #
 
-
-"""lightweight REST API for managing DDNS.
-
-.. moduleauthor:: Roland Shoemaker <rolandshoemaker@gmail.com>
-"""
-
-from flask import Flask
-
-app = Flask(__name__)
-
-import luther.api
+from luther import app as application

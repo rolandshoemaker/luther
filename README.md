@@ -96,6 +96,7 @@ or you can view the documentation for the latest release at [https://docs.luther
 * ADD: registration stuff in luther.js
 * ADD: change pass/delete user drop down to frontend
 * ADD: write tests
+* REWRITE: Slim down configuration file, there is a bit of duplication
 * finish writing the README (._.)
 * finish writing all the documentation
 

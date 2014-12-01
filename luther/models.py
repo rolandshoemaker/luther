@@ -14,7 +14,7 @@
 .. moduleauthor:: Roland Shoemaker <rolandshoemaker@gmail.com>
 """
 
-import luther.config
+from luther import app
 
 from flask.ext.sqlalchemy import SQLAlchemy
 from passlib.apps import custom_app_context as pwd_context
@@ -39,12 +39,12 @@ class User(db.Model):
         return pwd_context.verify(password, self.password_hash)
 
     def generate_auth_token(self, expiration=600):
-        s = Serializer(luther.config.secret_key, expires_in=expiration)
+        s = Serializer(app.config['SECRET_KEY'], expires_in=expiration)
         return s.dumps({'id': self.id})
 
     @staticmethod
     def verify_auth_token(token):
-        s = Serializer(luther.config.secret_key)
+        s = Serializer(app.config['SECRET_KEY'])
         try:
             data = s.loads(token)
         except SignatureExpired:

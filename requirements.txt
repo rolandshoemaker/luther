@@ -1,4 +1,4 @@
-dnspython
+dnspython3
 flask
 flask.ext.httpauth
 sqlalchemy

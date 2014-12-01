@@ -111,12 +111,12 @@ function LutherMainViewModel() {
     self.add = function(subdomain) {
         self.ajax(self.subdomainsURI, 'POST', subdomain).done(function(data) {
             self.subdomains.push({
-                update_uri: ko.observable(data.subdomain.GET_update_endpoint),
-                regen_uri: ko.observable(data.subdomain.regenerate_subdomain_token_endpoint),
-                subdomain: ko.observable(data.subdomain.subdomain),
-                ip: ko.observable(data.subdomain.ip),
-                token: ko.observable(data.subdomain.subdomain_token),
-                last_update: ko.observable(data.subdomain.last_updated)
+                update_uri: ko.observable(data.GET_update_endpoint),
+                regen_uri: ko.observable(data.regenerate_subdomain_token_endpoint),
+                subdomain: ko.observable(data.subdomain),
+                ip: ko.observable(data.ip),
+                token: ko.observable(data.subdomain_token),
+                last_update: ko.observable(data.last_updated)
             });
         });
     }

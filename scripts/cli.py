@@ -15,8 +15,8 @@
 .. moduleauthor:: Roland Shoemaker <rolandshoemaker@gmail.com>
 """
 
-import luther.config
-from luther.api import app, new_ddns, update_ddns, \
+from luther import app
+from luther.api import new_ddns, update_ddns, \
     delete_ddns, validate_ip, predis
 from luther.models import User, Subdomain, db
 
@@ -46,7 +46,7 @@ def cli():
 @click.argument('email')
 @click.argument('password')
 @click.option('--role', default=1, help='User role (0 admin, 1 user)')
-@click.option('--quota', default=luther.config.default_user_quota, help='User subdomain quota')
+@click.option('--quota', default=app.config['DEFAULT_USER_QUOTA'], help='User subdomain quota')
 def add_user(email, password, role, quota):
     """Add a user"""
     with app.app_context():
@@ -350,7 +350,7 @@ def dig_subdomain(name, nameserver):
             else:
                 rtype = 'A'
             dns.resolver.nameservers = [nameserver]
-            answer = dns.resolver.query(sub.name+'.'+luther.config.dns_root_domain, rtype)
+            answer = dns.resolver.query(sub.name+'.'+app.config['DNS_ROOT_DOMAIN'], rtype)
             match = bool()
             returned_ips = []
             for rdata in answer:
@@ -377,7 +377,7 @@ def init_db():
 
 @cli.command('check_stats')
 def check_stats():
-    """Get the most recent stats from redis (relies on luther.config.enable_stats = True)"""
+    """Get the most recent stats from redis (relies on app.config['ENABLE_STATS'] = True)"""
     stats = predis.get('luther/stats')
     click.echo(tabulate([[stats['users'][len(stats['users'])-1][1], stats['subdomains'][len(stats['subdomains'])-1][1], stats['users'][len(stats['users'])-1][0]]], ['num users', 'num subdomains', 'updated']))
     return True
