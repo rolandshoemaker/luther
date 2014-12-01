@@ -1,0 +1,9 @@
+recursive-include docs *
+recursive-include scripts *
+recursive-include examples *
+recursive-include luther/templates *
+recursive-include luther/static *
+include setup.py
+include setup.cfg
+include README.md
+include LICENSE

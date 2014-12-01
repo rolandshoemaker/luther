@@ -1,7 +1,0 @@
-dnspython3
-flask
-flask.ext.httpauth
-sqlalchemy
-click
-tabulate
-redis
