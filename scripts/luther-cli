@@ -7,14 +7,6 @@
 # |_| \__,_| \__||_| |_| \___||_|
 #
 
-"""
-.. module:: luther.cli
-    :platform: Unix
-    :synopsis: CLI interface for interacting with a luther service.
-
-.. moduleauthor:: Roland Shoemaker <rolandshoemaker@gmail.com>
-"""
-
 from luther import app
 from luther.api import new_ddns, update_ddns, \
     delete_ddns, validate_ip, predis
