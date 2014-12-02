@@ -581,7 +581,7 @@ def verify_email(email):
        :type email: string.
        :returns: bool -- Whether the email is valid.
     """
-    if luther.validate_user_email_mx:
+    if app.config['VALIDATE_USER_EMAIL_MX']:
         def check_mx(email):
             """Check if a MX record exists for provided email.
 

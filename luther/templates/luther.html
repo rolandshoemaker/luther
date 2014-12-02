@@ -31,6 +31,11 @@
                     </div>
                     <div class="modal-body">
                         <h3 style="text-align: center;">Login</h3>
+                        <!-- ko if: user_errors().length -->
+                        <!-- ko foreach: user_errors -->
+                        <div class="alert alert-danger" data-bind="text: message"></div>
+                        <!-- /ko -->
+                        <!-- /ko -->
                         <form>
                             <div class="control-group form-group">
                                 <label class="control-label" for="email">Email</label>

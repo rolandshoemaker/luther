@@ -2,6 +2,7 @@ function LutherMainViewModel() {
     var self = this;
     self.subdomainsURI = "http://192.168.1.8/api/v1/subdomains"; // this should be set to https
     self.userURI = "http://192.168.1.8/api/v1/users"
+    self.refresh_interval = 600000; // ten minutes
     self.email = "";
     self.password = "";
     self.subdomains = ko.observableArray();
@@ -20,7 +21,7 @@ function LutherMainViewModel() {
             },
             error: function(jqXHR) {
                 // debug
-                if (jqXHR.responseJSON.message) {
+                if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
                     var level = '';
                     if (jqXHR.status < 300) {
                         level = "alert-info";
@@ -41,13 +42,12 @@ function LutherMainViewModel() {
     }
 
     self.beginLogin = function() {
-            $('#login').modal('show');
+        $('#login').modal('show');
     }
 
-    self.login = function(email, password) {
-        self.email = email;
-        self.password = password;
+    self.refreshSubdomains = function() {
         self.ajax(self.subdomainsURI, "GET").done(function(data) {
+            self.subdomains.removeAll()
             for (var i = 0;i<data.subdomains.length;i++) {
                 self.subdomains.push({
                     update_uri: ko.observable(data.subdomains[i].GET_update_endpoint),
@@ -57,12 +57,27 @@ function LutherMainViewModel() {
                     token: ko.observable(data.subdomains[i].subdomain_token),
                     last_update: ko.observable(data.subdomains[i].last_updated)
                 });
+                $('#login').modal('hide');
             }
         }).fail(function(err) {
             if (err.status == 403) {
+                if (!err.responseJSON || err.responseJSON.message == null) {
+                    loginViewModel.user_errors.push({message: 'Invalid credentials'})
+                } else if (!(err.responseJSON == null)) {
+                    loginViewModel.user_errors.push({message: err.responseJSON.message})
+                }
                 setTimeout(self.beginLogin, 500);
             }
-        })
+        });
+
+        setTimeout("lutherMainViewModel.refreshSubdomains()", self.refresh_interval);
+    }
+
+    self.login = function(email, password) {
+        self.email = email; 
+        self.password = password;
+
+        self.refreshSubdomains();
     }
 
     self.beginAdd = function() {
@@ -90,6 +105,7 @@ function LutherMainViewModel() {
         self.ajax(self.userURI, 'DELETE', data).done(function() {
             self.subdomains.removeAll();
             self.api_errors.removeAll();
+            loginViewModel.user_errors.removeAll();
             self.user = "";
             self.password = "";
             setTimeout(self.beginLogin, 500);
@@ -184,15 +200,21 @@ function EditSubdomainViewModel() {
 
 function LoginViewModel() {
     var self = this;
+    self.user_errors = ko.observableArray();
     self.email = ko.observable();
     self.password = ko.observable();
+
 
     self.new_email = ko.observable();
     self.new_password = ko.observable();
     self.new_password_two = ko.observable();
 
     self.login = function() {
-        $('#login').modal('hide');
+        // $('#login').modal('hide');
+
+        if (self.user_errors().length) {
+            self.user_errors.removeAll();
+        }
         lutherMainViewModel.login(self.email(), self.password());
     }
 

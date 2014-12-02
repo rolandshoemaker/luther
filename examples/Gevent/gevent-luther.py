@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 #  _         _    _
 # | |       | |  | |
 # | | _   _ | |_ | |__    ___  _ __
@@ -7,10 +7,8 @@
 # |_| \__,_| \__||_| |_| \___||_|
 #
 
-##############
-# Dev server #
-##############
-
+from gevent.wsgi import WSGIServer
 from luther import app
 
-app.run(debug=True, use_reloader=False, host='192.168.1.8', port=80)
+http_server = WSGIServer(('', 5000), app)
+http_server.serve_forever()
