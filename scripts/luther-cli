@@ -287,6 +287,17 @@ def count_subdomains():
     with app.app_context():
         click.secho(str(Subdomain.query.count())+' subdomains exist.\n', fg='yellow')
 
+@cli.command('count_users_subdomains')
+@click.argument('email')
+def count_subdomains(email):
+    """Count a users subdomains"""
+    with app.app_context():
+        user = User.query.filter_by(email=email).first()
+        if user:
+            click.secho(email+' has '+str(user.subdomains.count())+' subdomains.\n', fg='yellow')
+        else:
+            click.secho('No user: '+email+'.\n', fg='red')
+
 @cli.command('list_subdomains')
 @click.pass_context
 def list_subdomains(ctx):
@@ -303,7 +314,7 @@ def list_subdomains(ctx):
 @click.option('--name', help='Name to search for')
 @click.option('--ip', help='IP address to search for')
 def search_users(name, ip):
-    """Search for users by email"""
+    """Search for subdomains by subdomain names"""
     with app.app_context():
         results = []
         if name and not ip:

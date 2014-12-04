@@ -598,7 +598,7 @@ def verify_email(email):
                 else:
                     raise LutherBroke('Invalid email address')
             except NXDOMAIN:
-                raise LutherBroke('Invalid email address')
+                raise LutherBroke('Invalid email address, domain has no MX record')
             except NoAnswer:
                 raise LutherBroke(
                     'Internal server error, no answer to DNS MX query',
@@ -722,7 +722,7 @@ def edit_user():
             sure = request.args.get('confirm')
         else:
             raise LutherBroke('Bad request, no data')
-        if sure is None or sure is not 'DELETE':
+        if sure in [None, ''] or sure is not 'DELETE':
             raise LutherBroke('Bad request, missing or malformed arguments')
         for d in g.user.subdomains:
             delete_ddns(d.name)
@@ -737,7 +737,7 @@ def edit_user():
             password = request.args.get('new_password')
         else:
             raise LutherBroke('Bad request, no data')
-        if password is None:
+        if password in [None, '']:
             raise LutherBroke('Bad request, missing arguments')
         g.user.hash_password(password)
         db.session.commit()
@@ -921,14 +921,14 @@ def fancy_interface():
     """
     if request.json and not request.args:
         domain_list = []
-        for d in request.json:
-            if not d.name or not d.token:
+        for d in request.json.get('subdomains'):
+            if not d.get('subdomain') or not d.get('subdomain_token'):
                 raise LutherBroke(
                     'Bad request, missing or malformed arguments'
                 )
-            if not d.get('address'):
-                d['address'] = request.remote_addr
-            domain_list.append([d.name, d.token, d['address']])
+            if not d.get('ip'):
+                d['ip'] = request.remote_addr
+            domain_list.append([d['subdomain'], d['subdomain_token'], d['ip']])
     elif request.args and not request.json:
         domain_list = []
         names = request.args.get('names')
@@ -1019,7 +1019,7 @@ def get_interface(domain_name, domain_token, domain_ip=None):
     """
     domain = Subdomain.query.filter_by(name=domain_name).first()
     if domain and domain.verify_domain_token(domain_token):
-        if domain_ip is None:
+        if domain_ip in [None, '']:
             domain_ip = request.remote_addr
         if domain_ip == domain.ip:
             return jsonify({
@@ -1103,7 +1103,7 @@ if app.config['ENABLE_FRONTEND']:
         class PickledRedis(StrictRedis):
             def get(self, name):
                 pickled_value = super(PickledRedis, self).get(name)
-                if pickled_value is None:
+                if pickled_value in [None, '']:
                     return None
                 return pickle.loads(pickled_value)
 
