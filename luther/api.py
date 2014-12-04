@@ -37,7 +37,7 @@ import dns.tsigkeyring
 import dns.update
 from dns.query import UnexpectedSource, BadResponse
 import dns.resolver
-from dns.resolver import NoAnswer
+from dns.resolver import NoAnswer, NXDOMAIN
 
 #################
 # redis imports #
@@ -166,17 +166,8 @@ def in_allowed_network(ip, v4_networks=app.config['ALLOWED_USER_V4_SUBNETS'],
                 in_net = True
     return in_net
 
-
-pre_SUBDOMAIN_REGEX = '^[0-9a-z-]{MIN,MAX}$'
-SUBDOMAIN_REGEX = pre_SUBDOMAIN_REGEX.replace(
-    'MIN',
-    str(app.config['MIN_SUBDOMAIN_LENGTH'])
-)
-SUBDOMAIN_REGEX = SUBDOMAIN_REGEX.replace(
-    'MAX',
-    str(app.config['MAX_SUBDOMAIN_LENGTH'])
-)
-
+# This could be better (should really support subsub domains...)
+pre_SUBDOMAIN_REGEX = re.compile('^[A-Za-z0-9](?:[A-Za-z0-9\-]{0,61}[A-Za-z0-9])?$')
 
 def validate_subdomain(subdomain):
     """validate_subdomain checks to see if a subdomain is valid
@@ -563,6 +554,7 @@ def check_user_network():
         raise LutherBroke('You are not in an authorized network',
                           status_code=403)
 
+# Somewhat 2822-y email regex...
 RFC_2822_REG = ('(?:[a-z0-9!#$%&\'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&\'*'
                 '+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f!#-[]'
                 '-\x7f]|\\[\x01-\t\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9'
@@ -593,9 +585,9 @@ def verify_email(email):
                 domain = email.split('@')[-1]
                 msg = dns.resolver.query(domain, 'MX')
                 if msg:
-                    if msg.rcode() not in [3, 8]:
+                    if msg.response and msg.response.rcode() not in [3, 8]:
                         return True
-                    elif msg.rcode() in [1, 2, 4, 5, 6, 7, 8, 9, 10, 16]:
+                    elif msg.response and msg.response.rcode() in [1, 2, 4, 5, 6, 7, 8, 9, 10, 16]:
                         raise LutherBroke(
                             ('Internal server error, weird answer to DNS '
                              'MX query'),
@@ -605,6 +597,8 @@ def verify_email(email):
                         raise LutherBroke('Invalid email address')
                 else:
                     raise LutherBroke('Invalid email address')
+            except NXDOMAIN:
+                raise LutherBroke('Invalid email address')
             except NoAnswer:
                 raise LutherBroke(
                     'Internal server error, no answer to DNS MX query',
@@ -686,8 +680,10 @@ def new_user():
         password = request.args.get('password')
     else:
         raise LutherBroke('Bad request, no data')
-    if email is None or password is None:
+    if email in [None, ''] or password in [None, '']:
         raise LutherBroke('Bad request, missing arguments')
+    if not verify_email(email):
+        raise LutherBroke('Bad request, invalid email')
     if User.query.filter_by(email=email).first() is not None:
         raise LutherBroke(
             'Conflict in request, existing user',
@@ -800,6 +796,8 @@ def domain_mainuplator():
                     raise LutherBroke('Bad request, no data')
                 if not domain_name:
                     raise LutherBroke('Bad request, missing arguments')
+                if Subdomain.query.filter_by(name=domain_name).first():
+                    raise LutherBroke('Conflict in request, subdomain already exists', status_code=409)
                 if not ip:
                     ip = request.remote_addr
                 if not validate_subdomain(domain_name):
@@ -835,7 +833,7 @@ def domain_mainuplator():
                     raise LutherBroke()
             else:
                 return json_status_message(
-                    'You have reached your subdomain quota',
+                    'You have reached your subdomain quota, this subdomain wasn\'t added',
                     200
                 )
         else:
@@ -872,7 +870,7 @@ def domain_mainuplator():
         raise LutherBroke('Bad request, invalid subdomain')
 
 
-@app.route('/api/v1/regen_subdomain_token/<subdomain_name>/', methods=['POST'])
+@app.route('/api/v1/regen_subdomain_token/<subdomain_name>', methods=['POST'])
 # @ratelimit(limit=100, per=60*60)
 @auth.login_required
 def regen_subdomain_token(subdomain_name=None):
@@ -891,8 +889,8 @@ def regen_subdomain_token(subdomain_name=None):
         raise LutherBroke('Bad request, no data')
     if not domain_name:
         raise LutherBroke('Bad request, missing arguments')
-    for d in g.user.domains:
-        if domain_name is d.name:
+    for d in g.user.subdomains:
+        if domain_name == d.name:
             d.generate_domain_token()
             db.session.commit()
             return jsonify({
@@ -903,10 +901,9 @@ def regen_subdomain_token(subdomain_name=None):
                 'subdomain_token': d.token,
                 'GET_update_endpoint': 'https://'+app.config['ROOT_DOMAIN']+'/api/v1/update/'+d.name+'/'+d.token,
                 'last_updated': str(d.last_updated),
-                'message': 'Subdomain token regenerated.'
+                'message': 'Subdomain token regenerated'
             })
-        else:
-            raise LutherBroke('Bad request, invalid subdomain')
+    raise LutherBroke('Bad request, invalid subdomain')
 
 #################################
 # JSON / URL param update route #
@@ -1070,8 +1067,7 @@ def get_ip():
     :returns: string -- The IP address used to request the endpoint.
 
     """
-    user_addr = request.addr
-    return jsonify({'ip': user_addr})
+    return jsonify({'ip': request.remote_addr, 'status': 200})
 
 ###################
 # luther frontend #
@@ -1162,4 +1158,4 @@ if app.config['ENABLE_FRONTEND']:
                     stats['updates'].append([now, 0])
                 predis.set('luther/stats', stats)
 
-        update_stats()
+        # update_stats()

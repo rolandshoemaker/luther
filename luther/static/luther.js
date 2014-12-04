@@ -163,7 +163,7 @@ function LutherMainViewModel() {
 function AddSubdomainViewModel() {
     var self = this;
     self.subdomain = ko.observable();
-    self.ip = ko.observable();
+    self.ip = ko.observable(luther_client_address);
 
     self.addSubdomain = function() {
         $('#addSub').modal('hide');

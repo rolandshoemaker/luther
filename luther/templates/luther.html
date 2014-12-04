@@ -136,7 +136,7 @@
             <p style="width: 95%; margin: 0 auto;">By using the web interface you are only scratching the surface. <em>luther</em> is designed to be a highly scriptable service allowing you to perform actions using GET & JSON or URL parameter POST requests.</p>
             <h3 style="text-align: center; cursor: default;">faq</h3>
             <h4>How do I change my password / delete my account?</h4>
-            <p style="width: 95%; margin: 0 auto;">Click on the little person icon on the right hand side of the navigation bar at the top of the screen and select the option you would like.</p>
+            <p style="width: 95%; margin: 0 auto;">Click on the little person icon on the right hand side of the navigation bar at the top of the screen and select the option you would like. If you choose to delete your account all data assosiated with it will be immediately deleted.</p>
             <h4>What information do  you store?</h4>
             <p style="width: 95%; margin: 0 auto;">Your email, hashed password, subdomain names, IP addresses they point to, and the last time they were updated. That is all. We keep no information on <strong>who</strong> is creating/updating/deleting subdomains. The only logs we keep detail DNS errors between our web and DNS servers and activity which may be considered abuse of the service in order to aid in banning users.</p>
             <h4>Is this platform secure?</h4>
@@ -146,7 +146,7 @@
             <h4>I found a bug! / I have a feature request!</h4>
             <p style="width: 95%; margin: 0 auto;">Great! Bug reports can either be sent to <a href="mailto:bugs@dnsd.co" target="_blank">bugs@dnsd.co</a> or (<strong>the much better option</strong>) submitted via the <em>luther</em> github <a href="https://github.com/rolandshoemaker/luther/issues" target="_blank">issues</a> page along with feature requests.</p>
             <h4>What DNS server do you use?</h4>
-            <p style="width: 95%; margin: 0 auto;">Our DNS servers run BIND since why bother reinventing the wheel, 90% of the internet uses it.</p>
+            <p style="width: 95%; margin: 0 auto;">Our DNS servers run BIND since why bother reinventing the wheel, 90% of the internet uses it (<em>somewhat based on completely un-factual evidence</em>).</p>
             <h4>Why doesn't a reverse lookup of my IP point to my subdomain?</h4>
             <p style="width: 95%; margin: 0 auto;">We aren't in charge of the reverse zone that your address resides in, this most likely belongs to your ISP, because of this we won't create any PTR records for your subdomain.</p>
             <h4>I'd like to run this for my own domain!</h4>
@@ -214,70 +214,72 @@
                 </div>
             </div>
         </div>
+        <script>
+            var luther_client_address = '{{client_ip}}';
+        </script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
         <script src="http://cdnjs.cloudflare.com/ajax/libs/knockout/3.1.0/knockout-min.js"></script>
         <script src="https://code.highcharts.com/highcharts.js"></script>
         <script src="/static/luther.js"></script>
         <script>
-        var luther_client_address = '{{client_ip}}';
-        {% if luther_stats %}
-        $(function () {
-            var stuff = JSON.parse('{{luther_stats|tojson|safe}}');
-            for (var i = 0; i < stuff.users.length; i++) {
-                stuff.users[i][0] = Date.parse(stuff.users[i][0])
-            }
-            for (var i = 0; i < stuff.subdomains.length; i++) {
-                stuff.subdomains[i][0] = Date.parse(stuff.subdomains[i][0])
-            }
-            for (var i = 0; i < stuff.subdomain_limit.length; i++) {
-                stuff.subdomain_limit[i][0] = Date.parse(stuff.subdomain_limit[i][0])
-            }
-            for (var i = 0; i < stuff.updates.length; i++) {
-                stuff.updates[i][0] = Date.parse(stuff.updates[i][0])
-            }
-            $('#luther-stats').highcharts({
-                chart: {
-                    type: 'line'
-                },
-                plotOptions: {
-                    line: {
-                        marker: {
-                            enabled: false
+            {% if luther_stats %}
+            $(function () {
+                var stuff = JSON.parse('{{luther_stats|tojson|safe}}');
+                for (var i = 0; i < stuff.users.length; i++) {
+                    stuff.users[i][0] = Date.parse(stuff.users[i][0])
+                }
+                for (var i = 0; i < stuff.subdomains.length; i++) {
+                    stuff.subdomains[i][0] = Date.parse(stuff.subdomains[i][0])
+                }
+                for (var i = 0; i < stuff.subdomain_limit.length; i++) {
+                    stuff.subdomain_limit[i][0] = Date.parse(stuff.subdomain_limit[i][0])
+                }
+                for (var i = 0; i < stuff.updates.length; i++) {
+                    stuff.updates[i][0] = Date.parse(stuff.updates[i][0])
+                }
+                $('#luther-stats').highcharts({
+                    chart: {
+                        type: 'line'
+                    },
+                    plotOptions: {
+                        line: {
+                            marker: {
+                                enabled: false
+                            }
                         }
-                    }
-                },
-                title: {
-                    text: 'Stats for dnsd.co'
-                },
-                xAxis: {
-                    type: 'datetime',
+                    },
                     title: {
-                        text: 'Date'
-                    }
-                },
-                yAxis: {
-                    min: 0
-                },
-                series: [{
-                    name: 'Number of Users',
-                    data: stuff.users
-                },{
-                    name: 'Number of Subdomains',
-                    data: stuff.subdomains
-                },{
-                    name: 'Number of Updates since last check',
-                    data: stuff.updates
-                },{
-                    name: 'Subdomain limit',
-                    data: stuff.subdomain_limit,
-                    dashStyle: 'longdash',
-                    color: '#ff0000',
-                    lineWidth: 1
-                }]
+                        text: 'Stats for dnsd.co'
+                    },
+                    xAxis: {
+                        type: 'datetime',
+                        title: {
+                            text: 'Date'
+                        }
+                    },
+                    yAxis: {
+                        min: 0
+                    },
+                    series: [{
+                        name: 'Number of Users',
+                        data: stuff.users
+                    },{
+                        name: 'Number of Subdomains',
+                        data: stuff.subdomains
+                    },{
+                        name: 'Number of Updates since last check',
+                        data: stuff.updates
+                    },{
+                        name: 'Subdomain limit',
+                        data: stuff.subdomain_limit,
+                        dashStyle: 'longdash',
+                        color: '#ff0000',
+                        lineWidth: 1
+                    }]
+                })
             })
-        })
-        {% endif %}
+            {% endif %}
         </script>
     </body>
 </html>

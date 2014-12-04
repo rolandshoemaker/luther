@@ -101,12 +101,13 @@ or you can view the documentation for the latest release at [https://docs.luther
 
 ## TODO
 
-* ADD: `setup.py` installer file
-* FIX: table doesn't update properly when you add a domain :<
+* ADD: dynamic switching between ipv6 and ipv4 addresses in DB and on NS...
+* FINISH: `setup.py` installer file
 * ADD: registration stuff in luther.js
 * ADD: change pass/delete user drop down to frontend
 * ADD: write tests
 * FIX: Slim down configuration file, there is a bit of duplication
+* **DONE**: table doesn't update properly when you add a domain :<
 * finish writing the README (._.)
 * finish writing all the documentation
 

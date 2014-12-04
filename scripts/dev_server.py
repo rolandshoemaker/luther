@@ -12,5 +12,8 @@
 ##############
 
 from luther import app
+from luther.api import update_stats
+
+update_stats()
 
 app.run(debug=True, use_reloader=False, host='192.168.1.8', port=80)
