@@ -699,9 +699,7 @@ def new_user():
         'email': user.email,
         'resources': {
             'Subdomains':
-            'https://'+app.config['ROOT_DOMAIN']+'/api/v1/subdomains',
-            'Subdomain updates':
-            'https://'+app.config['ROOT_DOMAIN']+'/api/v1/update'
+            'https://'+app.config['ROOT_DOMAIN']+'/api/v1/subdomains'
         }
     })
     resp.status_code = 201
@@ -775,6 +773,7 @@ def domain_mainuplator():
                 'GET_update_endpoint': 'https://'+app.config['ROOT_DOMAIN']+'/api/v1/update/'+d.name+'/'+d.token,
                 'last_updated': str(d.last_updated)})
         if len(info['subdomains']) > 0:
+            info['status'] = 200
             resp = jsonify(info)
             resp.status_code = 200
             return resp
@@ -845,30 +844,27 @@ def domain_mainuplator():
     elif request.method == 'DELETE':
         if request.json and not request.args:
             domain_name = request.json.get('subdomain')
-            domain_token = request.json.get('subdomain_token')
+            confirm = request.json.get('confirm')
         elif request.args and not request.json:
             domain_name = request.args.get('subdomain')
-            domain_token = request.args.get('subdomain_token')
+            confirm = request.args.get('confirm')
         else:
             raise LutherBroke('Bad request, no data')
-        if not domain_name or not domain_token:
+        if domain_name in [None, '']:
             raise LutherBroke('Bad request, missing arguments')
-        if not validate_subdomain(domain_name):
-            raise LutherBroke('Bad request, invalid subdomain')
+        if not confirm == 'DELETE':
+            raise LutherBroke('Bad request, malformed or missing arguments')
         sub_iterator = g.user.subdomains if \
             g.user.role is 1 else Subdomain.query.all()
         for d in sub_iterator:
             if d.name == domain_name:
-                if d.verify_domain_token(domain_token):
-                    ddns_result = delete_ddns(d.name)
-                    if ddns_result:
-                        db.session.delete(d)
-                        db.session.commit()
-                        return json_status_message('Subdomain deleted', 200)
-                    else:
-                        raise LutherBroke()
+                ddns_result = delete_ddns(d.name)
+                if ddns_result:
+                    db.session.delete(d)
+                    db.session.commit()
+                    return json_status_message('Subdomain deleted', 200)
                 else:
-                    raise LutherBroke('Bad request, invalid subdomain_token')
+                    raise LutherBroke('Internal server error', status_code=500)
         raise LutherBroke('Bad request, invalid subdomain')
 
 
@@ -925,7 +921,7 @@ def fancy_interface():
     if request.json and not request.args:
         domain_list = []
         for d in request.json.get('subdomains'):
-            if not d.get('subdomain') or not d.get('subdomain_token'):
+            if d.get('subdomain') in ['', None] or d.get('subdomain_token') in ['', None]:
                 raise LutherBroke(
                     'Bad request, missing or malformed arguments'
                 )
@@ -934,19 +930,21 @@ def fancy_interface():
             domain_list.append([d['subdomain'], d['subdomain_token'], d['ip']])
     elif request.args and not request.json:
         domain_list = []
-        names = request.args.get('names')
-        tokens = request.args.get('tokens')
+        names = request.args.get('subdomains')
+        tokens = request.args.get('subdomain_tokens')
         ips = request.args.get('addresses')
-        if not names or not tokens:
+        if names in ['', None] or tokens in ['', None]:
             raise LutherBroke('Bad request, missing or malformed arguments')
         names = names.split(',')
         tokens = tokens.split(',')
-        if len(names) is not len(tokens) or len(ips) > len(names):
-            raise LutherBroke('Bad request, malformed arguments')
         if ips:
             ips = ips.split(',')
+        if len(names) is not len(tokens) or len(ips) > len(names):
+            raise LutherBroke('Bad request, malformed arguments')
         for i in range(len(names)):
-            if len(ips) <= i:
+            if len(ips)-1 <= i:
+                if ips[i] == '':
+                    ips[i] = request.remote_addr
                 domain_list.append([names[i], tokens[i], ips[i]])
             else:
                 domain_list.append([names[i], tokens[i], request.remote_addr])
