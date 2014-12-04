@@ -89,7 +89,7 @@ To run the development server run
 
 ### Using the CLI tool
 
-### You're ready!
+### Interacting with *luther*
 
 ## Documentation
 
@@ -102,6 +102,7 @@ or you can view the documentation for the latest release at [https://docs.luther
 ## TODO
 
 * ADD: dynamic switching between ipv6 and ipv4 addresses in DB and on NS...
+* ADD: Write example client tools
 * FINISH: `setup.py` installer file
 * ADD: registration stuff in luther.js
 * ADD: change pass/delete user drop down to frontend

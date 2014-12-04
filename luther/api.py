@@ -167,7 +167,7 @@ def in_allowed_network(ip, v4_networks=app.config['ALLOWED_USER_V4_SUBNETS'],
     return in_net
 
 # This could be better (should really support subsub domains...)
-pre_SUBDOMAIN_REGEX = re.compile('^[A-Za-z0-9](?:[A-Za-z0-9\-]{0,61}[A-Za-z0-9])?$')
+SUBDOMAIN_REGEX = re.compile('^[A-Za-z0-9](?:[A-Za-z0-9\-]{0,61}[A-Za-z0-9])?$', re.IGNORECASE)
 
 def validate_subdomain(subdomain):
     """validate_subdomain checks to see if a subdomain is valid
@@ -178,7 +178,7 @@ def validate_subdomain(subdomain):
     :returns: bool -- If the subdomain is valid and not restricted.
 
     """
-    if re.match(SUBDOMAIN_REGEX, subdomain, re.IGNORECASE) \
+    if re.match(SUBDOMAIN_REGEX, subdomain) \
             and subdomain not in app.config['RESTRICTED_SUBDOMAINS']:
         return True
     else:
@@ -225,6 +225,7 @@ class LutherBroke(Exception):
     def to_dict(self):
         rv = dict(self.payload or ())
         rv['message'] = self.message
+        rv['status'] = self.status_code
         return rv
 
 
@@ -722,7 +723,8 @@ def edit_user():
             sure = request.args.get('confirm')
         else:
             raise LutherBroke('Bad request, no data')
-        if sure in [None, ''] or sure is not 'DELETE':
+        if sure in [None, ''] or not sure == 'DELETE':
+            print(sure)
             raise LutherBroke('Bad request, missing or malformed arguments')
         for d in g.user.subdomains:
             delete_ddns(d.name)
@@ -871,6 +873,7 @@ def domain_mainuplator():
 
 
 @app.route('/api/v1/regen_subdomain_token/<subdomain_name>', methods=['POST'])
+@app.route('/api/v1/regen_subdomain_token', methods=['POST'])
 # @ratelimit(limit=100, per=60*60)
 @auth.login_required
 def regen_subdomain_token(subdomain_name=None):
@@ -1002,6 +1005,10 @@ def fancy_interface():
 
 @app.route(
     '/api/v1/update/<domain_name>/<domain_token>/<domain_ip>',
+    methods=['GET']
+)
+@app.route(
+    '/api/v1/update/<domain_name>/<domain_token>',
     methods=['GET']
 )
 # @ratelimit(limit=100, per=60*60)

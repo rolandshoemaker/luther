@@ -57,8 +57,8 @@ function LutherMainViewModel() {
                     token: ko.observable(data.subdomains[i].subdomain_token),
                     last_update: ko.observable(data.subdomains[i].last_updated)
                 });
-                $('#login').modal('hide');
             }
+            $('#login').modal('hide');
         }).fail(function(err) {
             if (err.status == 403) {
                 if (!err.responseJSON || err.responseJSON.message == null) {

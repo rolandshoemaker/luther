@@ -42,19 +42,12 @@ def cli():
 def add_user(email, password, role, quota):
     """Add a user"""
     with app.app_context():
-        if not email:
-            email = input('Email: ')
         if User.query.filter_by(email=email).first():
             click.secho('Email already exists silly.\n', fg='red')
             return False
-        if not password:
-            password = getpass()
-            if not password == getpass(prompt='Confirm Password: '):
-                click.secho('Passwords dont match...\n', fg='red')
-                return False
-            if password is '':
-                click.secho('Password cannot be blank.\n', fg='red')
-                return False
+        if password == '':
+            click.secho('Password cannot be blank.\n', fg='red')
+            return False
         new_user = User(email=email, role=role, quota=quota)
         new_user.hash_password(password)
         db.session.add(new_user)
@@ -63,7 +56,7 @@ def add_user(email, password, role, quota):
 
 @cli.command('edit_user')
 @click.argument('email')
-@click.password_option(help='Users password')
+@click.option('--password', help='Users password')
 @click.option('--role', help='User role (0 admin, 1 user)')
 @click.option('--quota', help='User subdomain quota')
 def edit_user(email, password, role, quota):
@@ -78,8 +71,11 @@ def edit_user(email, password, role, quota):
                     user.quota = quota
                 if role:
                     user.role = role
-                db.session.commit()
-                click.secho('User '+user.email+' updated.\n', fg='green')
+                if role or quota or password:
+                    db.session.commit()
+                    click.secho('User '+user.email+' updated.\n', fg='green')
+                else:
+                    click.secho('Nothing to do...?\n', fg='red')
             else:
                 click.secho('User '+email+' doesnt exist.\n', fg='red')
                 return False
@@ -289,7 +285,7 @@ def count_subdomains():
 
 @cli.command('count_users_subdomains')
 @click.argument('email')
-def count_subdomains(email):
+def count_user_subdomains(email):
     """Count a users subdomains"""
     with app.app_context():
         user = User.query.filter_by(email=email).first()
@@ -375,7 +371,7 @@ def init_db():
     """Initiailize the luther db"""
     with app.app_context():
         db.create_all()
-        db.commit()
+        db.session.commit()
         click.secho('Initialized database, you may want to add a (admin) user now!\n', fg='green')
 
 @cli.command('check_stats')

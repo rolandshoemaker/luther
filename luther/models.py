@@ -69,7 +69,11 @@ class Subdomain(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship(
         'User',
-        backref=db.backref('subdomains', lazy='dynamic')
+        backref=db.backref(
+            'subdomains',
+            cascade='all, delete-orphan',
+            lazy='dynamic'
+        )
     )
 
     def generate_domain_token(self):
