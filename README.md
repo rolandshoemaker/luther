@@ -13,6 +13,41 @@
   "your non-lutheran ddns worries me" - Martin Luther, 1538
 </p>
 
+## *Table of Contents*
+
+[**Introduction**](#introduction)
+
+[**Quickstart**](#quickstart)
+
+  - [Requirements](#requirements)
+  - [Installation](#installation)
+  - [Configuration](#configuration)
+    - [DNS TSIG Key](#dns-tsig-key)
+    - [luther configuration file](#luther-configuration-file)
+    - [Dev server](#dev-server)
+    - [WSGI Server](#wsgi-server)
+  - [Using the CLI tool on the server running luther](#using-the-cli-tool-on-the-server-running-luther)
+- [Interacting with the luther REST API as a user](#interacting-with-the-luther-rest-api-as-a-user)
+  - [Creating a User](#creating-a-user)
+  - [Changing your password](#changing-your-password)
+  - [Deleting your account](#deleting-your-account)
+  - [Checking what luther thinks your IP address is](#checking-what-luther-thinks-your-ip-address-is)
+  - [Creating a Subdomain](#creating-a-subdomain)
+  - [Getting your Subdomains](#getting-your-subdomains)
+  - [Deleting a Subdomain](#deleting-a-subdomain)
+  - [Updating a Subdomain](#updating-a-subdomain)
+    - [GET interface](#get-interface)
+    - [Fancy interface](#fancy-interface)
+      - [JSON](#json)
+      - [URL parameters](#url)
+  - [Regenerating a subdomain_token](#regenerating-a-subdomain_token)
+
+[**Documentation**](#docs)
+
+[**TODO**](#todo)
+
+[**License**](#license)
+
 ## Introduction
 
 luther is an open source lightweight Dynamic DNS REST API that allows users 
