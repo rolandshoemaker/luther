@@ -788,11 +788,11 @@ def domain_mainuplator():
                     ip = request.args.get('ip')
                 else:
                     raise LutherBroke('Bad request, no data')
-                if domain_name in [None, '':
+                if domain_name in [None, '']:
                     raise LutherBroke('Bad request, missing arguments')
                 if Subdomain.query.filter_by(name=domain_name).first():
                     raise LutherBroke('Conflict in request, subdomain already exists', status_code=409)
-                if ip in [None, ''::
+                if ip in [None, '']:
                     ip = request.remote_addr
                 if not validate_subdomain(domain_name):
                     raise LutherBroke('Bad request, invalid subdomain')
@@ -879,7 +879,7 @@ def regen_subdomain_token(subdomain_name=None):
         domain_name = subdomain_name
     else:
         raise LutherBroke('Bad request, no data')
-    if domain_name in [None, ''::
+    if domain_name in [None, '']:
         raise LutherBroke('Bad request, missing arguments')
     for d in g.user.subdomains:
         if domain_name == d.name:
