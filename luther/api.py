@@ -61,8 +61,6 @@ import datetime
 
 from luther import app
 
-
-# app.config.from_object('luther.config')
 app.config.from_envvar('LUTHER_SETTINGS')
 
 auth = HTTPBasicAuth()
@@ -98,6 +96,11 @@ if not app.debug:
 # Util functions #
 ##################
 
+
+def init_db():
+    with app.app_context():
+        db.create_all()
+        db.session.commit()
 
 def validate_ip(ip, v6=False):
     """validate_ip uses the ipaddress library to validate IPv4 and IPv6
@@ -692,7 +695,9 @@ def new_user():
         'email': user.email,
         'resources': {
             'Subdomains':
-            'https://'+app.config['ROOT_DOMAIN']+'/api/v1/subdomains'
+            'https://'+app.config['ROOT_DOMAIN']+'/api/v1/subdomains',
+            'Guess_IP':
+            'https://'+app.config['ROOT_DOMAIN']+'/api/v1/guess_ip'
         }
     })
     resp.status_code = 201
@@ -1058,7 +1063,7 @@ def get_interface(domain_name, domain_token, domain_ip=None):
 ################
 
 
-@app.route('/api/v1/geuss-ip', methods=['GET'])
+@app.route('/api/v1/geuss_ip', methods=['GET'])
 def get_ip():
     """Return the IP used to request the endpoint.
 

@@ -17,7 +17,6 @@ setup(
         'Flask',
         'flask.ext.httpauth',
         'dnspython3',
-        'sqlalchemy',
         'click',
         'tabulate',
         'click'

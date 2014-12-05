@@ -374,6 +374,20 @@ def init_db():
         db.session.commit()
         click.secho('Initialized database, you may want to add a (admin) user now!\n', fg='green')
 
+@cli.command('dev_server')
+@click.option('--host', default='127.0.0.1', help='Host address to bind to, defaults to \'127.0.0.1\'')
+@click.option('--port', default=5000, help='Host port to bind to, defaults to \'5000\'')
+@click.option('--reloader', default=False, help='Whether or not to reload (bad idea to use with --stats')
+@click.option('--stats', default=False, help='Generate statistics')
+def dev_server():
+    """Run the development web server"""
+    from luther.api import update_stats
+
+    if stats:
+        update_stats()
+
+    app.run(debug=True, use_reloader=reloader, host=host, port=port)
+
 @cli.command('check_stats')
 def check_stats():
     """Get the most recent stats from redis (relies on app.config['ENABLE_STATS'] = True)"""

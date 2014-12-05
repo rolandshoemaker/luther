@@ -1,16 +1,17 @@
-     _         _    _                 
-    | | _   _ | |_ | |__    ___  _ __ 
-    | || | | || __|| '_ \  / _ \| '__|
-    | || |_| || |_ | | | ||  __/| |   
-    |_| \__,_| \__||_| |_| \___||_|   
-                                  
-
+<pre align="center">
+<code style="color: rgb(211, 69, 69);"> _         _    _                 
+| |       | |  | |                
+| | _   _ | |_ | |__    ___  _ __ 
+| || | | || __|| '_ \  / _ \| '__|
+| || |_| || |_ | | | ||  __/| |   
+|_| \__,_| \__||_| |_| \___||_|   
+</code></pre>
 
 <p align="center">
   <img src="luther.png"/>
 </p>
 <p align="center">
-  "your non-lutheran ddns worries me" - Martin Luther, 1538
+  <em>"your non-lutheran ddns worries me"</em> &mdash; Martin Luther, 1538
 </p>
 
 ## *Table of Contents*
@@ -23,15 +24,15 @@
   - [Installation](#installation)
   - [Configuration](#configuration)
     - [DNS TSIG Key](#dns-tsig-key)
-    - [luther configuration file](#luther-configuration-file)
+    - [*luther* configuration file](#luther-configuration-file)
     - [Dev server](#dev-server)
     - [WSGI Server](#wsgi-server)
-  - [Using the CLI tool on the server running luther](#using-the-cli-tool-on-the-server-running-luther)
-- [Interacting with the luther REST API as a user](#interacting-with-the-luther-rest-api-as-a-user)
+  - [Using the CLI tool on the server running *luther*](#using-the-cli-tool-on-the-server-running-luther)
+- [Interacting with the *luther* REST API as a user](#interacting-with-the-luther-rest-api-as-a-user)
   - [Creating a User](#creating-a-user)
   - [Changing your password](#changing-your-password)
   - [Deleting your account](#deleting-your-account)
-  - [Checking what luther thinks your IP address is](#checking-what-luther-thinks-your-ip-address-is)
+  - [Checking what *luther* thinks your IP address is](#checking-what-luther-thinks-your-ip-address-is)
   - [Creating a Subdomain](#creating-a-subdomain)
   - [Getting your Subdomains](#getting-your-subdomains)
   - [Deleting a Subdomain](#deleting-a-subdomain)
@@ -122,9 +123,15 @@ To run the development server run
     
     -- or --
     
-    # luther-cli devserver
+    # luther-cli dev_server
 
 #### WSGI Server
+
+#### Running the *luther* tests
+
+To run the tests (*yay you*) run the `tests/run_tests.py`. **But** remember you should have `LUTHER_SETTINGS` set and a DNS server/TSIG zone key setup for DNS update tests.
+
+    # python tests/run_tests.py
 
 ### Using the CLI tool on the server running luther
 
@@ -245,9 +252,9 @@ If you'd like to delete your account (`:<`) you can with a DELETE request to `ht
 
 When creating and updating subdomains *luther* will either use the IP address you specify or, if none is specified, *luther* will attempt to guess your address. Sometimes it might be useful to know what this is guess is before letting *luther* run wild.
 
-A very simple endpoint allows you do do this by sending a GET request to `https://dnsd.co/api/v1/geuss-ip`
+A very simple endpoint allows you do do this by sending a GET request to `https://dnsd.co/api/v1/geuss_ip`
 
-    # curl -i 'https://dnsd.co/api/v1/get-ip'
+    # curl -i 'https://dnsd.co/api/v1/guess_ip'
 
     HTTP/1.0 200 OK
     Content-Type: application/json
@@ -539,7 +546,7 @@ To regenerate the `subdomain_token` used to authenticate updates send a authenti
       "full_domain": "example.dnsd.co",
       "ip": "2.2.2.2",
       "last_updated": "2014-12-04 11:09:03",
-      "message": "Subdomain token regenerated",
+      "message": "subdomain_token regenerated",
       "status": 200,
       "subdomain": "example",
       "subdomain_token": "a388a2ba-a461-4fbf-b907-281f25723586"
@@ -576,7 +583,6 @@ or you can view the documentation for the latest release at [https://docs.luther
       * *Single* **+** *Multiple* domains
   * TEST: get-ip route
 * FIX: Slim down configuration file, there is a bit of duplication
-* **FIXED**: table doesn't update properly when you add a domain :<
 * FINISH: writing the README (._.)
 * FINISH: writing all the documentation
 
