@@ -46,6 +46,8 @@ If you install *luther* using `setup.py` all these modules will attempt to be in
 
 ### Configuration
 
+Setting up *luther* is pretty simple, but before we get to that we need a TSIG zone key, if you already have a key and your DNS server is configured to accept it you can skip this section
+
 #### DNS TSIG Key
 
 To generate a TSIG key for the zone you want to use, if you don't already have one, run `dnssec-keygen` to generate the TSIG key files (make sure you use the FQDN, including the trailing **.**)
@@ -73,7 +75,9 @@ and in your zone definition file append an `allow-update` statement to the relev
         };
     };
 
-#### luther.config
+#### *luther* configuration file
+
+First copy the example configuration file `examples/luther-config.py.example`
 
 #### Dev server
 
@@ -87,9 +91,43 @@ To run the development server run
 
 #### WSGI Server
 
-### Using the CLI tool
+### Using the CLI tool on the server running luther
 
-### Interacting with *luther*
+    # luther-cli
+    Usage: luther-cli [OPTIONS] COMMAND [ARGS]...
+
+      CLI tool for interacting with luther -- v0.1 -- roland shoemaker
+
+      [this is somewhat dangerous to luther, i guess. so be careful ._.]
+
+    Options:
+      --help  Show this message and exit.
+
+    Commands:
+      add_subdomain                 Add a new subdomain
+      add_user                      Add a user
+      check_stats                   Get the most recent stats from redis
+                                    (relies...
+      count_subdomains              Count all subdomains
+      count_users                   Count all users
+      count_users_subdomains        Count a users subdomains
+      delete_subdomain              Delete a subdomain
+      delete_user                   Delete a user
+      dig_subdomain                 Check subdomain IP address in database...
+      edit_subdomain                Edit a subdomain
+      edit_user                     Edit a user
+      init_db                       Initiailize the luther db
+      list_subdomains               List all subdomains
+      list_users                    List all users
+      list_users_subdomains         List all a users subdomains
+      regen_subdomain_token         Regenerate the token for a subdomain
+      regen_users_subdomain_tokens  Regenerate all subdomain tokens for a user
+      search_subdomains             Search for subdomains by subdomain names
+      search_users                  Search for users by email
+      view_subdomain                View a specific subdomain
+      view_user                     View a specific user
+
+## Interacting with the *luther* REST API as a user
 
 Here we will be using the command `curl` to interact with the API, but any other tool or library can be used.
 
@@ -100,7 +138,7 @@ used either with URL parameters or with JSON data, just to make your life easier
 Beware though that the `IP` guessing system *luther* uses is somewhat `IPv4`-biased so if you are using `IPv6` you will probably want
 to set the `IP` manually when creating and updating subdomains.
 
-#### Creating a User
+### Creating a User
 
 Creating a user can be accomplised through a POST request to `https://dnsd.co/api/v1/user` with the email
 address and password you wish to use.
@@ -125,7 +163,7 @@ address and password you wish to use.
       "status": 201
     }%
 
-#### Changing your password
+### Changing your password
 
 To change your password all you need to do it a simple POST request to `https://dnsd.co/api/v1/edit_user` with your new password.
 Since you need an account to do this you can use `curl -u username:password` to identify yourself to the service.
@@ -147,7 +185,7 @@ Since you need an account to do this you can use `curl -u username:password` to 
       "status": 200
     }%
 
-#### Deleting your account
+### Deleting your account
 
 If you'd like to delete your account (`:<`) you can with a DELETE request to `https://dnsd.co/api/v1/edit_user` with the variable `confirm` set to `DELETE`. When you delete your account all of your user information and subdomains will be immediately deleted.
 
@@ -168,7 +206,7 @@ If you'd like to delete your account (`:<`) you can with a DELETE request to `ht
       "status": 200
     }%
 
-#### Checking what *luther* thinks your IP address is
+### Checking what *luther* thinks your IP address is
 
 When creating and updating subdomains *luther* will either use the IP address you specify or, if none is specified, *luther* will attempt to guess your address. Sometimes it might be useful to know what this is guess is before letting *luther* run wild.
 
@@ -187,7 +225,7 @@ A very simple endpoint allows you do do this by sending a GET request to `https:
       "status": 200
     }% 
 
-#### Creating a Subdomain
+### Creating a Subdomain
 
 To create a new subdomain you need to send a POST request to `https://dnsd.co/api/v1/subdomains` with the variables `subdomain` (optionally `ip`, if you don't set this *luther* will try to guess the IP that you are coming from).
 
@@ -221,7 +259,7 @@ To create a new subdomain you need to send a POST request to `https://dnsd.co/ap
       "subdomain_token": "bd6b24e3-ac7f-46d9-abd9-baecfc386a0c"
     }%
 
-#### Getting your Subdomains
+### Getting your Subdomains
 
 To get a list of all of your subdomains and their update tokens you need to send a GET request to `https://dnsd.co/api/v1/subdomains`.
 
@@ -267,7 +305,7 @@ To get a list of all of your subdomains and their update tokens you need to send
       ]
     }% 
 
-#### Deleting a Subdomain
+### Deleting a Subdomain
 
 To delete a subdomain you need to send to a authenticated DELETE request to `https://dnsd.co/api/v1/subdomains` with the variables `subdomain` and `confirm = 'DELETE'`
 
@@ -289,7 +327,7 @@ To delete a subdomain you need to send to a authenticated DELETE request to `htt
     }%
 
   
-#### Updating a Subdomain
+### Updating a Subdomain
 
 You have two options when updating the address of a subdomain, either the `GET` interface, where everything is
 done via the URL itself which limits you to updating a single subdomain at a time, or the fancy JSON/URL
@@ -299,7 +337,7 @@ Updating a subdomain is different from updating/deleting users or creating subdo
 require username and password authentication, all we need is the subdomain name, the `subdomain_token` provided when
 you create a domain or via the `GET /api/v1/subdomains` list, and the address you wish to update the subdomain to (or nothing and *luther* will guess your address).
 
-##### GET interface
+#### GET interface
 
 The `GET_update_endpoint` returned via `GET /api/v1/subdomains` and `POST /api/v1/subdomains` points to the simple `GET` interface. This interface allows you to update the IP address associated with a subdomain, but is limited to updating one subdomain at a time. Using this interface all the parameters are specificed in the url path as so (if the last part of the path, indicating the `IP`, is left off *luther* will attempt to guess your IP address)
 
@@ -330,11 +368,11 @@ So to update one of the subdomains we already created we would send these reques
       "subdomain_token": "6b89fa82-4b20-4bd7-90d2-3e33f3980bde"
     }%
 
-##### Fancy interface
+#### Fancy interface
 
 The fancy interface simply means instead of using GET requests it uses POST requests to `https://dnsd.co/api/v1/update` and allows you to specify multiple domains at a time. Since the way you specify subdomains and subdomain_tokens slightly differently with JSON and URL parameters we will deal with them seperately.
 
-###### JSON
+##### JSON
 
 The JSON version of the interface expects a data object that looks like this (where only ip is optional, if not specified *luther* will try to guess your IP)
 
@@ -397,7 +435,7 @@ so our `curl` command would look like this
       ]
     }%
 
-###### URL parameters
+##### URL parameters
 
 The URL parameter version of the interface is a little finicky (and I'm not 100% sure it needs to continue existing) it expects two variables `subdomains` and `subdomain_tokens` and an optional variable `addresses`, all of these variables should either a single subdomain name, subdomain_token, and address or a comma-seperated list of the same pieces of information. The three lists must have the exact same number of elements, although `addresses` can have either less than or equal items (if `addresses` < `subdomains` all addresses after `len(addresses)` will use the guessed address) or not be specified at all, which means *luther* will use your guessed address for all the subdomains you are updating (you can specify empty items in `addresses`, in order to tell *luther* to use the guessed addreses, by typing `,,`, e.g. `1.2.3.4,,1.2.3.5`). These lists should be relative meaning the `subdomain_token` for the subdomain specified first in the `subdomains` list should be first in the `subdomain_tokens` list etc.
 
@@ -445,7 +483,7 @@ we would use this `curl` command
 
 See what I mean, SILLY!
 
-#### Regenerating a `subdomain_token`
+### Regenerating a `subdomain_token`
 
 To regenerate the `subdomain_token` used to authenticate updates send a authenticated POST request to `https://dnsd.co/api/v1/regen_subdomain_token` with the variable `subdomain` indicating which subdomain you'd like to regenerate the `subdomain_token` for
 
@@ -471,8 +509,6 @@ To regenerate the `subdomain_token` used to authenticate updates send a authenti
       "subdomain": "example",
       "subdomain_token": "a388a2ba-a461-4fbf-b907-281f25723586"
     }%
-
-
 
 ## Documentation
 
