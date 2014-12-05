@@ -642,26 +642,19 @@ def verify_email(email):
 
 
 @auth.verify_password
-def verify_password(email_or_token, password=None):
+def verify_password(email, password):
     """Verify a supplied token or email and password credentials.
 
-    :param email_or_token: Users email or an authentication
-        token from /api/v1/auth_token.
+    :param email: Users email.
     :type email_or_token: string.
     :param password: The users password.
     :type password: string or None.
     :returns: bool -- Whether the credentials were verified.
     """
-    # first try to authenticate by token
-    user = User.verify_auth_token(email_or_token)
-    if not user:
-        if password:
-            # try to authenticate with username/password
-            user = User.query.filter_by(email=email_or_token).first()
-            if not user or not user.verify_password(password):
-                return False
-        else:
-            return False
+    # try to authenticate with username/password
+    user = User.query.filter_by(email=email).first()
+    if not user or not user.verify_password(password):
+        return False
     g.user = user
     return True
 
@@ -795,11 +788,11 @@ def domain_mainuplator():
                     ip = request.args.get('ip')
                 else:
                     raise LutherBroke('Bad request, no data')
-                if not domain_name:
+                if domain_name in [None, '':
                     raise LutherBroke('Bad request, missing arguments')
                 if Subdomain.query.filter_by(name=domain_name).first():
                     raise LutherBroke('Conflict in request, subdomain already exists', status_code=409)
-                if not ip:
+                if ip in [None, ''::
                     ip = request.remote_addr
                 if not validate_subdomain(domain_name):
                     raise LutherBroke('Bad request, invalid subdomain')
@@ -886,7 +879,7 @@ def regen_subdomain_token(subdomain_name=None):
         domain_name = subdomain_name
     else:
         raise LutherBroke('Bad request, no data')
-    if not domain_name:
+    if domain_name in [None, ''::
         raise LutherBroke('Bad request, missing arguments')
     for d in g.user.subdomains:
         if domain_name == d.name:
@@ -1065,14 +1058,14 @@ def get_interface(domain_name, domain_token, domain_ip=None):
 ################
 
 
-@app.route('/api/v1/get-ip', methods=['GET'])
+@app.route('/api/v1/geuss-ip', methods=['GET'])
 def get_ip():
     """Return the IP used to request the endpoint.
 
     :returns: string -- The IP address used to request the endpoint.
 
     """
-    return jsonify({'ip': request.remote_addr, 'status': 200})
+    return jsonify({'guessed_ip': request.remote_addr, 'status': 200})
 
 ###################
 # luther frontend #

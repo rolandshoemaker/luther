@@ -93,7 +93,7 @@ To run the development server run
 
 Here we will be using the command `curl` to interact with the API, but any other tool or library can be used.
 
-All of the endpoints will be talking about here, with the exception of the `GET` subdomain interface, can be
+All of the endpoints we will be talking about here, with the exception of the `GET` subdomain interface and get-ip endpoint, can be
 used either with URL parameters or with JSON data, just to make your life easier.
 
 ***NOTE:*** In these examples I have used `IPv4` addresses, **BUT** `IPv6` and `IPv4` addresses can be used interchangably!
@@ -105,11 +105,11 @@ to set the `IP` manually when creating and updating subdomains.
 Creating a user can be accomplised through a POST request to `https://dnsd.co/api/v1/user` with the email
 address and password you wish to use.
 
-    [rolands:~/luther]$ curl 'https://dnsd.co/api/v1/user' -i -X POST -H 'Content-type: application/json' -d '{"email":"guy@gmail.com", "password":"password"}'
+    # curl 'https://dnsd.co/api/v1/user' -i -X POST -H 'Content-type: application/json' -d '{"email":"guy@gmail.com", "password":"password"}'
 
     -- or --
 
-    [rolands:~/luther]$ curl 'https://dnsd.co/api/v1/user?email=guy@gmail.com&password=password' -i -X POST
+    # curl 'https://dnsd.co/api/v1/user?email=guy@gmail.com&password=password' -i -X POST
 
     HTTP/1.0 201 CREATED
     Content-Type: application/json
@@ -130,11 +130,11 @@ address and password you wish to use.
 To change your password all you need to do it a simple POST request to `https://dnsd.co/api/v1/edit_user` with your new password.
 Since you need an account to do this you can use `curl -u username:password` to identify yourself to the service.
 
-    [rolands:~/luther]$ curl -u guy@gmail.com:password 'https://dnsd.co/api/v1/edit_user' -i -X POST -H 'Content-type: application/json' -d '{"new_password":"betterpassword"}'
+    # curl -u guy@gmail.com:password 'https://dnsd.co/api/v1/edit_user' -i -X POST -H 'Content-type: application/json' -d '{"new_password":"betterpassword"}'
 
     -- or --
 
-    [rolands:~/luther]$ curl -u guy@gmail.com:password 'https://dnsd.co/api/v1/edit_user?new_password=betterpassword' -i -X POST 
+    # curl -u guy@gmail.com:password 'https://dnsd.co/api/v1/edit_user?new_password=betterpassword' -i -X POST 
 
     HTTP/1.0 200 OK
     Content-Type: application/json
@@ -151,11 +151,11 @@ Since you need an account to do this you can use `curl -u username:password` to 
 
 If you'd like to delete your account (`:<`) you can with a DELETE request to `https://dnsd.co/api/v1/edit_user` with the variable `confirm` set to `DELETE`. When you delete your account all of your user information and subdomains will be immediately deleted.
 
-    [rolands:~/luther]$ curl -u guy@gmail.com:betterpassword 'https://dnsd.co/api/v1/edit_user' -i -X DELETE -H 'Content-type: application/json' -d '{"confirm":"DELETE"}'
+    # curl -u guy@gmail.com:betterpassword 'https://dnsd.co/api/v1/edit_user' -i -X DELETE -H 'Content-type: application/json' -d '{"confirm":"DELETE"}'
 
     -- or --
 
-    [rolands:~/luther]$ curl -u guy@gmail.com:betterpassword 'https://dnsd.co/api/v1/edit_user?confirm=DELETE' -i -X DELETE
+    # curl -u guy@gmail.com:betterpassword 'https://dnsd.co/api/v1/edit_user?confirm=DELETE' -i -X DELETE
 
     HTTP/1.0 200 OK
     Content-Type: application/json
@@ -168,23 +168,42 @@ If you'd like to delete your account (`:<`) you can with a DELETE request to `ht
       "status": 200
     }%
 
+#### Checking what *luther* thinks your IP address is
+
+When creating and updating subdomains *luther* will either use the IP address you specify or, if none is specified, *luther* will attempt to guess your address. Sometimes it might be useful to know what this is guess is before letting *luther* run wild.
+
+A very simple endpoint allows you do do this by sending a GET request to `https://dnsd.co/api/v1/geuss-ip`
+
+    # curl -i 'https://dnsd.co/api/v1/get-ip'
+
+    HTTP/1.0 200 OK
+    Content-Type: application/json
+    Content-Length: 42
+    Server: Werkzeug/0.9.6 Python/3.4.0
+    Date: Fri, 05 Dec 2014 00:13:46 GMT
+
+    {
+      "guessed_ip": "1.1.1.1",
+      "status": 200
+    }% 
+
 #### Creating a Subdomain
 
 To create a new subdomain you need to send a POST request to `https://dnsd.co/api/v1/subdomains` with the variables `subdomain` (optionally `ip`, if you don't set this *luther* will try to guess the IP that you are coming from).
 
-    [rolands:~/luther]$ curl -u guy@gmail.com:betterpassword 'https://dnsd.co/api/v1/subdomains' -i -X POST -H 'Content-type: application/json' -d '{"subdomain":"example"}'
+    # curl -u guy@gmail.com:betterpassword 'https://dnsd.co/api/v1/subdomains' -i -X POST -H 'Content-type: application/json' -d '{"subdomain":"example"}'
 
     -- or --
 
-    [rolands:~/luther]$ curl -u guy@gmail.com:betterpassword 'https://dnsd.co/api/v1/subdomains?subdomain=example&ip=1.1.1.1' -i -X POST
+    # curl -u guy@gmail.com:betterpassword 'https://dnsd.co/api/v1/subdomains?subdomain=example' -i -X POST
 
         -- or with IP address specified --
 
-    [rolands:~/luther]$ curl -u guy@gmail.com:betterpassword 'https://dnsd.co/api/v1/subdomains' -i -X POST -H 'Content-type: application/json' -d '{"subdomain":"example", "ip":"1.1.1.1"}'
+    # curl -u guy@gmail.com:betterpassword 'https://dnsd.co/api/v1/subdomains' -i -X POST -H 'Content-type: application/json' -d '{"subdomain":"example", "ip":"1.1.1.1"}'
 
     -- or --
 
-    [rolands:~/luther]$ curl -u guy@gmail.com:betterpassword 'https://dnsd.co/api/v1/subdomains?subdomain=example' -i -X POST
+    # curl -u guy@gmail.com:betterpassword 'https://dnsd.co/api/v1/subdomains?subdomain=example&ip=1.1.1.1' -i -X POST
 
     HTTP/1.0 200 OK
     Content-Type: application/json
@@ -206,7 +225,7 @@ To create a new subdomain you need to send a POST request to `https://dnsd.co/ap
 
 To get a list of all of your subdomains and their update tokens you need to send a GET request to `https://dnsd.co/api/v1/subdomains`.
 
-    [rolands:~/luther]$ curl -u guy@gmail.com:betterpassword 'https://dnsd.co/api/v1/subdomains' -i
+    # curl -u guy@gmail.com:betterpassword 'https://dnsd.co/api/v1/subdomains' -i
 
     HTTP/1.0 200 OK
     Content-Type: application/json
@@ -252,11 +271,11 @@ To get a list of all of your subdomains and their update tokens you need to send
 
 To delete a subdomain you need to send to a authenticated DELETE request to `https://dnsd.co/api/v1/subdomains` with the variables `subdomain` and `confirm = 'DELETE'`
 
-    [rolands:~/luther]$ curl -u guy@gmail.com:betterpassword -X POST 'https://dnsd.co/api/v1/subdomains?subdomain=example3&confirm=DELETE' -i -X DELETE
+    # curl -u guy@gmail.com:betterpassword -X POST 'https://dnsd.co/api/v1/subdomains?subdomain=example3&confirm=DELETE' -i -X DELETE
 
     -- or --
 
-    [rolands:~/luther]$ curl -u guy@gmail.com:betterpassword -X POST 'https://dnsd.co/api/v1/subdomains' -i -X DELETE -H 'Content-type: application/json' -d '{"subdomain":"example3", "confirm":"DELETE"}'
+    # curl -u guy@gmail.com:betterpassword -X POST 'https://dnsd.co/api/v1/subdomains' -i -X DELETE -H 'Content-type: application/json' -d '{"subdomain":"example3", "confirm":"DELETE"}'
 
     HTTP/1.0 200 OK
     Content-Type: application/json
@@ -284,15 +303,15 @@ you create a domain or via the `GET /api/v1/subdomains` list, and the address yo
 
 The `GET_update_endpoint` returned via `GET /api/v1/subdomains` and `POST /api/v1/subdomains` points to the simple `GET` interface. This interface allows you to update the IP address associated with a subdomain, but is limited to updating one subdomain at a time. Using this interface all the parameters are specificed in the url path as so (if the last part of the path, indicating the `IP`, is left off *luther* will attempt to guess your IP address)
 
-    [rolands:~/luther]$ curl -i 'https://dnsd.co/api/v1/update/subdomain_name/subdomain_token(/optional_ip)'
+    # curl -i 'https://dnsd.co/api/v1/update/subdomain_name/subdomain_token(/optional_ip)'
 
 So to update one of the subdomains we already created we would send these requests
 
-    [rolands:~/luther]$ curl -i 'https://dnsd.co/api/v1/update/example/6b89fa82-4b20-4bd7-90d2-3e33f3980bde'
+    # curl -i 'https://dnsd.co/api/v1/update/example/6b89fa82-4b20-4bd7-90d2-3e33f3980bde'
 
     -- or --
 
-    [rolands:~/luther]$ curl -i 'https://dnsd.co/api/v1/update/example/6b89fa82-4b20-4bd7-90d2-3e33f3980bde/2.2.2.2'
+    # curl -i 'https://dnsd.co/api/v1/update/example/6b89fa82-4b20-4bd7-90d2-3e33f3980bde/2.2.2.2'
 
     HTTP/1.0 200 OK
     Content-Type: application/json
@@ -333,7 +352,7 @@ The JSON version of the interface expects a data object that looks like this (wh
 
 so our `curl` command would look like this
 
-    [rolands:~/luther]$ curl -u guy@gmail.com:betterpassword -X POST 'https://dnsd.co/api/v1/update' -H 'Content-type: application/json' -i -d '{ 
+    # curl -u guy@gmail.com:betterpassword -X POST 'https://dnsd.co/api/v1/update' -H 'Content-type: application/json' -i -d '{ 
               "subdomains": [
                 {
                   "subdomain": "example",
@@ -389,7 +408,7 @@ So if we want to update these subdomains to these addresses
 
 we would use this `curl` command
 
-    [rolands:~/luther]$ curl -i -X POST 'https://dnsd.co/api/v1/update?subdomains=example,example2&subdomain_tokens=692508f1-5774-43cb-abc0-4cff25c3eaea,23d37da2-be94-4166-8b5b-ab45084be337&addresses=,5.5.5.6'
+    # curl -i -X POST 'https://dnsd.co/api/v1/update?subdomains=example,example2&subdomain_tokens=692508f1-5774-43cb-abc0-4cff25c3eaea,23d37da2-be94-4166-8b5b-ab45084be337&addresses=,5.5.5.6'
 
     HTTP/1.0 200 OK
     Content-Type: application/json
@@ -430,11 +449,11 @@ See what I mean, SILLY!
 
 To regenerate the `subdomain_token` used to authenticate updates send a authenticated POST request to `https://dnsd.co/api/v1/regen_subdomain_token` with the variable `subdomain` indicating which subdomain you'd like to regenerate the `subdomain_token` for
 
-    [rolands:~/luther]$ curl -u guy@gmail.com:betterpassword -X POST 'https://dnsd.co/api/v1/regen_subdomain_token' -i -X POST -H 'Content-type: application/json' -d '{"subdomain":"example"}'
+    # curl -u guy@gmail.com:betterpassword -X POST 'https://dnsd.co/api/v1/regen_subdomain_token' -i -X POST -H 'Content-type: application/json' -d '{"subdomain":"example"}'
 
     -- or --
 
-    [rolands:~/luther]$ curl -u guy@gmail.com:betterpassword -X POST 'https://dnsd.co/api/v1/regen_subdomain_token?subdomain=example' -i
+    # curl -u guy@gmail.com:betterpassword -X POST 'https://dnsd.co/api/v1/regen_subdomain_token?subdomain=example' -i
 
     HTTP/1.0 200 OK
     Content-Type: application/json
