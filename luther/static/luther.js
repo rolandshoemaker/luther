@@ -12,6 +12,7 @@ function LutherMainViewModel() {
     self.loggedin = ko.observable(false);
     self.new_password = ko.observable();
     self.new_password_two = ko.observable();
+    self.resfreshSubs = null;
 
     self.ajax = function(uri, method, data) {
         var request = {
@@ -78,7 +79,7 @@ function LutherMainViewModel() {
             }
         });
 
-        setTimeout("lutherMainViewModel.refreshSubdomains()", self.refresh_interval);
+        self.resfreshSubs = setTimeout("lutherMainViewModel.refreshSubdomains()", self.refresh_interval);
     }
 
     self.login = function(email, password) {
@@ -146,6 +147,7 @@ function LutherMainViewModel() {
         self.subdomains.removeAll();
         self.api_errors.removeAll();
         loginViewModel.user_errors.removeAll();
+        clearTimeout(self.resfreshSubs);
     }
 
     self.beginChangePassword = function() {
@@ -178,6 +180,7 @@ function LutherMainViewModel() {
             self.user = "";
             self.password = "";
             self.loggedin(false);
+            clearTimeout(self.resfreshSubs);
         });
     }
 
