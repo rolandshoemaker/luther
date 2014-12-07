@@ -6,8 +6,6 @@ import tempfile
 import base64
 import requests
 
-# luther.app['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///luther-tests.db'
-
 class LutherTestCase(unittest.TestCase):
     def post_json(self, url, data, environ_base={'REMOTE_ADDR':'1.1.1.1'}):
         return self.app.post(
@@ -60,7 +58,7 @@ class LutherTestCase(unittest.TestCase):
         luther.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite://'
         luther.app.config['TESTING'] = True
         self.app = luther.app.test_client()
-        luther.api.init_db()
+        luther.models.init_db()
 
     def tearDown(self):
         # os.close(self.db_fd)
@@ -89,8 +87,8 @@ class LutherTestCase(unittest.TestCase):
         self.assertEqual(rd['email'], "tester@travis-ci.org")
         self.assertEqual(rd['status'], 201)
 
-    def test_bba_add_bad_users(self):
-        # Can we add bad users?
+    # Can we add bad users?
+    def test_bba_add_bad_user_email(self):
         # bad email (regex)
         d = '{"email":"tester", "password":"weakpassword"}'
         rv = self.post_json('/api/v1/user', d)
@@ -98,6 +96,8 @@ class LutherTestCase(unittest.TestCase):
         self.assertEqual(rv.status_code, 400)
         self.assertEqual(rd['status'], 400)
         self.assertEqual(rd['message'], 'Invalid email address')
+
+    def test_bbc_add_bad_user_pass(self):
         # bad password
         d = '{"email":"tester@gmail.com", "password":""}'
         rv = self.post_json('/api/v1/user', d)
@@ -105,6 +105,8 @@ class LutherTestCase(unittest.TestCase):
         self.assertEqual(rv.status_code, 400)
         self.assertEqual(rd['status'], 400)
         self.assertEqual(rd['message'], 'Bad request, missing arguments')
+
+    def test_bbd_add_bad_user_mx(self):
         # bad email (MX check)
         d = '{"email":"tester@fakefakeasdasd.badtld", "password":"password"}'
         rv = self.post_json('/api/v1/user', d)
@@ -122,13 +124,20 @@ class LutherTestCase(unittest.TestCase):
         self.assertEqual(len(rd['subdomains']), 0)
 
     def test_bca_auth_bad_user(self):
-        # Can we authenticate a random user not added
+        # Can we authenticate a random user not registered
         rv = self.open_with_auth('/api/v1/subdomains', 'GET', 'der@der.com', 'weakpassword')
         self.assertEqual(rv.status_code, 403)
+
+    def test_bcb_auth_bad_user_pass(self):
+        # Bad credentials
         rv = self.open_with_auth('/api/v1/subdomains', 'GET', 'der@der.com', '')
         self.assertEqual(rv.status_code, 403)
+
+    def test_bcd_auth_bad_user_email(self):
         rv = self.open_with_auth('/api/v1/subdomains', 'GET', '', 'weakpassword')
         self.assertEqual(rv.status_code, 403)
+
+    def test_bce_auth_bad_user_both(self):
         rv = self.open_with_auth('/api/v1/subdomains', 'GET', '', '')
         self.assertEqual(rv.status_code, 403)
 

@@ -1,5 +1,4 @@
 body {
-    padding-top: 70px; /* Required padding for .navbar-fixed-top. Change if height of navigation changes. */
     color: #575757;
 }
 
@@ -26,7 +25,12 @@ hr {
 }
 
 h1, h2, h3 {
-    color: rgb(176, 128, 215);
+    /*color: rgb(176, 128, 215);*/
+}
+
+h1, h2, h3, h4, h5, h6 {
+    cursor: default;
+    color: rgb(126, 179, 216);
 }
 
 #login .modal-backdrop, #login   .modal-backdrop.in {
@@ -36,4 +40,56 @@ h1, h2, h3 {
 
 #login .modal-content {
     box-shadow: none;
+}
+
+.current {
+    text-align: center;
+}
+
+.current .current-row {
+    
+}
+
+.current .current-row .bit {
+    display: inline-block;
+    padding: 0px 35px;
+    font-size: 18px;
+}
+
+.current h3 {
+    color: black;
+}
+
+.current .you {
+    font-size: 11px;
+}
+
+#about p {
+    width: 95%;
+    margin: 0 auto;
+}
+
+#about h3 {
+    width: 95%;
+}
+
+#about pre {
+    margin: 10px 0px;
+}
+
+#about pre code {
+    word-wrap: normal;
+    white-space: pre;
+}
+
+.btn, .btn:focus, .btn:active:focus {
+    outline: none;
+}
+
+.useracts {
+    text-align: center;
+}
+
+.useracts .btn {
+    margin: 5px 10px;
 }

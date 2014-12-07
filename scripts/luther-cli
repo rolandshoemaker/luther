@@ -10,7 +10,7 @@
 from luther import app
 from luther.api import new_ddns, update_ddns, \
     delete_ddns, validate_ip, predis
-from luther.models import User, Subdomain, db
+from luther.models import User, Subdomain, db, init_db
 
 from getpass import getpass
 
@@ -369,10 +369,8 @@ def dig_subdomain(name, nameserver):
 @cli.command('init_db')
 def init_db():
     """Initiailize the luther db"""
-    with app.app_context():
-        db.create_all()
-        db.session.commit()
-        click.secho('Initialized database, you may want to add a (admin) user now!\n', fg='green')
+    init_db()
+    click.secho('Initialized database, you may want to add a (admin) user now!\n', fg='green')
 
 @cli.command('dev_server')
 @click.option('--host', default='127.0.0.1', help='Host address to bind to, defaults to \'127.0.0.1\'')

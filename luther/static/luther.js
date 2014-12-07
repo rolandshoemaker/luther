@@ -1,12 +1,17 @@
 function LutherMainViewModel() {
     var self = this;
     self.subdomainsURI = "http://192.168.1.8/api/v1/subdomains"; // this should be set to https
-    self.userURI = "http://192.168.1.8/api/v1/users"
+    self.userURI = "http://192.168.1.8/api/v1/user";
+    self.edit_userURI = "http://192.168.1.8/api/v1/edit_user";
+    self.regenURI = "http://192.168.1.8/api/v1/regen_subdomain_token";
     self.refresh_interval = 600000; // ten minutes
     self.email = "";
     self.password = "";
     self.subdomains = ko.observableArray();
     self.api_errors = ko.observableArray();
+    self.loggedin = ko.observable(false);
+    self.new_password = ko.observable();
+    self.new_password_two = ko.observable();
 
     self.ajax = function(uri, method, data) {
         var request = {
@@ -31,9 +36,10 @@ function LutherMainViewModel() {
                         level = "alert-danger";
                     }
                     self.api_errors.push({message: jqXHR.responseJSON.message, level: level});
-                    console.log(jqXHR);
+                    loginViewModel.user_errors.push({message: jqXHR.responseJSON.message, level: level});
                 } else if (jqXHR.message) {
                     self.api_errors.push({message: jqXHR.message});
+                    loginViewModel.user_errors.push({message: jqXHR.message});
                 }
             }
         };
@@ -47,6 +53,7 @@ function LutherMainViewModel() {
 
     self.refreshSubdomains = function() {
         self.ajax(self.subdomainsURI, "GET").done(function(data) {
+            self.loggedin(true)
             self.subdomains.removeAll()
             for (var i = 0;i<data.subdomains.length;i++) {
                 self.subdomains.push({
@@ -61,6 +68,7 @@ function LutherMainViewModel() {
             $('#login').modal('hide');
         }).fail(function(err) {
             if (err.status == 403) {
+                self.loggedin(false);
                 if (!err.responseJSON || err.responseJSON.message == null) {
                     loginViewModel.user_errors.push({message: 'Invalid credentials'})
                 } else if (!(err.responseJSON == null)) {
@@ -80,6 +88,41 @@ function LutherMainViewModel() {
         self.refreshSubdomains();
     }
 
+    self.register = function(email, password, confirm_password) {
+        if (self.api_errors().length) {
+            self.api_errors.removeAll();
+        }
+        if (loginViewModel.user_errors().length) {
+            loginViewModel.user_errors.removeAll();
+        }
+        if (password == confirm_password) {
+            data = {email: email, password: password}
+            self.ajax(self.userURI, 'POST', data).done(function(data) {
+                self.email = email;
+                self.password = password;
+                if (self.api_errors().length) {
+                    self.api_errors.removeAll();
+                }
+                if (loginViewModel.user_errors().length) {
+                    loginViewModel.user_errors.removeAll();
+                }
+                self.refreshSubdomains();
+            }).fail(function(err) {
+                if (err.status == 403) {
+                    if (!err.responseJSON || err.responseJSON.message == null) {
+                        loginViewModel.user_errors.push({message: 'Invalid credentials'})
+                    } else if (!(err.responseJSON == null)) {
+                        loginViewModel.user_errors.push({message: err.responseJSON.message})
+                    }
+                    setTimeout(self.beginLogin, 500);
+                }
+            });
+        } else {
+            loginViewModel.user_errors.push({message: 'Passwords don\'t match.'});
+            setTimeout(self.beginLogin, 500);
+        }
+    }
+
     self.beginAdd = function() {
         $('#addSub').modal('show');
     }
@@ -90,30 +133,57 @@ function LutherMainViewModel() {
     }
 
     self.remove = function(subdomain) {
-        data = {subdomain: subdomain.subdomain(), subdomain_token: subdomain.token()};
+        data = {subdomain: subdomain.subdomain(), confirm: 'DELETE'};
         self.ajax(self.subdomainsURI, 'DELETE', data).done(function() {
             self.subdomains.remove(subdomain);
         });
     }
 
-    self.beginChangePassword = function () {
+    self.logout = function() {
+        self.email = '';
+        self.password = '';
+        self.loggedin(false);
+        self.subdomains.removeAll();
+        self.api_errors.removeAll();
+        loginViewModel.user_errors.removeAll();
+    }
+
+    self.beginChangePassword = function() {
         $('#editPass').modal('show');
     }
 
+    self.changePassword = function() {
+        $('#editPass').modal('hide');
+        if (self.new_password() == self.new_password_two()) {
+            data = {new_password: self.new_password()}
+            self.ajax(self.edit_userURI, 'POST', data).done(function() {
+                self.api_errors.push({message: 'Password changed.', level: 'alert-info'});
+            });
+        } else {
+            self.api_errors.push({message: 'Passwords don\'t match.', level: 'alert-warning'});
+        }
+    }
+
+    self.beginDelete = function() {
+        $('#delUser').modal('show');
+    }
+
     self.deleteUser = function() {
-        data = {};
-        self.ajax(self.userURI, 'DELETE', data).done(function() {
+        $('#delUser').modal('hide');
+        data = {'confirm':'DELETE'};
+        self.ajax(self.edit_userURI, 'DELETE', data).done(function() {
             self.subdomains.removeAll();
             self.api_errors.removeAll();
             loginViewModel.user_errors.removeAll();
             self.user = "";
             self.password = "";
-            setTimeout(self.beginLogin, 500);
+            self.loggedin(false);
         });
     }
 
     self.regenToken = function(subdomain) {
-        self.ajax(subdomain.regen_uri(), 'POST').done(function(data) {
+        data = {subdomain: subdomain.subdomain()}
+        self.ajax(self.regenURI, 'POST', data).done(function(data) {
             var i = self.subdomains.indexOf(subdomain);
             self.subdomains()[i].update_uri(data.GET_update_endpoint);
             self.subdomains()[i].regen_uri(data.regenerate_subdomain_token_endpoint);
@@ -157,7 +227,7 @@ function LutherMainViewModel() {
         self.subdomains()[i].last_update(newSubdomain.last_updated);
     }
 
-    self.beginLogin();
+    // self.beginLogin();
 }
 
 function AddSubdomainViewModel() {
@@ -181,11 +251,13 @@ function AddSubdomainViewModel() {
 function EditSubdomainViewModel() {
     var self = this;
     self.subdomain_obj = null;
+    self.subdomain = ko.observable();
     self.ip = ko.observable();
 
     self.setSubdomain = function(subdomain) {
         self.subdomain_obj = subdomain;
         self.ip(subdomain.ip());
+        self.subdomain(subdomain.subdomain());
         $('#editSub').modal('show');
     }
 
@@ -204,22 +276,22 @@ function LoginViewModel() {
     self.email = ko.observable();
     self.password = ko.observable();
 
-
     self.new_email = ko.observable();
     self.new_password = ko.observable();
     self.new_password_two = ko.observable();
 
     self.login = function() {
-        // $('#login').modal('hide');
-
         if (self.user_errors().length) {
             self.user_errors.removeAll();
+        }
+        if (lutherMainViewModel.api_errors().length) {
+            lutherMainViewModel.api_errors.removeAll();
         }
         lutherMainViewModel.login(self.email(), self.password());
     }
 
     self.register = function() {
-
+        lutherMainViewModel.register(self.new_email(), self.new_password(), self.new_password_two())
     }
 }
 
@@ -232,3 +304,9 @@ ko.applyBindings(lutherMainViewModel, $('#main')[0]);
 ko.applyBindings(addSubdomainViewModel, $('#addSub')[0]);
 ko.applyBindings(editSubdomainViewModel, $('#editSub')[0]);
 ko.applyBindings(loginViewModel, $('#login')[0]);
+
+
+var link = document.querySelector('link[rel="import"]');
+var template = link.import.querySelector('template');
+var clone = document.importNode(template.content, true);
+document.querySelector('#about').appendChild(clone);

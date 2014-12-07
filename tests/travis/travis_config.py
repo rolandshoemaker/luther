@@ -24,11 +24,10 @@ SECRET_KEY = str(uuid.uuid4())
 ##############
 
 # Root domain of REST API
-ROOT_DOMAIN = 'localhost'
+ROOT_DOMAIN = 'http://localhost'
 # Subdomains restricted from being added by users ('' probably isn't needed)
 RESTRICTED_SUBDOMAINS = ['', 'www', 'ww', 'w', 'mail', 'mx', 'ns',
-                         'ns1', 'ns2', 'ns3', 'ns4', 'ns5', 'dns',
-                         'docs', 'blog']
+                         'ns1', 'ns2', 'ns3', 'ns4', 'ns5', 'dns']
 # Hard limit on subdomains that can be added by users
 TOTAL_SUBDOMAIN_LIMIT = 5000
 # Should luther display the Knockout.js frontend?
@@ -74,7 +73,7 @@ ALLOWED_DDNS_IPV4_SUBNETS = ['0.0.0.0/0']
 # IPv6 subnets that AAAA record addresses are allowed in (default is IPv6 default route, i.e. everyone)
 ALLOWED_DDNS_IPV6_SUBNETS = ['::/0']
 # Should private IP addresses be allowed in A/AAAA records?
-ALLOW_PRIVATE_ADDRESSES = True # False
+ALLOW_PRIVATE_ADDRESSES = True
 # Should luther add TXT records for each subdomain with the last update time?
 ADD_TXT_RECORDS = True
 

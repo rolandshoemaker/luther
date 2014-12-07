@@ -25,6 +25,12 @@ import uuid
 db = SQLAlchemy()
 
 
+def init_db():
+    with app.app_context():
+        db.create_all()
+        db.session.commit()
+
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True)

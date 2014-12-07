@@ -1,6 +1,7 @@
 luther/__pycache__/
 luther/luther.db
 luther/luther.log
+luther.log
 luther/config.py
 *.pyc
 docs/_build/

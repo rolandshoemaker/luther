@@ -12,21 +12,15 @@
 
         <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css">
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
-        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap-theme.min.css">
         <link rel="stylesheet" href="/static/luther.css">
+        <link rel="import" href="/static/about.html">
     </head>
     <body>
-        <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
-            <div class="container">
-                <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-                    <a href="https://dnsd.co/"><i class="fa fa-tty fw-fw"></i></a>
-                </div>
-            </div>
-        </nav>
-        <div class="modal fade in" id="login" tabindex="-1" role="dialog" aria-labelledby="loginLabel" aria-hidden="false">
+        <div class="modal fade" id="login" tabindex="-1" role="dialog" aria-labelledby="loginLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
                         <h2 class="modal-title" id="loginLabel" style="text-align: center;">dnsd.co</h2>
                     </div>
                     <div class="modal-body">
@@ -51,7 +45,8 @@
                             </div>
                             <button data-bind="click: login" class="btn btn-primary">Login</button>
                         </form>
-                        <h3 style="text-align: center;">or register</h3>
+                        <hr>
+                        <h3 style="text-align: center;">Register</h3>
                         <form>
                             <div class="control-group form-group">
                                 <label class="control-label" for="new_email">Email</label>
@@ -62,13 +57,13 @@
                             <div class="control-group form-group">
                                 <label class="control-label" for="new_password">Password</label>
                                 <div class="controls">
-                                    <input data-bind="value: new_password" type="new_password" type="password" id="password" class="form-control" placeholder="">
+                                    <input data-bind="value: new_password" type="password" type="password" id="password" class="form-control" placeholder="">
                                 </div>
                             </div>
                             <div class="control-group form-group">
-                                <label class="control-label" for="new_password_two">Password</label>
+                                <label class="control-label" for="new_password_two">Confirm Password</label>
                                 <div class="controls">
-                                    <input data-bind="value: new_password_two" type="new_password_two" type="password" id="password" class="form-control" placeholder="">
+                                    <input data-bind="value: new_password_two" type="password" type="password" id="password" class="form-control" placeholder="">
                                 </div>
                             </div>
                             <button data-bind="click: register" class="btn btn-primary">Register</button>
@@ -78,27 +73,74 @@
             </div>
         </div>
         <div id="main" class="container">
-            <!-- ko if: api_errors().length -->
-            <div class="row">
-                <div class="col">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">Notifications</div>
-                        <div class="panel-body">
-                            <!-- ko foreach: api_errors -->
-                            <div class="alert alert-dismissable" data-bind="css: level"><div style="display: inline-block;" data-bind="text: message"></div><button id="notif" type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button></div>
-                            <!-- /ko -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- /ko -->
             <div class="row">
                 <div class="col-lg-12 col-centered">
                     <h1 style="text-align: center; cursor: default;">dnsd.co</h1>
+                </div>
+            </div>
+            <!-- ko if: loggedin() -->
+            <div class="row">
+                <div class="col-lg-12 col-centered">
+                    <!-- ko if: loggedin() -->
+                    <div class="useracts">
+                        <button data-bind="click: beginChangePassword" class="btn btn-info">Change Password</button>
+                        <button data-bind="click: beginDelete" class="btn btn-danger">Delete Account</button>
+                        <button data-bind="click: logout" class="btn btn-warning">Logout</button>
+                    </div>
+                    <div class="modal fade" id="delUser" tabindex="-1" role="dialog" aria-labelledby="delUserLabel" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                                    <h4 class="modal-title" id="delUserLabel">Delete Account</h4>
+                                </div>
+                                <div class="modal-body">
+                                    <p>Are you sure?</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <button data-bind="click: deleteUser" class="btn btn-danger">Yep</button>
+                                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal fade" id="editPass" tabindex="-1" role="dialog" aria-labelledby="editPassLabel" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                                    <h4 class="modal-title" id="editPassLabel">Change Password</h4>
+                                </div>
+                                <div class="modal-body">
+                                    <form>
+                                        <div class="control-group form-group">
+                                            <label class="control-label" for="new_password">New Password</label>
+                                            <div class="controls">
+                                                <input data-bind="value: new_password" type="password" type="password" id="password" class="form-control" placeholder="">
+                                            </div>
+                                        </div>
+                                        <div class="control-group form-group">
+                                            <label class="control-label" for="new_password_two">Confirm New Password</label>
+                                            <div class="controls">
+                                                <input data-bind="value: new_password_two" type="password" type="password" id="password" class="form-control" placeholder="">
+                                            </div>
+                                        </div>
+                                        <button data-bind="click: changePassword" class="btn btn-warning">Change</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- /ko -->
                     <h2 style="text-align: center; cursor: default;">Subdomains</h2>
                     <br>
+                    <!-- ko if: api_errors().length -->
+                    <!-- ko foreach: api_errors -->
+                    <div class="alert alert-dismissable" data-bind="css: level"><div style="display: inline-block;" data-bind="text: message"></div><button id="notif" type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button></div>
+                    <!-- /ko -->
+                    <!-- /ko -->
                     <table class="table table-striped">
-                        <tr><td><b>Subdomain</b></td><td><b>IP Address</b></td><td><b>Token</b></td><td><b>Last update</b></td><td><b>Options</b></td></tr>
+                        <tr><td><b>Subdomain</b></td><td><b>IP Address</b></td><td><b>Subdomain_token</b></td><td><b>Last update</b></td><td><b>Options</b></td></tr>
                         <!-- ko foreach: subdomains -->
                         <tr>
                             <td>
@@ -113,49 +155,33 @@
                             <td>
                                 <p data-bind="text: last_update"></p>
                             </td>
-                            <td>
-                                <button data-bind="click: $parent.beginUpdate" class="btn">Update</button>
-                                <button data-bind="click: $parent.regenToken" class="btn">Regen token</button>
-                                <button data-bind="click: $parent.remove" class="btn">Delete</button>
+                            <td style="text-align: center;">
+                                <button data-bind="click: $parent.beginUpdate" class="btn btn-success">Update</button>
+                                <button data-bind="click: $parent.regenToken" class="btn btn-warning">Regen token</button>
+                                <button data-bind="click: $parent.remove" class="btn btn-danger">Delete</button>
                             </td>
                         </tr>
                         <!-- /ko -->
                     </table>
-                    <button data-bind="click: beginAdd" class="btn">Add new subdomain</button>
+                    <button data-bind="click: beginAdd" class="btn btn-info">Add new subdomain</button>
                 </div>
             </div>
             <hr>
+            <!-- /ko -->
+            <!-- ko ifnot: loggedin() -->
+            <div class="row">
+                <div class="col-lg-12 col-centered" style="text-align: center; margin-top: 20px; margin-bottom: 10px;">
+                    <button data-bind="click: beginLogin" class="btn btn-info">Login or Register</button>
+                </div>
+            </div>
+            <hr>
+            <!-- /ko -->
             {% if luther_stats %}
-            <h2 style="text-align: center; cursor: default;">stats</h2>
+            <h2 style="text-align: center; cursor: default;">Stats</h2>
             <div id="luther-stats"></div>
             <hr>
+            <div id="about"></div>
             {% endif %}
-            <h2 style="text-align: center; cursor: default;">about dnsd.co</h2>
-            <p style="width: 95%; margin: 0 auto;"><em>dnsd.co</em> is a (<em>beta</em>) free dynamic DNS service running <em><a href="https://lutherd.org" target="_blank">luther</a></em> both of which are maintained by <a href="https://www.bind.es/" target="_blank">roland shoemaker</a>. The aim of <em>luther</em> is to create a lightweight, simple, and easily configurable, customizable, and extendable open source REST API for performing dynamic DNS operations. <em>luther</em> utilizes <a href="http://flask.pocoo.org/" target="_blank">flask</a> for the REST API and <a href="http://www.dnspython.org/" target="_blank">dnspython</a> for handling TSIG authenticated DNS updates to a local or remote DNS server, it also offers a simple <a href="http://knockoutjs.com/" target="_blank">Knockout</a> JS frontend client and <a href="" targ="_target">redis</a>-based statistics gatherer.</p>
-            <h3 style="text-align: center; cursor: default;">usage</h3>
-            <p style="width: 95%; margin: 0 auto;">By using the web interface you are only scratching the surface. <em><a href="https://lutherd.org" target="_blank">luther</a></em> is designed to be a highly scriptable service allowing you to perform actions using GET & JSON or URL parameter POST requests. This will be a quick introduction to how to interact with <em>dnsd.co</em>, for a more in-depth look at what can be done head over to the luther documentation at <a href="http://docs.lutherd.org">docs.lutherd.org</a>.</p>
-            <h3 style="text-align: center; cursor: default;">faq</h3>
-            <h4>How do I change my password / delete my account?</h4>
-            <p style="width: 95%; margin: 0 auto;">Click on the little person icon on the right hand side of the navigation bar at the top of the screen and select the option you would like. If you choose to delete your account all data assosiated with it will be immediately deleted.</p>
-            <h4>What information do  you store?</h4>
-            <p style="width: 95%; margin: 0 auto;">Your email, hashed password, subdomain names, IP addresses they point to, and the last time they were updated. That is all. We keep no information on <strong>who</strong> is creating/updating/deleting subdomains. The only logs we keep detail DNS errors between our web and DNS servers and activity which may be considered abuse of the service in order to aid in banning users.</p>
-            <h4>Is this platform secure?</h4>
-            <p style="width: 95%; margin: 0 auto;">All traffic is forced over SSL (meaning only https is supported), signed using a 256-bit certificate. You can also audit the source code of <em>luther</em> on <a href="https://github.com/rolandshoemaker/luther" target="_blank">github</a> to get a better understanding of what we are doing behind the scenes with the information you provide.</p>
-            <h4>How stable is this service?</h4>
-            <p style="width: 95%; margin: 0 auto;">This service is provided for free and is, <strong>seriously</strong>, in beta. It is provided for free as a demonstration of <em><a href="https://lutherd.org/" target="_blank">luther</a></em> and may go down, become unavailable, or have drastic changes in REST API functionality without any notice whatsoever. Our DNS servers are mirrored by the great folks at <a href="https://dns.he.net" target="_blank">hurricane electric</a> so we have great uptime in that respect, but this also imposes a hard limit of 10,000 records (5,000 individual subdomains) on the service.</p>
-            <h4>I found a bug! / I have a feature request!</h4>
-            <p style="width: 95%; margin: 0 auto;">Great! Bug reports can either be sent to <a href="mailto:bugs@dnsd.co" target="_blank">bugs@dnsd.co</a> or (<strong>the much better option</strong>) submitted via the <em>luther</em> github <a href="https://github.com/rolandshoemaker/luther/issues" target="_blank">issues</a> page along with feature requests.</p>
-            <h4>What DNS server do you use?</h4>
-            <p style="width: 95%; margin: 0 auto;">Our DNS servers run BIND since why bother reinventing the wheel, 90% of the internet uses it (<em>somewhat based on completely un-factual evidence</em>).</p>
-            <h4>Why doesn't a reverse lookup of my IP point to my subdomain?</h4>
-            <p style="width: 95%; margin: 0 auto;">We aren't in charge of the reverse zone that your address resides in, this most likely belongs to your ISP, because of this we won't create any PTR records for your subdomain.</p>
-            <h4>I'd like to run this for my own domain!</h4>
-            <p style="width: 95%; margin: 0 auto;">Awesome! That was the real point that drove the development of <em>luther</em>, so if you'd like to setup your own service head over to the <a href="https://lutherd.org/" target="_blank">github</a> page to clone the repository and check out the setup instructions.</p>
-            <h3 style="text-align: center; cursor: default;">terms of service</h3>
-            <p style="width: 95%; margin: 0 auto;">somethign something don't be a dick please ._.</p>
-            <h3 style="text-align: center; cursor: default;">abuse complaints</h3>
-            <p style="width: 95%; margin: 0 auto;">If you'd like to file an abuse complaint please email it to <a href="mailto:abuse@dnsd.co" target="_blank">abuse@dnsd.co</a>. We cannot guarantee you will get a response.</p>
-            <hr>
         </div>
         <div class="modal fade" id="addSub" tabindex="-1" role="dialog" aria-labelledby="addSubLabel" aria-hidden="true">
             <div class="modal-dialog">
@@ -170,7 +196,7 @@
                             <div class="control-group form-group">
                                 <label class="control-label" for="inputSubdomain">Subdomain name</label>
                                 <div class="controls">
-                                    <input data-bind="value: subdomain" id="inputSubdomain" class="form-control" placeholder="rad">
+                                    <input data-bind="value: subdomain" id="inputSubdomain" class="form-control" placeholder="awesomedomain">
                                 </div>
                             </div>
                             <div class="control-group form-group">
@@ -196,8 +222,13 @@
                         <h4 class="modal-title" id="editSubLabel">Edit subdomain</h4>
                     </div>
                     <div class="modal-body">
-                        <p style="text-align: center;">You seem to be</p>
-                        <p style="text-align: center;"><strong>{{client_ip}}</strong></p>
+                        <div class="current">
+                            <h3>Current</h3>
+                            <br>
+                            <div class="current-row"><div class="bit" data-bind="text: subdomain"></div><i class="fa fa-long-arrow-right" style="font-size: 1.5em;"></i><div class="bit" data-bind="text: ip"></div></div>
+                            <br>
+                            <div class="you">You seem to be <strong>{{client_ip}}</strong></div>
+                        </div>
                         <form>
                             <div class="control-group form-group">
                                 <label class="control-label" for="inputIP">IP address</label>
@@ -250,7 +281,7 @@
                         }
                     },
                     title: {
-                        text: 'Stats for dnsd.co'
+                        text: ''
                     },
                     xAxis: {
                         type: 'datetime',
@@ -268,7 +299,7 @@
                         name: 'Number of Subdomains',
                         data: stuff.subdomains
                     },{
-                        name: 'Number of New Subdomains / Subdomain Updates since last check',
+                        name: 'Number of Subdomain Updates since last check',
                         data: stuff.updates
                     },{
                         name: 'Subdomain limit',

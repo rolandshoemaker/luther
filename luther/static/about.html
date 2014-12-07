@@ -1,0 +1,389 @@
+<template>
+<h2>About dnsd.co</h2>
+<p><em>dnsd.co</em> is a (<em>beta</em>) free dynamic DNS service running <em><a href="https://lutherd.org" target="_blank">luther</a></em> both of which are maintained by <a href="https://www.bind.es/" target="_blank">roland shoemaker</a>. The aim of <em>luther</em> is to create a lightweight, simple, and easily configurable, customizable, and extendable open source REST API for performing dynamic DNS operations. <em>luther</em> utilizes <a href="http://flask.pocoo.org/" target="_blank">flask</a> for the REST API and <a href="http://www.dnspython.org/" target="_blank">dnspython</a> for handling TSIG authenticated DNS updates to a local or remote DNS server, it also offers a simple <a href="http://knockoutjs.com/" target="_blank">Knockout</a> JS frontend client and <a href="" targ="_target">redis</a>-based statistics gatherer.</p>
+<br><p style="width: 95%; margin: 0 auto;">For more, various news and rewrite-ups about the service etc can be found on the <em><a href="https://blog.dnsd.co" target="_blank">blog.dnsd.co</a></em> blog.</p><br>
+
+<h3>Table of Contents</h3>
+<ul class="task-list">
+      <li><a href="#usage">Usage</a>
+            <ul class="task-list">
+                  <li><a href="#creating-a-user">Creating a User</a></li>
+                  <li><a href="#changing-your-password">Changing your password</a></li>
+                  <li><a href="#deleting-your-account">Deleting your account</a></li>
+                  <li><a href="#checking-what-luther-thinks-your-ip-address-is">Checking what <em>luther</em> thinks your IP address is</a></li>
+                  <li><a href="#creating-a-subdomain">Creating a Subdomain</a></li>
+                  <li><a href="#getting-your-subdomains">Getting your Subdomains</a></li>
+                  <li><a href="#deleting-a-subdomain">Deleting a Subdomain</a></li>
+                  <li><a href="#updating-a-subdomain">Updating a Subdomain</a>
+                        <ul class="task-list">
+                              <li><a href="#get-interface">GET interface</a></li>
+                              <li><a href="#fancy-interface">Fancy interface</a>
+                                    <ul class="task-list">
+                                          <li><a href="#json">JSON</a></li>
+                                          <li><a href="#url">URL parameters</a></li>
+                                    </ul>
+                              </li>
+                        </ul>
+                  </li>
+                  <li><a href="#regenerating-a-subdomain_token">Regenerating a subdomain_token</a></li>
+            </ul>
+      </li>
+      <li><a href="#faq">FAQ</a></li>
+      <li><a href="#tos">Terms of Service</a>
+      <li><a href="#abuse">Abuse Complaints</a>
+</ul>
+
+
+
+<h3 id="usage">Usage</h3>
+<p style="width: 95%; margin: 0 auto;">By using the web interface you are only scratching the surface. <em><a href="https://lutherd.org" target="_blank">luther</a></em> is designed to be a highly scriptable service allowing you to perform all the actions you can on the web interface using direct GET & POST requests with JSON or URL parameter payloads. This section will be a quick introduction to how to interact with <em>dnsd.co</em>, for a more in-depth look at what can be done head over to the luther documentation at <a href="http://docs.lutherd.org">docs.lutherd.org</a>.</p>
+
+<h3 id="creating-a-user"><a name="user-content-creating-a-user" href="#creating-a-user" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Creating a User</h3>
+<p>Creating a user can be accomplised through a POST request to <code>https://dnsd.co/api/v1/user</code> with the email<br>
+address and password you wish to use.</p>
+<pre><code># curl ‘https://dnsd.co/api/v1/user’ -i -X POST -H ‘Content-type: application/json’ -d ‘{“email”:”guy@gmail.com”, “password”:”password”}’
+
+– or –
+
+# curl ‘https://dnsd.co/api/v1/user?email=guy@gmail.com&amp;password=password’ -i -X POST
+
+HTTP/1.0 201 CREATED
+Content-Type: application/json
+Content-Length: 189
+Server: Werkzeug/0.9.6 Python/3.4.0
+Date: Thu, 04 Dec 2014 10:04:05 GMT
+
+{
+  “email”: “guy@gmail.com”,
+  “resources”: {
+    “Subdomains”: “https://dnsd.co/api/v1/subdomains”
+  },
+  “status”: 201
+}%</code></pre>
+<h3 id="changing-your-password"><a name="user-content-changing-your-password" href="#changing-your-password" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Changing your password</h3>
+<p>To change your password all you need to do it a simple POST request to <code>https://dnsd.co/api/v1/edit_user</code> with your new password.<br>
+Since you need an account to do this you can use <code>curl -u username:password</code> to identify yourself to the service.</p>
+<pre><code># curl -u guy@gmail.com:password ‘https://dnsd.co/api/v1/edit_user’ -i -X POST -H ‘Content-type: application/json’ -d ‘{“new_password”:”betterpassword”}’
+
+– or –
+
+# curl -u guy@gmail.com:password ‘https://dnsd.co/api/v1/edit_user?new_password=betterpassword’ -i -X POST
+
+HTTP/1.0 200 OK
+Content-Type: application/json
+Content-Length: 52
+Server: Werkzeug/0.9.6 Python/3.4.0
+Date: Thu, 04 Dec 2014 10:13:41 GMT
+
+{
+  “message”: “Password updated”,
+  “status”: 200
+}%</code></pre>
+<h3 id="deleting-your-account"><a name="user-content-deleting-your-account" href="#deleting-your-account" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Deleting your account</h3>
+<p>If you’d like to delete your account (<code>:&lt;</code>) you can with a DELETE request to <code>https://dnsd.co/api/v1/edit_user</code> with the variable <code>confirm</code> set to <code>DELETE</code>. When you delete your account all of your user information and subdomains will be immediately deleted.</p>
+<pre><code># curl -u guy@gmail.com:betterpassword ‘https://dnsd.co/api/v1/edit_user’ -i -X DELETE -H ‘Content-type: application/json’ -d ‘{“confirm”:”DELETE”}’
+
+– or –
+
+# curl -u guy@gmail.com:betterpassword ‘https://dnsd.co/api/v1/edit_user?confirm=DELETE’ -i -X DELETE
+
+HTTP/1.0 200 OK
+Content-Type: application/json
+Content-Length: 60
+Server: Werkzeug/0.9.6 Python/3.4.0
+Date: Thu, 04 Dec 2014 10:20:01 GMT
+
+{
+  “message”: “User deleted, bai bai :&lt;”,
+  “status”: 200
+}%</code></pre>
+<h3 id="checking-what-luther-thinks-your-ip-address-is"><a name="user-content-checking-what-luther-thinks-your-ip-address-is" href="#checking-what-luther-thinks-your-ip-address-is" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Checking what <em>luther</em> thinks your IP address is</h3>
+<p>When creating and updating subdomains <em>luther</em> will either use the IP address you specify or, if none is specified, <em>luther</em> will attempt to guess your address. Sometimes it might be useful to know what this is guess is before letting <em>luther</em> run wild.</p>
+<p>A very simple endpoint allows you do do this by sending a GET request to <code>https://dnsd.co/api/v1/geuss_ip</code></p>
+<pre><code># curl -i ‘https://dnsd.co/api/v1/guess_ip’
+
+HTTP/1.0 200 OK
+Content-Type: application/json
+Content-Length: 42
+Server: Werkzeug/0.9.6 Python/3.4.0
+Date: Fri, 05 Dec 2014 00:13:46 GMT
+
+{
+  “guessed_ip”: “1.1.1.1”,
+  “status”: 200
+}%</code></pre>
+<h3 id="creating-a-subdomain"><a name="user-content-creating-a-subdomain" href="#creating-a-subdomain" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Creating a Subdomain</h3>
+<p>To create a new subdomain you need to send a POST request to <code>https://dnsd.co/api/v1/subdomains</code> with the variables <code>subdomain</code> (optionally <code>ip</code>, if you don’t set this <em>luther</em> will try to guess the IP that you are coming from).</p>
+<pre><code># curl -u guy@gmail.com:betterpassword ‘https://dnsd.co/api/v1/subdomains’ -i -X POST -H ‘Content-type: application/json’ -d ‘{“subdomain”:”example”}’
+
+– or –
+
+# curl -u guy@gmail.com:betterpassword ‘https://dnsd.co/api/v1/subdomains?subdomain=example’ -i -X POST
+
+    – or with IP address specified –
+
+# curl -u guy@gmail.com:betterpassword ‘https://dnsd.co/api/v1/subdomains’ -i -X POST -H ‘Content-type: application/json’ -d ‘{“subdomain”:”example”, “ip”:”1.1.1.1”}’
+
+– or –
+
+# curl -u guy@gmail.com:betterpassword ‘https://dnsd.co/api/v1/subdomains?subdomain=example&amp;ip=1.1.1.1’ -i -X POST
+
+HTTP/1.0 200 OK
+Content-Type: application/json
+Content-Length: 317
+Server: Werkzeug/0.9.6 Python/3.4.0
+Date: Thu, 04 Dec 2014 10:30:11 GMT
+
+{
+  “GET_update_endpoint”: “https://dnsd.co/api/v1/update/example/bd6b24e3-ac7f-46d9-abd9-baecfc386a0c”,
+  “full_domain”: “example.dnsd.co”,
+  “ip”: “1.1.1.1”,
+  “last_updated”: “2014-12-04 10:30:11”,
+  “status”: 201,
+  “subdomain”: “example”,
+  “subdomain_token”: “bd6b24e3-ac7f-46d9-abd9-baecfc386a0c”
+}%</code></pre>
+<h3 id="getting-your-subdomains"><a name="user-content-getting-your-subdomains" href="#getting-your-subdomains" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Getting your Subdomains</h3>
+<p>To get a list of all of your subdomains and their update tokens you need to send a GET request to <code>https://dnsd.co/api/v1/subdomains</code>.</p>
+<pre><code># curl -u guy@gmail.com:betterpassword ‘https://dnsd.co/api/v1/subdomains’ -i
+
+HTTP/1.0 200 OK
+Content-Type: application/json
+Content-Length: 1382
+Server: Werkzeug/0.9.6 Python/3.4.0
+Date: Thu, 04 Dec 2014 10:49:33 GMT
+
+{
+  “email”: “guy@gmail.com”,
+  “status”: 200,
+  “subdomains”: [
+    {
+      “GET_update_endpoint”: “https://dnsd.co/api/v1/update/example/6b89fa82-4b20-4bd7-90d2-3e33f3980bde”,
+      “full_domain”: “example.dnsd.co”,
+      “ip”: “1.1.1.1”,
+      “last_updated”: “2014-12-04 10:36:24”,
+      “regenerate_subdomain_token_endpoint”: “https://dnsd.co/api/v1/regen_subdomain_token/example”,
+      “subdomain”: “example”,
+      “subdomain_token”: “6b89fa82-4b20-4bd7-90d2-3e33f3980bde”
+    },
+    {
+      “GET_update_endpoint”: “https://dnsd.co/api/v1/update/example2/23d37da2-be94-4166-8b5b-ab45084be337”,
+      “full_domain”: “example2.dnsd.co”,
+      “ip”: “1.1.1.2”,
+      “last_updated”: “2014-12-04 10:48:01”,
+      “regenerate_subdomain_token_endpoint”: “https://dnsd.co/api/v1/regen_subdomain_token/example2”,
+      “subdomain”: “example2”,
+      “subdomain_token”: “23d37da2-be94-4166-8b5b-ab45084be337”
+    },
+    {
+      “GET_update_endpoint”: “https://dnsd.co/api/v1/update/example3/e106a924-c39b-4ce0-a683-5b9dd686b4f5”,
+      “full_domain”: “example3.dnsd.co”,
+      “ip”: “1.1.1.4”,
+      “last_updated”: “2014-12-04 10:48:06”,
+      “regenerate_subdomain_token_endpoint”: “https://dnsd.co/api/v1/regen_subdomain_token/example3”,
+      “subdomain”: “example3”,
+      “subdomain_token”: “e106a924-c39b-4ce0-a683-5b9dd686b4f5”
+    }
+  ]
+}%</code></pre>
+<h3 id="deleting-a-subdomain"><a name="user-content-deleting-a-subdomain" href="#deleting-a-subdomain" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Deleting a Subdomain</h3>
+<p>To delete a subdomain you need to send to a authenticated DELETE request to <code>https://dnsd.co/api/v1/subdomains</code> with the variables <code>subdomain</code> and <code>confirm = 'DELETE'</code></p>
+<pre><code># curl -u guy@gmail.com:betterpassword -X POST ‘https://dnsd.co/api/v1/subdomains?subdomain=example3&amp;confirm=DELETE’ -i -X DELETE
+
+– or –
+
+# curl -u guy@gmail.com:betterpassword -X POST ‘https://dnsd.co/api/v1/subdomains’ -i -X DELETE -H ‘Content-type: application/json’ -d ‘{“subdomain”:”example3”, “confirm”:”DELETE”}’
+
+HTTP/1.0 200 OK
+Content-Type: application/json
+Content-Length: 53
+Server: Werkzeug/0.9.6 Python/3.4.0
+Date: Thu, 04 Dec 2014 11:23:04 GMT
+
+{
+  “message”: “Subdomain deleted”,
+  “status”: 200
+}%</code></pre>
+<h3 id="updating-a-subdomain"><a name="user-content-updating-a-subdomain" href="#updating-a-subdomain" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Updating a Subdomain</h3>
+<p>You have two options when updating the address of a subdomain, either the <code>GET</code> interface, where everything is<br>
+done via the URL itself which limits you to updating a single subdomain at a time, or the fancy JSON/URL<br>
+parameter method which allows you to update multiple subdomains at once.</p>
+<p>Updating a subdomain is different from updating/deleting users or creating subdomains. Unlike these endpoints we don’t<br>
+require username and password authentication, all we need is the subdomain name, the <code>subdomain_token</code> provided when<br>
+you create a domain or via the <code>GET /api/v1/subdomains</code> list, and the address you wish to update the subdomain to (or nothing and <em>luther</em> will guess your address).</p>
+<h4 id="get-interface"><a name="user-content-get-interface" href="#get-interface" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>GET interface</h4>
+<p>The <code>GET_update_endpoint</code> returned via <code>GET /api/v1/subdomains</code> and <code>POST /api/v1/subdomains</code> points to the simple <code>GET</code> interface. This interface allows you to update the IP address associated with a subdomain, but is limited to updating one subdomain at a time. Using this interface all the parameters are specificed in the url path as so (if the last part of the path, indicating the <code>IP</code>, is left off <em>luther</em> will attempt to guess your IP address)</p>
+<pre><code># curl -i ‘https://dnsd.co/api/v1/update/subdomain_name/subdomain_token(/optional_ip)’</code></pre>
+<p>So to update one of the subdomains we already created we would send these requests</p>
+<pre><code># curl -i ‘https://dnsd.co/api/v1/update/example/6b89fa82-4b20-4bd7-90d2-3e33f3980bde’
+
+– or –
+
+# curl -i ‘https://dnsd.co/api/v1/update/example/6b89fa82-4b20-4bd7-90d2-3e33f3980bde/2.2.2.2’
+
+HTTP/1.0 200 OK
+Content-Type: application/json
+Content-Length: 348
+Server: Werkzeug/0.9.6 Python/3.4.0
+Date: Thu, 04 Dec 2014 10:54:54 GMT
+
+{
+  “GET_update_endpoint”: “https://dnsd.co/api/v1/update/example/6b89fa82-4b20-4bd7-90d2-3e33f3980bde”,
+  “full_domain”: “example.dnsd.co”,
+  “ip”: “2.2.2.2”,
+  “last_updated”: “2014-12-04 10:54:54”,
+  “message”: “Subdomain updated.”,
+  “status”: 200,
+  “subdomain”: “example”,
+  “subdomain_token”: “6b89fa82-4b20-4bd7-90d2-3e33f3980bde”
+}%</code></pre>
+<h4 id="fancy-interface"><a name="user-content-fancy-interface" href="#fancy-interface" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Fancy interface</h4>
+<p>The fancy interface simply means instead of using GET requests it uses POST requests to <code>https://dnsd.co/api/v1/update</code> and allows you to specify multiple domains at a time. Since the way you specify subdomains and subdomain_tokens slightly differently with JSON and URL parameters we will deal with them seperately.</p>
+<h5 id="json"><a name="user-content-json" href="#json" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>JSON</h5>
+<p>The JSON version of the interface expects a data object that looks like this (where only ip is optional, if not specified <em>luther</em> will try to guess your IP)</p>
+<pre><code>{
+  “subdomains”: [
+    {
+      “subdomain”: “example”,
+      “subdomain_token”: “692508f1-5774-43cb-abc0-4cff25c3eaea”
+    },{
+      “subdomain”: “example2”,
+      “subdomain_token”: “23d37da2-be94-4166-8b5b-ab45084be337”,
+      “ip”: “3.3.3.3”
+    }]
+}</code></pre>
+<p>so our <code>curl</code> command would look like this</p>
+<pre><code># curl -u guy@gmail.com:betterpassword -X POST ‘https://dnsd.co/api/v1/update’ -H ‘Content-type: application/json’ -i -d ‘{ 
+          “subdomains”: [
+            {
+              “subdomain”: “example”,
+              “subdomain_token”: “692508f1-5774-43cb-abc0-4cff25c3eaea”
+            },{
+              “subdomain”: “example2”,
+              “subdomain_token”: “23d37da2-be94-4166-8b5b-ab45084be337”,
+              “ip”: “3.3.3.3”
+            }]
+        }’
+
+HTTP/1.0 200 OK
+Content-Type: application/json
+Content-Length: 860
+Server: Werkzeug/0.9.6 Python/3.4.0
+Date: Thu, 04 Dec 2014 11:43:42 GMT
+
+{
+  “results”: [
+    [
+      {
+        “GET_update_endpoint”: “https://dnsd.co/api/v1/update/example/692508f1-5774-43cb-abc0-4cff25c3eaea”,
+        “full_domain”: “example.dnsd.co”,
+        “ip”: “1.1.1.1”,
+        “last_updated”: “2014-12-04 11:43:42”,
+        “message”: “Subdomain updated.”,
+        “status”: 200,
+        “subdomain”: “example”,
+        “subdomain_token”: “692508f1-5774-43cb-abc0-4cff25c3eaea”
+      },
+      {
+        “GET_update_endpoint”: “https://dnsd.co/api/v1/update/example2/23d37da2-be94-4166-8b5b-ab45084be337”,
+        “full_domain”: “example2.dnsd.co”,
+        “ip”: “3.3.3.3”,
+        “last_updated”: “2014-12-04 11:43:42”,
+        “message”: “Subdomain updated.”,
+        “status”: 200,
+        “subdomain”: “example2”,
+        “subdomain_token”: “23d37da2-be94-4166-8b5b-ab45084be337”
+      }
+    ]
+  ]
+}%</code></pre>
+<h5 id="url-parameters"><a name="user-content-url-parameters" href="#url-parameters" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>URL parameters</h5>
+<p>The URL parameter version of the interface is a little finicky (and I’m not 100% sure it needs to continue existing) it expects two variables <code>subdomains</code> and <code>subdomain_tokens</code> and an optional variable <code>addresses</code>, all of these variables should either a single subdomain name, subdomain_token, and address or a comma-seperated list of the same pieces of information. The three lists must have the exact same number of elements, although <code>addresses</code> can have either less than or equal items (if <code>addresses</code> &lt; <code>subdomains</code> all addresses after <code>len(addresses)</code> will use the guessed address) or not be specified at all, which means <em>luther</em> will use your guessed address for all the subdomains you are updating (you can specify empty items in <code>addresses</code>, in order to tell <em>luther</em> to use the guessed addreses, by typing <code>,,</code>, e.g. <code>1.2.3.4,,1.2.3.5</code>). These lists should be relative meaning the <code>subdomain_token</code> for the subdomain specified first in the <code>subdomains</code> list should be first in the <code>subdomain_tokens</code> list etc.</p>
+<p>So if we want to update these subdomains to these addresses</p>
+<pre><code>example   =&gt;     GUESS where (subdomain_token = 692508f1-5774-43cb-abc0-4cff25c3eaea)
+example2  =&gt;    5.5.5.6 where (subdomain_token = 23d37da2-be94-4166-8b5b-ab45084be337)
+</code></pre>
+<p>we would use this <code>curl</code> command</p>
+<pre><code># curl -i -X POST ‘https://dnsd.co/api/v1/update?subdomains=example,example2&amp;subdomain_tokens=692508f1-5774-43cb-abc0-4cff25c3eaea,23d37da2-be94-4166-8b5b-ab45084be337&amp;addresses=,5.5.5.6’
+
+HTTP/1.0 200 OK
+Content-Type: application/json
+Content-Length: 895
+Server: Werkzeug/0.9.6 Python/3.4.0
+Date: Thu, 04 Dec 2014 12:07:54 GMT
+
+{
+  “results”: [
+    [
+      {
+        “GET_update_endpoint”: “https://dnsd.co/api/v1/update/example/692508f1-5774-43cb-abc0-4cff25c3eaea”,
+        “full_domain”: “example.dnsd.co”,
+        “ip”: “1.1.1.1”,
+        “last_updated”: “2014-12-04 12:07:25”,
+        “message”: “Subdomain updated.”,
+        “status”: 200,
+        “subdomain”: “example”,
+        “subdomain_token”: “692508f1-5774-43cb-abc0-4cff25c3eaea”
+      },
+      {
+        “GET_update_endpoint”: “https://dnsd.co/api/v1/update/example2/23d37da2-be94-4166-8b5b-ab45084be337”,
+        “full_domain”: “example2.dnsd.co”,
+        “ip”: “5.5.5.6”,
+        “last_updated”: “2014-12-04 12:07:54”,
+        “message”: “Subdomain updated.”,
+        “status”: 200,
+        “subdomain”: “example2”,
+        “subdomain_token”: “23d37da2-be94-4166-8b5b-ab45084be337”
+      }
+    ]
+  ]
+}%</code></pre>
+<p>See what I mean, SILLY!</p>
+<h3 id="regenerating-a-subdomain_token"><a name="user-content-regenerating-a-subdomain_token" href="#regenerating-a-subdomain_token" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Regenerating a <code>subdomain_token</code></h3>
+<p>To regenerate the <code>subdomain_token</code> used to authenticate updates send a authenticated POST request to <code>https://dnsd.co/api/v1/regen_subdomain_token</code> with the variable <code>subdomain</code> indicating which subdomain you’d like to regenerate the <code>subdomain_token</code> for</p>
+<pre><code># curl -u guy@gmail.com:betterpassword -X POST ‘https://dnsd.co/api/v1/regen_subdomain_token’ -i -X POST -H ‘Content-type: application/json’ -d ‘{“subdomain”:”example”}’
+
+– or –
+
+# curl -u guy@gmail.com:betterpassword -X POST ‘https://dnsd.co/api/v1/regen_subdomain_token?subdomain=example’ -i
+
+HTTP/1.0 200 OK
+Content-Type: application/json
+Content-Length: 357
+Server: Werkzeug/0.9.6 Python/3.4.0
+Date: Thu, 04 Dec 2014 11:09:03 GMT
+
+{
+  “GET_update_endpoint”: “https://dnsd.co/api/v1/update/example/a388a2ba-a461-4fbf-b907-281f25723586”,
+  “full_domain”: “example.dnsd.co”,
+  “ip”: “2.2.2.2”,
+  “last_updated”: “2014-12-04 11:09:03”,
+  “message”: “subdomain_token regenerated”,
+  “status”: 200,
+  “subdomain”: “example”,
+  “subdomain_token”: “a388a2ba-a461-4fbf-b907-281f25723586”
+}%</code></pre>
+
+<h3 id="faq" style="text-align: center; cursor: default;">FAQ</h3>
+<h4>How do I change my password / delete my account?</h4>
+<p style="width: 95%; margin: 0 auto;">Click on the little person icon on the right hand side of the navigation bar at the top of the screen and select the option you would like. If you choose to delete your account all data assosiated with it will be immediately deleted.</p>
+<h4>What information do  you store?</h4>
+<p style="width: 95%; margin: 0 auto;">Your email, hashed password, subdomain names, IP addresses they point to, and the last time they were updated. That is all. We keep no information on <strong>who</strong> is creating/updating/deleting subdomains. The only logs we keep detail DNS errors between our web and DNS servers and activity which may be considered abuse of the service in order to aid in banning users.</p>
+<h4>Is this platform secure?</h4>
+<p style="width: 95%; margin: 0 auto;">All traffic is forced over SSL (meaning only http is redirected to https), signed using a 256-bit certificate. You can also audit the source code of <em>luther</em> on <a href="https://github.com/rolandshoemaker/luther" target="_blank">github</a> to get a better understanding of what we are doing behind the scenes with the information you provide.</p>
+<h4>How stable is this service?</h4>
+<p style="width: 95%; margin: 0 auto;">This service is provided for free and is, <strong>seriously</strong>, in beta. It is provided for free as a demonstration of <em><a href="https://lutherd.org/" target="_blank">luther</a></em> and may go down, become unavailable, or have drastic changes in REST API functionality without any notice whatsoever. Our DNS servers are mirrored by the great folks at <a href="https://dns.he.net" target="_blank">hurricane electric</a> so we have great uptime in that respect, but this also imposes a hard limit of 10,000 records (5,000 individual subdomain A records with TXT records) on the service.</p>
+<h4>I found a bug! / I have a feature request!</h4>
+<p style="width: 95%; margin: 0 auto;">Great! Bug reports can either be sent to <a href="mailto:bugs@dnsd.co" target="_blank">bugs@dnsd.co</a> or (<strong>the much better option</strong>) submitted via the <em>luther</em> github <a href="https://github.com/rolandshoemaker/luther/issues" target="_blank">issues</a> page along with feature requests.</p>
+<h4>What DNS server do you use?</h4>
+<p style="width: 95%; margin: 0 auto;">Our DNS servers run BIND since why bother reinventing the wheel, 90% of the internet uses it (<em>somewhat based on completely un-factual evidence</em>).</p>
+<h4>Why doesn't a reverse lookup of my IP point to my subdomain?</h4>
+<p style="width: 95%; margin: 0 auto;">We aren't in charge of the reverse zone that your address resides in, this most likely belongs to your ISP, because of this we won't create any PTR records for your subdomain.</p>
+<h4>I'd like to run this for my own domain!</h4>
+<p style="width: 95%; margin: 0 auto;">Awesome! That was the real point that drove the development of <em>luther</em>, so if you'd like to setup your own service head over to the <a href="https://lutherd.org/" target="_blank">github</a> page to clone the repository and check out the setup instructions.</p>
+<h3 id="tos">Terms of Service</h3>
+<p style="width: 95%; margin: 0 auto;">somethign something don't be a dick please ._.</p>
+<h3 id="abuse">Abuse Complaints</h3>
+<p style="width: 95%; margin: 0 auto;">If you'd like to file an abuse complaint please email it to <a href="mailto:abuse@dnsd.co" target="_blank">abuse@dnsd.co</a>. We cannot guarantee you will get a response.</p>
+<hr>
+</template>

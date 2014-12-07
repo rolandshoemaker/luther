@@ -1,6 +1,8 @@
 recursive-include docs *
 recursive-include scripts *
 recursive-include examples *
+recursive-include tests *
+recursive-include luther *
 recursive-include luther/templates *
 recursive-include luther/static *
 include setup.py
