@@ -1,7 +1,6 @@
 language: python
 python:
   - "3.4"
-
 before_install: bash tests/travis/travis_setup.sh
-install: sudo python3 setup.py install
-script: python3 tests/run_tests.py
+install: python setup.py install
+script: python tests/run_tests.py
