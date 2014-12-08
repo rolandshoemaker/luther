@@ -14,9 +14,11 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
+        'passlib',
         'flask-sqlalchemy',
         'flask-httpauth',
         'Flask',
+        'itsdangerous',
         'dnspython3',
         'click',
         'tabulate'
