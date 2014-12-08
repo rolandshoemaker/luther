@@ -18,9 +18,9 @@ setup(
         'flask-sqlalchemy',
         'flask-httpauth',
         'Flask',
-        'itsdangerous',
         'dnspython3',
         'click',
-        'tabulate'
+        'tabulate',
+        'redis'
     ]
 )
