@@ -409,7 +409,7 @@ def update_ddns(subdomain, ip, v6=False, on_api=True):
     update.present(subdomain.name)
     if not v6:
         if validate_ip(ip, v6=False):
-            update.replace(name, app.config['DEFAULT_TTL'], 'A', addr)
+            update.replace(subdomain.name, app.config['DEFAULT_TTL'], 'A', addr)
             if app.config['ADD_TXT_RECORDS']:
                 update.replace(
                     subdomain.name,
@@ -460,6 +460,11 @@ def update_ddns(subdomain, ip, v6=False, on_api=True):
                 )
             subdomain.v6 = False
             db.session.commit()
+        else:
+            if on_api:
+                raise LutherBroke('Bad request, invalid IPv4 address')
+            else:
+                return False
     if dns_query(update, on_api):
         return True
     else:

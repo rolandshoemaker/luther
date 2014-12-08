@@ -156,9 +156,9 @@
                                 <p data-bind="text: last_update"></p>
                             </td>
                             <td style="text-align: center;">
-                                <button data-bind="click: $parent.beginUpdate" class="btn btn-success">Update</button>
-                                <button data-bind="click: $parent.regenToken" class="btn btn-warning">Regen token</button>
-                                <button data-bind="click: $parent.remove" class="btn btn-danger">Delete</button>
+                                <button data-bind="click: $parent.beginUpdate" class="btn btn-xs btn-success">Update</button>
+                                <button data-bind="click: $parent.regenToken" class="btn btn-xs btn-warning">Regen token</button>
+                                <button data-bind="click: $parent.remove" class="btn btn-xs btn-danger">Delete</button>
                             </td>
                         </tr>
                         <!-- /ko -->
@@ -205,10 +205,10 @@
                                     <input data-bind="value: ip" id="inputIP" class="form-control" placeholder="1.2.3.4">
                                 </div>
                             </div>
+                            <button data-bind="click: addSubdomain" class="btn btn-primary">Add subdomain</button>
                         </form>
                     </div>
                     <div class="modal-footer">
-                        <button data-bind="click: addSubdomain" class="btn btn-primary">Add subdomain</button>
                         <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
                     </div>
                 </div>
@@ -236,10 +236,10 @@
                                     <input data-bind="value: ip" id="inputIP" class="form-control" placeholder="1.2.3.4">
                                 </div>
                             </div>
+                            <button data-bind="click: updateSubdomain" class="btn btn-primary">Update subdomain</button>
                         </form>
                     </div>
                     <div class="modal-footer">
-                        <button data-bind="click: updateSubdomain" class="btn btn-primary">Update subdomain</button>
                         <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
                     </div>
                 </div>
