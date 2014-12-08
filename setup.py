@@ -14,11 +14,10 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
-        'Flask',
-        'flask.ext.httpauth',
+        'flask',
+        'flask-httpauth',
         'dnspython3',
         'click',
-        'tabulate',
-        'click'
+        'tabulate'
     ]
 )
