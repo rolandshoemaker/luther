@@ -247,7 +247,7 @@ function AddSubdomainViewModel() {
         });
 
         self.subdomain("");
-        self.ip("");
+        self.ip(luther_client_address);
     }
 }
 

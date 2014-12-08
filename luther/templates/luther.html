@@ -139,30 +139,32 @@
                     <div class="alert alert-dismissable" data-bind="css: level"><div style="display: inline-block;" data-bind="text: message"></div><button id="notif" type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button></div>
                     <!-- /ko -->
                     <!-- /ko -->
-                    <table class="table table-striped">
-                        <tr><td><b>Subdomain</b></td><td><b>IP Address</b></td><td><b>Subdomain_token</b></td><td><b>Last update</b></td><td><b>Options</b></td></tr>
-                        <!-- ko foreach: subdomains -->
-                        <tr>
-                            <td>
-                                <p data-bind="text: subdomain"></p>
-                            </td>
-                            <td>
-                                <p data-bind="text: ip"></p>
-                            </td>
-                            <td>
-                                <p data-bind="text: token"></p>
-                            </td>
-                            <td>
-                                <p data-bind="text: last_update"></p>
-                            </td>
-                            <td style="text-align: center;">
-                                <button data-bind="click: $parent.beginUpdate" class="btn btn-xs btn-success">Update</button>
-                                <button data-bind="click: $parent.regenToken" class="btn btn-xs btn-warning">Regen token</button>
-                                <button data-bind="click: $parent.remove" class="btn btn-xs btn-danger">Delete</button>
-                            </td>
-                        </tr>
-                        <!-- /ko -->
-                    </table>
+                    <div class="table-responsive">
+                        <table class="table table-hover table-condensed">
+                            <tr><td><b>Subdomain</b></td><td><b>IP Address</b></td><td><b>Subdomain_token</b></td><td><b>Last update</b></td><td><b>Options</b></td></tr>
+                            <!-- ko foreach: subdomains -->
+                            <tr>
+                                <td>
+                                    <p data-bind="text: subdomain"></p>
+                                </td>
+                                <td>
+                                    <p data-bind="text: ip"></p>
+                                </td>
+                                <td>
+                                    <p data-bind="text: token"></p>
+                                </td>
+                                <td>
+                                    <p data-bind="text: last_update"></p>
+                                </td>
+                                <td style="text-align: center;">
+                                    <button data-bind="click: $parent.beginUpdate" class="btn btn-xs btn-success">Update</button>
+                                    <button data-bind="click: $parent.regenToken" class="btn btn-xs btn-warning">Regen token</button>
+                                    <button data-bind="click: $parent.remove" class="btn btn-xs btn-danger">Delete</button>
+                                </td>
+                            </tr>
+                            <!-- /ko -->
+                        </table>
+                    </div>
                     <button data-bind="click: beginAdd" class="btn btn-info">Add new subdomain</button>
                 </div>
             </div>
