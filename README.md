@@ -574,7 +574,6 @@ or you can view the documentation for the latest release at [https://docs.luther
 * FINISH: writing the README (._.)
 * FINISH: writing all the documentation
 
-
 ## License
 
 *luther* is released under the GPLv2 license.
