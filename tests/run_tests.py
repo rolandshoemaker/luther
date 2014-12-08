@@ -4,7 +4,6 @@ import json
 import unittest
 import tempfile
 import base64
-import requests
 
 class LutherTestCase(unittest.TestCase):
     def post_json(self, url, data, environ_base={'REMOTE_ADDR':'1.1.1.1'}):
