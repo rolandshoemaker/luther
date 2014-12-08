@@ -65,12 +65,26 @@ class LutherTestCase(unittest.TestCase):
         # os.unlink(luther.app.config['DATABASE'])
         pass
 
-    def test_a_guess_ip(self):
+    def test_aa_guess_ipv4(self):
         rv = self.app.get('/api/v1/geuss_ip', environ_base={'REMOTE_ADDR':'1.1.1.1'})
         rd = json.loads(rv.data.decode('ascii'))
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(rd['status'], 200)
         self.assertEqual(rd['guessed_ip'], '1.1.1.1')
+
+    def test_ab_guess_ipv6_compact(self):
+        rv = self.app.get('/api/v1/geuss_ip', environ_base={'REMOTE_ADDR':'FE80::0202:B3FF:FE1E:8329'})
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(rd['status'], 200)
+        self.assertEqual(rd['guessed_ip'], 'FE80::0202:B3FF:FE1E:8329')
+
+    def test_ac_guess_ipv6_long(self):
+        rv = self.app.get('/api/v1/geuss_ip', environ_base={'REMOTE_ADDR':'FE80:0000:0000:0000:0202:B3FF:FE1E:8329'})
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(rd['status'], 200)
+        self.assertEqual(rd['guessed_ip'], 'FE80:0000:0000:0000:0202:B3FF:FE1E:8329')
 
     def test_ba_unauth_user(self):
         # How are unauthenticated requests handled

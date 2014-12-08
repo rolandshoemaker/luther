@@ -367,32 +367,24 @@ def new_ddns(name, ip, v6=False, on_api=True):
     addr = validate_ip(ip, v6=v6)
     if not v6:
         new_record.add(name, app.config['DEFAULT_TTL'], 'A', addr)
-        if app.config['ADD_TXT_RECORDS']:
-            new_record.add(
-                name,
-                app.config['DEFAULT_TTL'],
-                'TXT',
-                ('"Record for '+name+'.'+app.config['ROOT_DOMAIN']+' last '
-                 'updated at '+str(datetime.datetime.utcnow())+' UTC"')
-            )
     else:
         new_record.add(name, app.config['DEFAULT_TTL'], 'AAAA', addr)
-        if app.config['ADD_TXT_RECORDS']:
-            new_record.add(
-                name,
-                app.config['DEFAULT_TTL'],
-                'TXT',
-                ('"Record for '+name+'.'+app.config['ROOT_DOMAIN']+' last '
-                 ' updated at '+str(datetime.datetime.utcnow())+' UTC"')
-            )
     new_record.absent(name)
+    if app.config['ADD_TXT_RECORDS']:
+        new_record.add(
+            name,
+            app.config['DEFAULT_TTL'],
+            'TXT',
+            ('"Record for '+name+'.'+app.config['ROOT_DOMAIN']+' last '
+             ' updated at '+str(datetime.datetime.utcnow())+' UTC"')
+        )
     if dns_query(new_record, on_api):
         return True
     else:
         return False
 
 
-def update_ddns(name, ip, v6=False, on_api=True):
+def update_ddns(subdomain, ip, v6=False, on_api=True):
     """update_ddns formats a dns.update.Update object to update A/AAA
     (and optionally TXT) records for a subdomain and sends it to a dns
     server via dns_query().
@@ -408,44 +400,70 @@ def update_ddns(name, ip, v6=False, on_api=True):
     :returns: object -- None on success or JSON response indicating the error.
 
     """
-    addr = validate_ip(ip, v6=v6)
-    if addr:
-        update = dns.update.Update(
-            app.config['DNS_ROOT_DOMAIN'],
-            keyring=keyring
-        )
-        if not v6:
+    # addr = validate_ip(ip, v6=v6)
+    addr = ip
+    update = dns.update.Update(
+        app.config['DNS_ROOT_DOMAIN'],
+        keyring=keyring
+    )
+    update.present(subdomain.name)
+    if not v6:
+        if validate_ip(ip, v6=False):
             update.replace(name, app.config['DEFAULT_TTL'], 'A', addr)
             if app.config['ADD_TXT_RECORDS']:
                 update.replace(
-                    name,
+                    subdomain.name,
                     app.config['DEFAULT_TTL'],
                     'TXT',
-                    ('"Record for '+name+'.'+app.config['ROOT_DOMAIN']+' last '
+                    ('"Record for '+subdomain.name+'.'+app.config['ROOT_DOMAIN']+' last '
                      'updated at '+str(datetime.datetime.utcnow())+' UTC"')
                 )
-        else:
-            update.replace(name, app.config['DEFAULT_TTL'], 'AAAA', addr)
+        elif validate_ip(ip, v6=True):
+            update.delete(subdomain.name)
+            update.add(subdomain.name, app.config['DEFAULT_TTL'], 'AAAA', addr)
             if app.config['ADD_TXT_RECORDS']:
-                update.replace(
-                    name,
+                update.add(
+                    subdomain.name,
                     app.config['DEFAULT_TTL'],
                     'TXT',
-                    ('"Record for '+name+'.'+app.config['ROOT_DOMAIN']+' last '
-                     'updated at '+str(datetime.datetime.utcnow())+' UTC"')
+                    ('"Record for '+subdomain.name+'.'+app.config['ROOT_DOMAIN']+' last '
+                     ' updated at '+str(datetime.datetime.utcnow())+' UTC"')
                 )
-        if dns_query(update, on_api):
-            return True
+            subdomain.v6 = True
+            db.session.commit()
         else:
-            return False
-    else:
-        if on_api:
-            if not v6:
+            if on_api:
                 raise LutherBroke('Bad request, invalid IPv4 address')
             else:
-                raise LutherBroke('Bad request, invalid IPv6 address')
-        else:
-            return False
+                return False
+    else:
+        if validate_ip(ip, v6=True):
+            update.replace(subdomain.name, app.config['DEFAULT_TTL'], 'AAAA', addr)
+            if app.config['ADD_TXT_RECORDS']:
+                update.replace(
+                    subdomain.name,
+                    app.config['DEFAULT_TTL'],
+                    'TXT',
+                    ('"Record for '+subdomain.name+'.'+app.config['ROOT_DOMAIN']+' last '
+                     'updated at '+str(datetime.datetime.utcnow())+' UTC"')
+                )
+        elif validate_ip(ip, v6=False):
+            update.delete(subdomain.name)
+            update.add(subdomain.name, app.config['DEFAULT_TTL'], 'A', addr)
+            if app.config['ADD_TXT_RECORDS']:
+                update.add(
+                    subdomain.name,
+                    app.config['DEFAULT_TTL'],
+                    'TXT',
+                    ('"Record for '+subdomain.name+'.'+app.config['ROOT_DOMAIN']+' last '
+                     ' updated at '+str(datetime.datetime.utcnow())+' UTC"')
+                )
+            subdomain.v6 = False
+            db.session.commit()
+    if dns_query(update, on_api):
+        return True
+    else:
+        return False
 
 
 def delete_ddns(name, on_api=True):
@@ -966,12 +984,12 @@ def fancy_interface():
             else:
                 if domain.v6:
                     ddns_result = update_ddns(
-                        domain.name,
+                        domain,
                         domain_obj[2],
                         v6=True
                     )
                 else:
-                    ddns_result = update_ddns(domain.name, domain_obj[2])
+                    ddns_result = update_ddns(domain, domain_obj[2])
                 if ddns_result:
                     domain.ip = domain_obj[2]
                     db.session.commit()
@@ -1036,9 +1054,9 @@ def get_interface(domain_name, domain_token, domain_ip=None):
             })
         else:
             if domain.v6:
-                ddns_result = update_ddns(domain.name, domain_ip, v6=True)
+                ddns_result = update_ddns(domain, domain_ip, v6=True)
             else:
-                ddns_result = update_ddns(domain.name, domain_ip)
+                ddns_result = update_ddns(domain, domain_ip)
             if ddns_result:
                 domain.ip = domain_ip
                 db.session.commit()
