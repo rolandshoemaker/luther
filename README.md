@@ -14,9 +14,15 @@
   <em>"your non-lutheran ddns worries me"</em> &mdash; Martin Luther, 1538
 </p>
 
-## *Table of Contents*
+## Introduction
 
-[**Introduction**](#introduction)
+luther is an open source lightweight Dynamic DNS REST API that allows users to setup a DDNS service (similar to dyndns, duckdns, no-ip, etc) for their own domains quickly and painlessly.
+
+luther is also the backend infrastructure for the free (*__beta__, 5 subdomain limit per user*) dynamic dns service [dnsd.co](https://dnsd.co).
+
+luther is written by [Roland Shoemaker](https://www.bind.es/).
+
+## *Table of Contents*
 
 [**Quickstart**](#quickstart)
 
@@ -43,19 +49,11 @@
       - [URL parameters](#url)
   - [Regenerating a subdomain_token](#regenerating-a-subdomain_token)
 
-[**Documentation**](#docs)
+[**Documentation**](#documentation)
 
 [**TODO**](#todo)
 
 [**License**](#license)
-
-## Introduction
-
-luther is an open source lightweight Dynamic DNS REST API that allows users 
-to setup a DDNS service (similar to dyndns, duckdns, no-ip, etc) for their 
-own domains quickly and painlessly.
-
-luther is also the backend infrastructure for the free (*__beta__, 5 subdomain limit per user*) dynamic dns service [dnsd.co](https://dnsd.co).
 
 ## Quickstart
 
@@ -173,12 +171,10 @@ To run the tests (*yay you*) run the `tests/run_tests.py`. **But** remember you 
 
 Here we will be using the command `curl` to interact with the API, but any other tool or library can be used.
 
-All of the endpoints we will be talking about here, with the exception of the `GET` subdomain interface and get-ip endpoint, can be
-used either with URL parameters or with JSON data, just to make your life easier.
+All of the endpoints we will be talking about here, with the exception of the `GET` subdomain interface and get-ip endpoint, can be used either with URL parameters or with JSON data, just to make your life easier.
 
 ***NOTE:*** In these examples I have used `IPv4` addresses, **BUT** `IPv6` and `IPv4` addresses can be used interchangably!
-Beware though that the `IP` guessing system *luther* uses is somewhat `IPv4`-biased so if you are using `IPv6` you will probably want
-to set the `IP` manually when creating and updating subdomains.
+Beware though that the `IP` guessing system *luther* uses is somewhat `IPv4`-biased so if you are using `IPv6` you will probably want to set the `IP` manually when creating and updating subdomains.
 
 ### Creating a User
 
@@ -371,13 +367,9 @@ To delete a subdomain you need to send to a authenticated DELETE request to `htt
   
 ### Updating a Subdomain
 
-You have two options when updating the address of a subdomain, either the `GET` interface, where everything is
-done via the URL itself which limits you to updating a single subdomain at a time, or the fancy JSON/URL
-parameter method which allows you to update multiple subdomains at once.
+You have two options when updating the address of a subdomain, either the `GET` interface, where everything is done via the URL itself which limits you to updating a single subdomain at a time, or the fancy JSON/URL parameter method which allows you to update multiple subdomains at once.
 
-Updating a subdomain is different from updating/deleting users or creating subdomains. Unlike these endpoints we don't
-require username and password authentication, all we need is the subdomain name, the `subdomain_token` provided when
-you create a domain or via the `GET /api/v1/subdomains` list, and the address you wish to update the subdomain to (or nothing and *luther* will guess your address).
+Updating a subdomain is different from updating/deleting users or creating subdomains. Unlike these endpoints we don't require username and password authentication, all we need is the subdomain name, the `subdomain_token` provided when you create a domain or via the `GET /api/v1/subdomains` list, and the address you wish to update the subdomain to (or nothing and *luther* will guess your address).
 
 #### GET interface
 
