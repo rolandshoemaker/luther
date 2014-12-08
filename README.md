@@ -562,7 +562,6 @@ or you can view the documentation for the latest release at [https://docs.luther
 
 ## TODO
 
-* ADD: dynamic switching between ipv6 and ipv4 addresses in DB and on NS...
 * ADD: Write example client tools
 * FINISH: `setup.py` installer file
 * ADD: write tests

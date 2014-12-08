@@ -844,9 +844,8 @@ def domain_mainuplator():
                 else:
                     raise LutherBroke()
             else:
-                return json_status_message(
-                    'You have reached your subdomain quota, this subdomain wasn\'t added',
-                    200
+                raise LutherBroke(
+                    'You have reached your subdomain quota, the subdomain wasn\'t added'
                 )
         else:
             raise LutherBroke(
