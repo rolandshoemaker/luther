@@ -32,8 +32,8 @@ echo "# Restarting BIND"
 sudo service bind9 restart
 
 # Set LUTHER_SETTINGS
-echo "# Setting LUTHER_SETTINGS"
-export LUTHER_SETTINGS="${PWD}/tests/travis/travis_config.py"
+# echo "# Setting LUTHER_SETTINGS"
+# export LUTHER_SETTINGS="${PWD}/tests/travis/travis_config.py"
 
 # Upgrade setuptools
 echo "# Upgrading python setuptools"
