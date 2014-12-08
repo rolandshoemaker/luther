@@ -9,7 +9,7 @@ setup(
     author='Roland Shoemaker',
     author_email='rolandshoemaker@gmail.com',
     url='https://lutherd.org/',
-    package=['luther'],
+    packages=['luther'],
     scripts=['scripts/luther-cli'],
     include_package_data=True,
     zip_safe=False,
