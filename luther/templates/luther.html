@@ -83,9 +83,11 @@
                 <div class="col-lg-12 col-centered">
                     <!-- ko if: loggedin() -->
                     <div class="useracts">
-                        <button data-bind="click: beginChangePassword" class="btn btn-info">Change Password</button>
-                        <button data-bind="click: beginDelete" class="btn btn-danger">Delete Account</button>
-                        <button data-bind="click: logout" class="btn btn-warning">Logout</button>
+                        <div class="btn-group">
+                            <button data-bind="click: beginChangePassword" class="btn btn-info">Change Password</button>
+                            <button data-bind="click: beginDelete" class="btn btn-danger">Delete Account</button>
+                            <button data-bind="click: logout" class="btn btn-warning">Logout</button>
+                        </div>
                     </div>
                     <div class="modal fade" id="delUser" tabindex="-1" role="dialog" aria-labelledby="delUserLabel" aria-hidden="true">
                         <div class="modal-dialog">
@@ -156,10 +158,12 @@
                                 <td>
                                     <p data-bind="text: last_update"></p>
                                 </td>
-                                <td style="text-align: center;">
-                                    <button data-bind="click: $parent.beginUpdate" class="btn btn-xs btn-success">Update</button>
-                                    <button data-bind="click: $parent.regenToken" class="btn btn-xs btn-warning">Regen token</button>
-                                    <button data-bind="click: $parent.remove" class="btn btn-xs btn-danger">Delete</button>
+                                <td style="text-align: center; min-width: 195px;">
+                                    <div class="btn-group">
+                                        <button data-bind="click: $parent.beginUpdate" class="btn btn-xs btn-success">Update</button>
+                                        <button data-bind="click: $parent.regenToken" class="btn btn-xs btn-warning">Regen token</button>
+                                        <button data-bind="click: $parent.remove" class="btn btn-xs btn-danger">Delete</button>
+                                    </div>
                                 </td>
                             </tr>
                             <!-- /ko -->
