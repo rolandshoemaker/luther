@@ -5,3 +5,4 @@ luther.log
 luther/config.py
 *.pyc
 docs/_build/
+*.db

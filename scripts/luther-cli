@@ -7,10 +7,10 @@
 # |_| \__,_| \__||_| |_| \___||_|
 #
 
-from luther import app
+from luther import app, db
 from luther.api import new_ddns, update_ddns, \
     delete_ddns, validate_ip, predis
-from luther.models import User, Subdomain, db, init_db
+from luther.models import User, Subdomain
 
 import ipaddress
 
@@ -22,7 +22,7 @@ import dns.message
 import dns.query
 import dns.resolver
 
-db.init_app(app)
+# db.init_app(app)
 
 
 @click.group()
@@ -378,7 +378,8 @@ def dig_subdomain(name, nameserver):
 def init_db():
     """Initiailize the luther db"""
     with app.app_context():
-        init_db()
+        # init_db()
+        db.create_all()
         click.secho('Initialized database, you may want to add a (admin) user now! (# luther-cli add_user admin password --role=0 --quota=0)\n', fg='green')
 
 @cli.command('dev_server')

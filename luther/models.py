@@ -14,13 +14,10 @@
 .. moduleauthor:: Roland Shoemaker <rolandshoemaker@gmail.com>
 """
 
-from luther import app
+from luther import app, db
 
-from flask.ext.sqlalchemy import SQLAlchemy
 from passlib.apps import custom_app_context as pwd_context
 import uuid
-
-db = SQLAlchemy()
 
 
 def init_db():

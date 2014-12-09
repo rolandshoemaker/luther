@@ -18,7 +18,8 @@
 # luther imports #
 ##################
 
-from luther.models import db, User, Subdomain
+from luther import app, db
+from luther.models import User, Subdomain
 
 #################
 # flask imports #
@@ -59,15 +60,9 @@ import datetime
 # flask + plugin object init #
 ##############################
 
-from luther import app
-
-app.config.from_envvar('LUTHER_SETTINGS')
-
-app.config['ROOT_HTTP'] = 'http://'+app.config['ROOT_DOMAIN']
-
 auth = HTTPBasicAuth()
 
-db.init_app(app)
+# db.init_app(app)
 
 redis = Redis()
 
@@ -941,14 +936,19 @@ def fancy_interface():
     """
     if request.json and not request.args:
         domain_list = []
-        for d in request.json.get('subdomains'):
-            if d.get('subdomain') in ['', None] or d.get('subdomain_token') in ['', None]:
-                raise LutherBroke(
-                    'Bad request, missing or malformed arguments'
-                )
-            if not d.get('ip'):
-                d['ip'] = request.remote_addr
-            domain_list.append([d['subdomain'], d['subdomain_token'], d['ip']])
+        if request.json.get('subdomains'):
+            for d in request.json.get('subdomains'):
+                if d.get('subdomain') in ['', None] or d.get('subdomain_token') in ['', None]:
+                    raise LutherBroke(
+                        'Bad request, missing or malformed arguments111'
+                    )
+                if not d.get('ip'):
+                    d['ip'] = request.remote_addr
+                domain_list.append([d['subdomain'], d['subdomain_token'], d['ip']])
+        else:
+            raise LutherBroke(
+                'Bad request, missing or malformed arguments'
+            )
     elif request.args and not request.json:
         domain_list = []
         names = request.args.get('subdomains')
@@ -1013,7 +1013,7 @@ def fancy_interface():
         else:
             raise LutherBroke('Bad request, invalid subdomain or token')
     if len(results) > 0:
-        return jsonify({'results': [results]})
+        return jsonify({'status': 200, 'subdomains': results})
     else:
         raise LutherBroke('Internal server error', status_code=500)
 

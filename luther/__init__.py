@@ -13,7 +13,16 @@
 """
 
 from flask import Flask
+from flask.ext.sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 
-import luther.api
+app.config.from_envvar('LUTHER_SETTINGS')
+
+app.config['ROOT_HTTP'] = 'http://'+app.config['ROOT_DOMAIN']
+
+db = SQLAlchemy(app)
+
+db.create_all()
+
+from luther import api, models

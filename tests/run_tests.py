@@ -198,20 +198,116 @@ class LutherTestCase(unittest.TestCase):
         self.assertEqual(rd['subdomain'], 'travis-ip-example')
         self.assertEqual(rd['ip'], '2.2.2.2')
 
-    def test_cba_update_sub(self):
-        pass
+    def test_cba_get_and_update_subs(self):
+        # Get list of subdomains
+        rv = self.open_with_auth('/api/v1/subdomains', 'GET', 'tester@travis-ci.org', 'betterpassword')
+        self.assertEqual(rv.status_code, 200)
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rd['status'], 200)
+        self.assertEqual(len(rd['subdomains']), 2)
+        self.assertEqual(rd['subdomains'][0]['ip'], '1.1.1.1')
+        self.assertEqual(rd['subdomains'][0]['subdomain'], 'travis-example')
+        self.assertEqual(rd['subdomains'][1]['ip'], '2.2.2.2')
+        self.assertEqual(rd['subdomains'][1]['subdomain'], 'travis-ip-example')
+        self.assertIsNotNone(rd['subdomains'][0]['subdomain_token'])
+        self.assertIsNotNone(rd['subdomains'][1]['subdomain_token'])
+        addr_one = rd['subdomains'][0]['GET_update_endpoint']
+        addr_two = rd['subdomains'][1]['GET_update_endpoint']
 
-    def test_cbb_update_many_subs(self):
-        pass
+        # Update via GET interface
+        rv = self.app.get(addr_one+'/5.5.5.5', environ_base={'REMOTE_ADDR':'1.1.1.1'})
+        self.assertEqual(rv.status_code, 200)
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rd['status'], 200)
+        self.assertEqual(rd['subdomain'], 'travis-example')
+        self.assertEqual(rd['ip'], '5.5.5.5')
 
-    def test_cd_list_subs(self):
-        pass
+        rv = self.app.get(addr_two+'/9.9.9.9', environ_base={'REMOTE_ADDR':'1.1.1.1'})
+        self.assertEqual(rv.status_code, 200)
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rd['status'], 200)
+        self.assertEqual(rd['subdomain'], 'travis-ip-example')
+        self.assertEqual(rd['ip'], '9.9.9.9')
 
-    def test_ce_regen_sub_token(self):
-        pass
+    def test_cbb_get_and_fancy_update_subs(self):
+        # Get list of subdomains
+        rv = self.open_with_auth('/api/v1/subdomains', 'GET', 'tester@travis-ci.org', 'betterpassword')
+        self.assertEqual(rv.status_code, 200)
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rd['status'], 200)
+        self.assertEqual(len(rd['subdomains']), 2)
+        self.assertEqual(rd['subdomains'][0]['ip'], '5.5.5.5')
+        self.assertEqual(rd['subdomains'][0]['subdomain'], 'travis-example')
+        self.assertEqual(rd['subdomains'][1]['ip'], '9.9.9.9')
+        self.assertEqual(rd['subdomains'][1]['subdomain'], 'travis-ip-example')
+        self.assertIsNotNone(rd['subdomains'][0]['subdomain_token'])
+        self.assertIsNotNone(rd['subdomains'][1]['subdomain_token'])
+        token_one = rd['subdomains'][0]['subdomain_token']
+        token_two = rd['subdomains'][1]['subdomain_token']
 
-    def test_cf_delete_sub(self):
-        pass
+        # Update via fancy interface inc. guess
+        d = '{"subdomains": [{"subdomain": "travis-example", "subdomain_token": "'+token_one+'"},{"subdomain": "travis-ip-example", "subdomain_token": "'+token_two+'", "ip": "8.8.8.8"}]}'
+        rv = self.post_json('/api/v1/update', d)
+        self.assertEqual(rv.status_code, 200)
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rd['status'], 200)
+        self.assertEqual(rd['subdomains'][0]['ip'], '1.1.1.1')
+        self.assertEqual(rd['subdomains'][0]['subdomain'], 'travis-example')
+        self.assertEqual(rd['subdomains'][1]['ip'], '8.8.8.8')
+        self.assertEqual(rd['subdomains'][1]['subdomain'], 'travis-ip-example')
+        self.assertIsNotNone(rd['subdomains'][0]['subdomain_token'])
+        self.assertIsNotNone(rd['subdomains'][1]['subdomain_token'])
+
+    def test_cc_regen_sub_tokens(self):
+        rv = self.open_with_auth('/api/v1/subdomains', 'GET', 'tester@travis-ci.org', 'betterpassword')
+        self.assertEqual(rv.status_code, 200)
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rd['status'], 200)
+        self.assertEqual(len(rd['subdomains']), 2)
+        self.assertEqual(rd['subdomains'][0]['ip'], '1.1.1.1')
+        self.assertEqual(rd['subdomains'][0]['subdomain'], 'travis-example')
+        self.assertEqual(rd['subdomains'][1]['ip'], '8.8.8.8')
+        self.assertEqual(rd['subdomains'][1]['subdomain'], 'travis-ip-example')
+        self.assertIsNotNone(rd['subdomains'][0]['subdomain_token'])
+        self.assertIsNotNone(rd['subdomains'][1]['subdomain_token'])
+        addr_one = rd['subdomains'][0]['regenerate_subdomain_token_endpoint']
+        addr_two = rd['subdomains'][1]['regenerate_subdomain_token_endpoint']
+        token_one = rd['subdomains'][0]['subdomain_token']
+        token_two = rd['subdomains'][1]['subdomain_token']
+
+        rv = self.open_with_auth(addr_one, 'POST', 'tester@travis-ci.org', 'betterpassword', environ_base={'REMOTE_ADDR':'1.1.1.1'})
+        self.assertEqual(rv.status_code, 200)
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rd['status'], 200)
+        self.assertNotEqual(rd['subdomain_token'], token_one)
+
+        rv = self.open_with_auth(addr_two, 'POST', 'tester@travis-ci.org', 'betterpassword', environ_base={'REMOTE_ADDR':'1.1.1.1'})
+        self.assertEqual(rv.status_code, 200)
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rd['status'], 200)
+        self.assertNotEqual(rd['subdomain_token'], token_two)
+
+    def test_cf_delete_subs(self):
+        d = '{"subdomain":"travis-example", "confirm":"DELETE"}'
+        rv = self.delete_json_auth('/api/v1/subdomains', d, 'tester@travis-ci.org', 'betterpassword')
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(rd['status'], 200)
+        self.assertEqual(rd['message'], 'Subdomain deleted')
+
+        d = '{"subdomain":"travis-ip-example", "confirm":"DELETE"}'
+        rv = self.delete_json_auth('/api/v1/subdomains', d, 'tester@travis-ci.org', 'betterpassword')
+        self.assertEqual(rv.status_code, 200)
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rd['status'], 200)
+        self.assertEqual(rd['message'], 'Subdomain deleted')
+
+    def test_cg_list_no_subs(self):
+        rv = self.open_with_auth('/api/v1/subdomains', 'GET', 'tester@travis-ci.org', 'betterpassword')
+        self.assertEqual(rv.status_code, 200)
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rd['status'], 200)
+        self.assertEqual(len(rd['subdomains']), 0)
 
 if __name__ == '__main__':
     unittest.main()

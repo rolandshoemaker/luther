@@ -9,4 +9,7 @@ install: python setup.py build install
 script: python tests/run_tests.py
 after_failure:
     - sudo cat /var/log/syslog
-    - cat luther.log
+after_success:
+    - dig travis-example @127.0.0.1
+    - dig travis-ip-example @127.0.0.1
+    - sudo cat /var/log/syslog
