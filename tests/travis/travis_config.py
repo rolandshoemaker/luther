@@ -24,7 +24,8 @@ SECRET_KEY = str(uuid.uuid4())
 ##############
 
 # Root domain of REST API
-ROOT_DOMAIN = 'http://localhost'
+ROOT_DOMAIN = 'localhost'
+ROOT_HTTP = 'http://localhost'
 # Subdomains restricted from being added by users ('' probably isn't needed)
 RESTRICTED_SUBDOMAINS = ['', 'www', 'ww', 'w', 'mail', 'mx', 'ns',
                          'ns1', 'ns2', 'ns3', 'ns4', 'ns5', 'dns']

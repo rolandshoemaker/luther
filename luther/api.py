@@ -713,9 +713,9 @@ def new_user():
         'email': user.email,
         'resources': {
             'Subdomains':
-            app.config['ROOT_DOMAIN']+'/api/v1/subdomains',
+            app.config['ROOT_HTTP']+'/api/v1/subdomains',
             'Guess_IP':
-            app.config['ROOT_DOMAIN']+'/api/v1/guess_ip'
+            app.config['ROOT_HTTP']+'/api/v1/guess_ip'
         }
     })
     resp.status_code = 201
@@ -785,14 +785,12 @@ def domain_mainuplator():
                 'full_domain': d.name+"."+app.config['ROOT_DOMAIN'],
                 'ip': d.ip,
                 'subdomain_token': d.token,
-                'regenerate_subdomain_token_endpoint': app.config['ROOT_DOMAIN']+'/api/v1/regen_subdomain_token/'+d.name,
-                'GET_update_endpoint': app.config['ROOT_DOMAIN']+'/api/v1/update/'+d.name+'/'+d.token,
+                'regenerate_subdomain_token_endpoint': app.config['ROOT_HTTP']+'/api/v1/regen_subdomain_token/'+d.name,
+                'GET_update_endpoint': app.config['ROOT_HTTP']+'/api/v1/update/'+d.name+'/'+d.token,
                 'last_updated': str(d.last_updated)})
         if len(info['subdomains']) > 0:
             info['status'] = 200
-            resp = jsonify(info)
-            resp.status_code = 200
-            return resp
+            return jsonify(info)
         else:
             return jsonify({
                 'subdomains': [],
@@ -837,15 +835,17 @@ def domain_mainuplator():
                 if ddns_result:
                     db.session.add(new_domain)
                     db.session.commit()
-                    return jsonify({
+                    resp = jsonify({
                         'status': 201,
                         'subdomain': domain_name,
                         'full_domain': new_domain.name+"."+app.config['ROOT_DOMAIN'],
                         'ip': ip,
                         'subdomain_token': new_domain.token,
-                        'GET_update_endpoint': app.config['ROOT_DOMAIN']+'/api/v1/update/'+new_domain.name+'/'+new_domain.token,
+                        'GET_update_endpoint': app.config['ROOT_HTTP']+'/api/v1/update/'+new_domain.name+'/'+new_domain.token,
                         'last_updated': str(new_domain.last_updated)
                     })
+                    resp.status_code = 201
+                    return resp
                 else:
                     raise LutherBroke()
             else:
@@ -917,7 +917,7 @@ def regen_subdomain_token(subdomain_name=None):
                 'full_domain': d.name+"."+app.config['ROOT_DOMAIN'],
                 'ip': d.ip,
                 'subdomain_token': d.token,
-                'GET_update_endpoint': app.config['ROOT_DOMAIN']+'/api/v1/update/'+d.name+'/'+d.token,
+                'GET_update_endpoint': app.config['ROOT_HTTP']+'/api/v1/update/'+d.name+'/'+d.token,
                 'last_updated': str(d.last_updated),
                 'message': 'Subdomain token regenerated'
             })
@@ -982,7 +982,7 @@ def fancy_interface():
                     'full_domain': domain.name+"."+app.config['ROOT_DOMAIN'],
                     'ip': domain.ip,
                     'subdomain_token': domain.token,
-                    'GET_update_endpoint': app.config['ROOT_DOMAIN']+'/api/v1/update/'+domain.name+'/'+domain.token,
+                    'GET_update_endpoint': app.config['ROOT_HTTP']+'/api/v1/update/'+domain.name+'/'+domain.token,
                     'last_updated': str(domain.last_updated),
                     'message': 'Nothing to do, supplied IP is the same as current IP.'})
             else:
@@ -1003,7 +1003,7 @@ def fancy_interface():
                         'full_domain': domain.name+"."+app.config['ROOT_DOMAIN'],
                         'ip': domain.ip,
                         'subdomain_token': domain.token,
-                        'GET_update_endpoint': app.config['ROOT_DOMAIN']+'/api/v1/update/'+domain.name+'/'+domain.token,
+                        'GET_update_endpoint': app.config['ROOT_HTTP']+'/api/v1/update/'+domain.name+'/'+domain.token,
                         'last_updated': str(domain.last_updated),
                         'message': 'Subdomain updated.'})
                 else:
@@ -1052,7 +1052,7 @@ def get_interface(domain_name, domain_token, domain_ip=None):
                 'full_domain': domain.name+"."+app.config['ROOT_DOMAIN'],
                 'ip': domain.ip,
                 'subdomain_token': domain.token,
-                'GET_update_endpoint': app.config['ROOT_DOMAIN']+'/api/v1/update/'+domain.name+'/'+domain.token,
+                'GET_update_endpoint': app.config['ROOT_HTTP']+'/api/v1/update/'+domain.name+'/'+domain.token,
                 'last_updated': str(domain.last_updated),
                 'message': 'Nothing to do, supplied IP is the same as current IP.'
             })
@@ -1070,7 +1070,7 @@ def get_interface(domain_name, domain_token, domain_ip=None):
                     'full_domain': domain.name+"."+app.config['ROOT_DOMAIN'],
                     'ip': domain.ip,
                     'subdomain_token': domain.token,
-                    'GET_update_endpoint': app.config['ROOT_DOMAIN']+'/api/v1/update/'+domain.name+'/'+domain.token,
+                    'GET_update_endpoint': app.config['ROOT_HTTP']+'/api/v1/update/'+domain.name+'/'+domain.token,
                     'last_updated': str(domain.last_updated),
                     'message': 'Subdomain updated.'
                 })
@@ -1101,23 +1101,23 @@ def get_ip():
 if app.config['ENABLE_FRONTEND']:
     @app.route('/')
     def index():
-        results = {'users': [], 'subdomains': [], 'subdomain_limit': [], 'updates': []}
+        # results = {'users': [], 'subdomains': [], 'subdomain_limit': [], 'updates': []}
         if app.config['ENABLE_STATS']:
             stats = predis.get('luther/stats')
         else:
             stats = None
-        for a, b in stats['users']:
-            results['users'].append([str(a), b])
-        for a, b in stats['subdomains']:
-            results['subdomains'].append([str(a), b])
-        for a, b in stats['subdomain_limit']:
-            results['subdomain_limit'].append([str(a), b])
-        for a, b in stats['updates']:
-            results['updates'].append([str(a), b])
+        # for a, b in stats['users']:
+        #     results['users'].append([str(a), b])
+        # for a, b in stats['subdomains']:
+        #     results['subdomains'].append([str(a), b])
+        # for a, b in stats['subdomain_limit']:
+        #     results['subdomain_limit'].append([str(a), b])
+        # for a, b in stats['updates']:
+        #     results['updates'].append([str(a), b])
         return render_template(
             'luther.html',
             client_ip=request.remote_addr,
-            luther_stats=results
+            luther_stats=stats # results
         )
 
 if app.config['ENABLE_STATS']:
@@ -1151,7 +1151,7 @@ if app.config['ENABLE_STATS']:
         threading.Timer(app.config['STATS_INTERVAL'], update_stats).start()
         with app.app_context():
             stats = predis.get('luther/stats')
-            now = datetime.datetime.now()
+            now = str(datetime.datetime.now())
             if not stats:
                 stats = {
                     'users': [],
@@ -1172,7 +1172,7 @@ if app.config['ENABLE_STATS']:
                 app.config['TOTAL_SUBDOMAIN_LIMIT']
             ])
             if len(stats['updates']) > 0:
-                last_update = stats['updates'][len(stats['updates'])-1][0]
+                last_update = datetime.datetime.strptime(stats['updates'][-1][0], '%Y-%m-%d %H:%M:%S.%f')
                 stats['updates'].append([
                     now,
                     Subdomain.query.filter(

@@ -60,8 +60,6 @@ class LutherTestCase(unittest.TestCase):
         luther.models.init_db()
 
     def tearDown(self):
-        # os.close(self.db_fd)
-        # os.unlink(luther.app.config['DATABASE'])
         pass
 
     def test_aa_guess_ipv4(self):
@@ -182,8 +180,23 @@ class LutherTestCase(unittest.TestCase):
         self.assertEqual(rd['email'], "tester@travis-ci.org")
         self.assertEqual(rd['status'], 201)
 
-    def test_ca_add_sub(self):
-        pass
+    def test_caa_add_sub_guess_ip(self):
+        d = '{"subdomain":"travis-example"}'
+        rv = self.post_json_auth('/api/v1/subdomains', d, 'tester@travis-ci.org', 'betterpassword')
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rv.status_code, 201)
+        self.assertEqual(rd['status'], 201)
+        self.assertEqual(rd['subdomain'], 'travis-example')
+        self.assertEqual(rd['ip'], '1.1.1.1')
+
+    def test_cab_add_sub_spec_ip(self):
+        d = '{"subdomain":"travis-ip-example", "ip":"2.2.2.2"}'
+        rv = self.post_json_auth('/api/v1/subdomains', d, 'tester@travis-ci.org', 'betterpassword')
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rv.status_code, 201)
+        self.assertEqual(rd['status'], 201)
+        self.assertEqual(rd['subdomain'], 'travis-ip-example')
+        self.assertEqual(rd['ip'], '2.2.2.2')
 
     def test_cba_update_sub(self):
         pass
@@ -191,10 +204,13 @@ class LutherTestCase(unittest.TestCase):
     def test_cbb_update_many_subs(self):
         pass
 
-    def test_cd_regen_sub_token(self):
+    def test_cd_list_subs(self):
         pass
 
-    def test_ce_delete_sub(self):
+    def test_ce_regen_sub_token(self):
+        pass
+
+    def test_cf_delete_sub(self):
         pass
 
 if __name__ == '__main__':

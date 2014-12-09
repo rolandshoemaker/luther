@@ -377,8 +377,9 @@ def dig_subdomain(name, nameserver):
 @cli.command('init_db')
 def init_db():
     """Initiailize the luther db"""
-    init_db()
-    click.secho('Initialized database, you may want to add a (admin) user now! (# luther-cli add_user admin password --role=0 --quota=0)\n', fg='green')
+    with app.app_context():
+        init_db()
+        click.secho('Initialized database, you may want to add a (admin) user now! (# luther-cli add_user admin password --role=0 --quota=0)\n', fg='green')
 
 @cli.command('dev_server')
 @click.option('--host', default='127.0.0.1', help='Host address to bind to, defaults to \'127.0.0.1\'')
