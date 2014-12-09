@@ -1,4 +1,4 @@
-ORIGIN .
+$ORIGIN .
 $TTL 86400	; 1 day
 example.com		IN SOA	ns.example.com. hostmaster.example.com. (
 				2014111328 ; serial
