@@ -222,12 +222,13 @@ class LutherTestCase(unittest.TestCase):
         self.assertEqual(rd['subdomain'], 'travis-example')
         self.assertEqual(rd['ip'], '5.5.5.5')
 
-        rv = self.app.get(addr_two+'/9.9.9.9', environ_base={'REMOTE_ADDR':'1.1.1.1'})
+        # Convert to IPv6
+        rv = self.app.get(addr_two+'/FE80::0202:B3FF:FE1E:8329', environ_base={'REMOTE_ADDR':'1.1.1.1'})
         self.assertEqual(rv.status_code, 200)
         rd = json.loads(rv.data.decode('ascii'))
         self.assertEqual(rd['status'], 200)
         self.assertEqual(rd['subdomain'], 'travis-ip-example')
-        self.assertEqual(rd['ip'], '9.9.9.9')
+        self.assertEqual(rd['ip'], 'FE80::0202:B3FF:FE1E:8329')
 
     def test_cbb_get_and_fancy_update_subs(self):
         # Get list of subdomains
@@ -238,14 +239,14 @@ class LutherTestCase(unittest.TestCase):
         self.assertEqual(len(rd['subdomains']), 2)
         self.assertEqual(rd['subdomains'][0]['ip'], '5.5.5.5')
         self.assertEqual(rd['subdomains'][0]['subdomain'], 'travis-example')
-        self.assertEqual(rd['subdomains'][1]['ip'], '9.9.9.9')
+        self.assertEqual(rd['subdomains'][1]['ip'], 'FE80::0202:B3FF:FE1E:8329')
         self.assertEqual(rd['subdomains'][1]['subdomain'], 'travis-ip-example')
         self.assertIsNotNone(rd['subdomains'][0]['subdomain_token'])
         self.assertIsNotNone(rd['subdomains'][1]['subdomain_token'])
         token_one = rd['subdomains'][0]['subdomain_token']
         token_two = rd['subdomains'][1]['subdomain_token']
 
-        # Update via fancy interface inc. guess
+        # Update via fancy interface inc. guess, convert back to IPv4
         d = '{"subdomains": [{"subdomain": "travis-example", "subdomain_token": "'+token_one+'"},{"subdomain": "travis-ip-example", "subdomain_token": "'+token_two+'", "ip": "8.8.8.8"}]}'
         rv = self.post_json('/api/v1/update', d)
         self.assertEqual(rv.status_code, 200)

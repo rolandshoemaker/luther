@@ -23,6 +23,4 @@ app.config['ROOT_HTTP'] = 'http://'+app.config['ROOT_DOMAIN']
 
 db = SQLAlchemy(app)
 
-db.create_all()
-
-from luther import api, models
+from luther import api

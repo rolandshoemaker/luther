@@ -10,35 +10,36 @@
 # for luther to be tested with a BIND server etc
 
 # Install BIND9
-echo "# Installing BIND9\n"
+echo "# Installing BIND9"
 sudo apt-get update
 sudo apt-get install -y bind9
 
 # Copy example zone and config files to /etc/bind/
-echo "# Deleteing /etc/bind/named.conf\n"
+echo "# Deleteing /etc/bind/named.conf"
 sudo rm /etc/bind/named.conf
-echo "# Deleteing /etc/bind/named.conf.local\n"
+echo "# Deleteing /etc/bind/named.conf.local"
 sudo rm /etc/bind/named.conf.local
-echo "# Deleteing /etc/bind/named.options\n"
+echo "# Deleteing /etc/bind/named.options"
 sudo rm /etc/bind/named.conf.options
-echo "# Copying BIND9 config and zone files to /etc/bind/\n"
+echo "# Copying BIND9 config and zone files to /etc/bind/"
 sudo cp tests/travis/named.conf /etc/bind/
-echo "# Making /var/lib/bind/zones\n"
+echo "# Making /var/lib/bind/zones"
 sudo mkdir -p /var/lib/bind/zones
-echo "# Linking /var/lib/bind/zones to /etc/bind/zones/\n"
+echo "# Linking /var/lib/bind/zones to /etc/bind/zones/"
 sudo ln -s /etc/bind/zones /var/lib/bind/zones
-echo "# Copying example zone to /var/lib/bind/zones\n"
+echo "# Copying example zone to /var/lib/bind/zones"
 sudo cp tests/travis/db.example.com /var/lib/bind/zones/
 
 # Fix /etc/bind permissions
-echo "# Fixing permissions\n"
+echo "# Fixing permissions"
 sudo chown -R bind:bind /var/lib/bind
 sudo chown -R bind:bind /etc/bind
 
 # Restart BIND, it should be properly setup now
-echo "# Restarting BIND\n"
+echo "# Restarting BIND"
 sudo service bind9 restart
 
 # Upgrade setuptools
-echo "# Upgrading python setuptools\n"
+echo
+echo "# Upgrading python setuptools"
 easy_install -U setuptools
