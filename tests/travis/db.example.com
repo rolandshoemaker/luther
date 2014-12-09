@@ -9,3 +9,4 @@ example.com			IN SOA	ns.example.com. hostmaster.example.com. (
 				)
 			NS	ns.example.com.
 			A	127.0.0.1
+ns          A   127.0.0.1
