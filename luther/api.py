@@ -63,6 +63,8 @@ from luther import app
 
 app.config.from_envvar('LUTHER_SETTINGS')
 
+app.config['ROOT_HTTP'] = 'http://'+app.config['ROOT_DOMAIN']
+
 auth = HTTPBasicAuth()
 
 db.init_app(app)
@@ -70,7 +72,7 @@ db.init_app(app)
 redis = Redis()
 
 keyring = dns.tsigkeyring.from_text({
-    app.config['TSIG_ZONE']: app.config['TSIG_KEY']
+    app.config['DNS_ROOT_DOMAIN']+'.': app.config['TSIG_KEY']
 })
 
 ##################
@@ -265,9 +267,9 @@ def dns_message_check(msg, on_api):
         7: 'record that shouldnt exist does exist',
         8: 'record that should exist doesnt exist',
         9: ('server is not authorized or is using bad tsig key to '
-            'make updates to zone \''+app.config['TSIG_ZONE']+'\' '
+            'make updates to zone \''+app.config['DNS_ROOT_DOMAIN']+'.'+'\' '
             'on master dns server'),
-        10: ('zone \''+app.config['TSIG_ZONE']+'\' does not exist '
+        10: ('zone \''+app.config['DNS_ROOT_DOMAIN']+'.'+'\' does not exist '
              'on master dns server'),
         16: ''
         }
@@ -375,7 +377,7 @@ def new_ddns(name, ip, v6=False, on_api=True):
             name,
             app.config['DEFAULT_TTL'],
             'TXT',
-            ('"Record for '+name+'.'+app.config['ROOT_DOMAIN']+' last '
+            ('"Record for '+name+'.'+app.config['DNS_ROOT_DOMAIN']+' last '
              ' updated at '+str(datetime.datetime.utcnow())+' UTC"')
         )
     if dns_query(new_record, on_api):
@@ -415,7 +417,7 @@ def update_ddns(subdomain, ip, v6=False, on_api=True):
                     subdomain.name,
                     app.config['DEFAULT_TTL'],
                     'TXT',
-                    ('"Record for '+subdomain.name+'.'+app.config['ROOT_DOMAIN']+' last '
+                    ('"Record for '+subdomain.name+'.'+app.config['DNS_ROOT_DOMAIN']+' last '
                      'updated at '+str(datetime.datetime.utcnow())+' UTC"')
                 )
         elif validate_ip(ip, v6=True):
@@ -426,7 +428,7 @@ def update_ddns(subdomain, ip, v6=False, on_api=True):
                     subdomain.name,
                     app.config['DEFAULT_TTL'],
                     'TXT',
-                    ('"Record for '+subdomain.name+'.'+app.config['ROOT_DOMAIN']+' last '
+                    ('"Record for '+subdomain.name+'.'+app.config['DNS_ROOT_DOMAIN']+' last '
                      ' updated at '+str(datetime.datetime.utcnow())+' UTC"')
                 )
             subdomain.v6 = True
@@ -444,7 +446,7 @@ def update_ddns(subdomain, ip, v6=False, on_api=True):
                     subdomain.name,
                     app.config['DEFAULT_TTL'],
                     'TXT',
-                    ('"Record for '+subdomain.name+'.'+app.config['ROOT_DOMAIN']+' last '
+                    ('"Record for '+subdomain.name+'.'+app.config['DNS_ROOT_DOMAIN']+' last '
                      'updated at '+str(datetime.datetime.utcnow())+' UTC"')
                 )
         elif validate_ip(ip, v6=False):
@@ -455,7 +457,7 @@ def update_ddns(subdomain, ip, v6=False, on_api=True):
                     subdomain.name,
                     app.config['DEFAULT_TTL'],
                     'TXT',
-                    ('"Record for '+subdomain.name+'.'+app.config['ROOT_DOMAIN']+' last '
+                    ('"Record for '+subdomain.name+'.'+app.config['DNS_ROOT_DOMAIN']+' last '
                      ' updated at '+str(datetime.datetime.utcnow())+' UTC"')
                 )
             subdomain.v6 = False
@@ -782,7 +784,7 @@ def domain_mainuplator():
         for d in domains:
             info['subdomains'].append({
                 'subdomain': d.name,
-                'full_domain': d.name+"."+app.config['ROOT_DOMAIN'],
+                'full_domain': d.name+"."+app.config['DNS_ROOT_DOMAIN'],
                 'ip': d.ip,
                 'subdomain_token': d.token,
                 'regenerate_subdomain_token_endpoint': app.config['ROOT_HTTP']+'/api/v1/regen_subdomain_token/'+d.name,
@@ -838,7 +840,7 @@ def domain_mainuplator():
                     resp = jsonify({
                         'status': 201,
                         'subdomain': domain_name,
-                        'full_domain': new_domain.name+"."+app.config['ROOT_DOMAIN'],
+                        'full_domain': new_domain.name+"."+app.config['DNS_ROOT_DOMAIN'],
                         'ip': ip,
                         'subdomain_token': new_domain.token,
                         'GET_update_endpoint': app.config['ROOT_HTTP']+'/api/v1/update/'+new_domain.name+'/'+new_domain.token,
@@ -914,7 +916,7 @@ def regen_subdomain_token(subdomain_name=None):
             return jsonify({
                 'status': 200,
                 'subdomain': d.name,
-                'full_domain': d.name+"."+app.config['ROOT_DOMAIN'],
+                'full_domain': d.name+"."+app.config['DNS_ROOT_DOMAIN'],
                 'ip': d.ip,
                 'subdomain_token': d.token,
                 'GET_update_endpoint': app.config['ROOT_HTTP']+'/api/v1/update/'+d.name+'/'+d.token,
@@ -979,7 +981,7 @@ def fancy_interface():
                 results.append({
                     'status': 200,
                     'subdomain': domain.name,
-                    'full_domain': domain.name+"."+app.config['ROOT_DOMAIN'],
+                    'full_domain': domain.name+"."+app.config['DNS_ROOT_DOMAIN'],
                     'ip': domain.ip,
                     'subdomain_token': domain.token,
                     'GET_update_endpoint': app.config['ROOT_HTTP']+'/api/v1/update/'+domain.name+'/'+domain.token,
@@ -1000,7 +1002,7 @@ def fancy_interface():
                     results.append({
                         'status': 200,
                         'subdomain': domain.name,
-                        'full_domain': domain.name+"."+app.config['ROOT_DOMAIN'],
+                        'full_domain': domain.name+"."+app.config['DNS_ROOT_DOMAIN'],
                         'ip': domain.ip,
                         'subdomain_token': domain.token,
                         'GET_update_endpoint': app.config['ROOT_HTTP']+'/api/v1/update/'+domain.name+'/'+domain.token,
@@ -1049,7 +1051,7 @@ def get_interface(domain_name, domain_token, domain_ip=None):
             return jsonify({
                 'status': 200,
                 'subdomain': domain.name,
-                'full_domain': domain.name+"."+app.config['ROOT_DOMAIN'],
+                'full_domain': domain.name+"."+app.config['DNS_ROOT_DOMAIN'],
                 'ip': domain.ip,
                 'subdomain_token': domain.token,
                 'GET_update_endpoint': app.config['ROOT_HTTP']+'/api/v1/update/'+domain.name+'/'+domain.token,
@@ -1067,7 +1069,7 @@ def get_interface(domain_name, domain_token, domain_ip=None):
                 return jsonify({
                     'status': 200,
                     'subdomain': domain.name,
-                    'full_domain': domain.name+"."+app.config['ROOT_DOMAIN'],
+                    'full_domain': domain.name+"."+app.config['DNS_ROOT_DOMAIN'],
                     'ip': domain.ip,
                     'subdomain_token': domain.token,
                     'GET_update_endpoint': app.config['ROOT_HTTP']+'/api/v1/update/'+domain.name+'/'+domain.token,

@@ -25,7 +25,6 @@ SECRET_KEY = str(uuid.uuid4())
 
 # Root domain of REST API
 ROOT_DOMAIN = 'localhost'
-ROOT_HTTP = 'http://localhost'
 # Subdomains restricted from being added by users ('' probably isn't needed)
 RESTRICTED_SUBDOMAINS = ['', 'www', 'ww', 'w', 'mail', 'mx', 'ns',
                          'ns1', 'ns2', 'ns3', 'ns4', 'ns5', 'dns']
@@ -56,15 +55,13 @@ STATS_INTERVAL = 43200
 # Root domain subdomains will be provided for
 DNS_ROOT_DOMAIN = 'example.com'
 # DNS master server hostname/address
-DNS_MASTER_SERVER = 'localhost'
+DNS_MASTER_SERVER = '127.0.0.1'
 # DNS master server port
 DNS_MASTER_PORT = 53
 # Port luther should send DNS messages from
 DNS_MASTER_SOURCE_PORT = 0
 # How long to wait before DNS messages timeout (in seconds)
 DNS_MASTER_TIMEOUT = 60
-# Zone FQDN for updates (DNS_ROOT_DOMAIN with a . on the end)
-TSIG_ZONE = 'example.com.'
 # Zone TSIG Key
 TSIG_KEY = 'FbpOCJbGUchAZG1iKSfhJQ=='
 # Default TTL for A, AAAA, and TXT records
