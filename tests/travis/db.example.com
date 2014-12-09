@@ -8,6 +8,6 @@ example.com		IN SOA	ns.example.com. hostmaster.example.com. (
 				86400      ; minimum (1 day)
 				)
 			NS	ns.example.com.
-			A	184.105.184.147
+			A	127.0.0.1
 $ORIGIN example.com.
-ns			A	184.105.184.149
+ns			A	127.0.0.1
