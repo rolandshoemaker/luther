@@ -94,6 +94,8 @@ VALIDATE_USER_EMAIL_MX = True
 # luther misc #
 ###############
 
+# Switch to http for dev
+OVERRIDE_HTTPS = True
 # Where should luther store it's log?
 LOG_FILE_PATH = 'luther.log'
 # For rotating log: how many backups

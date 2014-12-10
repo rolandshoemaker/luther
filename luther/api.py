@@ -111,14 +111,10 @@ def validate_ip(ip, v6=False):
         else:
             test = ipaddress.IPv6Address(ip)
         correct_subnet = False
-        if not v6:
-            for subnet in app.config['ALLOWED_DDNS_IPV4_SUBNETS']:
-                if test in ipaddress.IPv4Network(subnet):
-                    correct_subnet = True
-        else:
-            for subnet in app.config['ALLOWED_DDNS_IPV6_SUBNETS']:
-                if test in ipaddress.IPv6Network(subnet):
-                    correct_subnet = True
+        for subnet in app.config['ALLOWED_DDNS_IPV4_SUBNETS']:
+            if (not v6 and test in ipaddress.IPv4Network(subnet)) \
+                    or (v6 and test in ipaddress.IPv6Network(subnet)):
+                correct_subnet = True
         if (test.is_private and not app.config['ALLOW_PRIVATE_ADDRESSES']) \
                 or not correct_subnet:
             return False
@@ -355,7 +351,6 @@ def new_ddns(name, ip, v6=False, on_api=True):
     :param on_api:
     :type on_api: bool.
     :returns: object -- None on success or JSON response indicating the error.
-
     """
     new_record = dns.update.Update(
         app.config['DNS_ROOT_DOMAIN'],
@@ -395,7 +390,6 @@ def update_ddns(subdomain, ip, v6=False, on_api=True):
     :param on_api:
     :type on_api: bool.
     :returns: object -- None on success or JSON response indicating the error.
-
     """
     # addr = validate_ip(ip, v6=v6)
     addr = ip
@@ -539,7 +533,7 @@ def ratelimit(limit, per=225,
             rlimit = RateLimit(key, limit, per, send_x_headers)
             g._view_rate_limit = rlimit
             if over_limit is not None and rlimit.over_limit \
-                    and not g.user.role is 0:
+                    and not g.user.is_admin:
                 return over_limit(rlimit)
             return f(*args, **kwargs)
         return update_wrapper(rate_limited, f)
@@ -719,7 +713,7 @@ def new_user():
     return resp
 
 
-@app.route('/api/v1/edit_user', methods=['DELETE', 'POST'])
+@app.route('/api/v1/user', methods=['DELETE', 'PUT'])
 @auth.login_required
 def edit_user():
     """Delete an existing user or change it's password, parameters
@@ -743,7 +737,7 @@ def edit_user():
         g.user = None
         db.session.commit()
         return json_status_message('User deleted, bai bai :<', 200)
-    elif request.method == 'POST':
+    elif request.method == 'PUT':
         if request.json and not request.args:
             password = request.json.get('new_password')
         elif request.args:
@@ -771,10 +765,8 @@ def domain_mainuplator():
     :returns: object -- JSON response indicating the outcome of action.
     """
     if request.method == 'GET':
-        if g.user.role is 1:
-            domains = g.user.subdomains
-        else:
-            domains = Subdomain.query.all()
+        domains = g.user.subdomains if \
+            not g.user.is_admin else Subdomain.query.all()
         info = {'email': g.user.email, 'subdomains': []}
         for d in domains:
             info['subdomains'].append({
@@ -866,9 +858,9 @@ def domain_mainuplator():
             raise LutherBroke('Bad request, missing arguments')
         if not confirm == 'DELETE':
             raise LutherBroke('Bad request, malformed or missing arguments')
-        sub_iterator = g.user.subdomains if \
-            g.user.role is 1 else Subdomain.query.all()
-        for d in sub_iterator:
+        domains = g.user.subdomains if \
+            not g.user.is_admin else Subdomain.query.all()
+        for d in domains:
             if d.name == domain_name:
                 ddns_result = delete_ddns(d.name)
                 if ddns_result:
@@ -900,10 +892,8 @@ def regen_subdomain_token(subdomain_name=None):
         raise LutherBroke('Bad request, no data')
     if domain_name in [None, '']:
         raise LutherBroke('Bad request, missing arguments')
-    if g.user.role == 1:
-        domains = g.user.subdomains
-    else:
-        domains = Subdomain.query.all()
+    domains = g.user.subdomains if \
+        not g.user.is_admin else Subdomain.query.all()
     for d in domains:
         if domain_name == d.name:
             d.generate_domain_token()
@@ -1091,7 +1081,6 @@ def get_ip():
     """Return the IP used to request the endpoint.
 
     :returns: string -- The IP address used to request the endpoint.
-
     """
     return jsonify({'guessed_ip': request.remote_addr, 'status': 200})
 

@@ -27,6 +27,20 @@ class LutherTestCase(unittest.TestCase):
             }
         )
 
+    def put_json_auth(self, url, data, username, password, environ_base={'REMOTE_ADDR':'1.1.1.1'}):
+        creds = '%s:%s' % (username, password)
+        b64_str = base64.standard_b64encode(bytes(creds.encode('ascii')))
+        return self.app.put(
+            url,
+            data=data,
+            content_type='application/json',
+            environ_base=environ_base,
+            headers={
+                'Authorization': 'Basic %s' % b64_str.decode('ascii')
+            }
+        )
+
+
     def delete_json_auth(self, url, data, username, password, environ_base={'REMOTE_ADDR':'1.1.1.1'}):
         creds = '%s:%s' % (username, password)
         b64_str = base64.standard_b64encode(bytes(creds.encode('ascii')))
@@ -154,7 +168,7 @@ class LutherTestCase(unittest.TestCase):
 
     def test_bd_edit_user(self):
         d = '{"new_password":"betterpassword"}'
-        rv = self.post_json_auth('/api/v1/edit_user', d, 'tester@travis-ci.org', 'weakpassword')
+        rv = self.put_json_auth('/api/v1/user', d, 'tester@travis-ci.org', 'weakpassword')
         rd = json.loads(rv.data.decode('ascii'))
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(rd['message'], 'Password updated')
@@ -166,7 +180,7 @@ class LutherTestCase(unittest.TestCase):
 
     def test_be_delete_user(self):
         d = '{"confirm":"DELETE"}'
-        rv = self.delete_json_auth('/api/v1/edit_user', d, 'tester@travis-ci.org', 'betterpassword')
+        rv = self.delete_json_auth('/api/v1/user', d, 'tester@travis-ci.org', 'betterpassword')
         rd = json.loads(rv.data.decode('ascii'))
         rd = json.loads(rv.data.decode('ascii'))
         self.assertEqual(rv.status_code, 200)
@@ -224,6 +238,7 @@ class LutherTestCase(unittest.TestCase):
 
         # Convert to IPv6
         rv = self.app.get(addr_two+'/FE80::0202:B3FF:FE1E:8329', environ_base={'REMOTE_ADDR':'1.1.1.1'})
+        print(rv.data)
         self.assertEqual(rv.status_code, 200)
         rd = json.loads(rv.data.decode('ascii'))
         self.assertEqual(rd['status'], 200)

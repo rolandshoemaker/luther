@@ -19,7 +19,10 @@ app = Flask(__name__)
 
 app.config.from_envvar('LUTHER_SETTINGS')
 
-app.config['ROOT_HTTP'] = 'http://'+app.config['ROOT_DOMAIN']
+if app.config.get('OVERRIDE_HTTPS') and app.config['OVERRIDE_HTTPS']:
+    app.config['ROOT_HTTP'] = 'http://'+app.config['ROOT_DOMAIN']
+else:
+    app.config['ROOT_HTTP'] = 'https://'+app.config['ROOT_DOMAIN']
 
 db = SQLAlchemy(app)
 

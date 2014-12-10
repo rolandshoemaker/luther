@@ -386,13 +386,14 @@ def init_db():
 @click.option('--host', default='127.0.0.1', help='Host address to bind to, defaults to \'127.0.0.1\'')
 @click.option('--port', default=5000, help='Host port to bind to, defaults to \'5000\'')
 @click.option('--reloader', default=False, help='Whether or not to reload (bad idea to use with --stats')
-@click.option('--stats', default=False, help='Generate statistics')
-def dev_server():
+@click.option('--stats/--no-stats', default=False, help='Generate statistics')
+def dev_server(host, port, reloader, stats):
     """Run the development web server"""
     from luther.api import update_stats
 
     if stats:
-        update_stats()
+        with app.app_context():
+            update_stats()
 
     app.run(debug=True, use_reloader=reloader, host=host, port=port)
 

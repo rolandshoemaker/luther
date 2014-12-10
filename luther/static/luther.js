@@ -158,7 +158,7 @@ function LutherMainViewModel() {
         $('#editPass').modal('hide');
         if (self.new_password() == self.new_password_two()) {
             data = {new_password: self.new_password()}
-            self.ajax(self.edit_userURI, 'POST', data).done(function() {
+            self.ajax(self.edit_userURI, 'PUT', data).done(function() {
                 self.api_errors.push({message: 'Password changed.', level: 'alert-info'});
             });
         } else {

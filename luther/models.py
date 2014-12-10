@@ -30,14 +30,20 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True)
     password_hash = db.Column(db.String(128))
-    quota = db.Column(db.Integer)
-    role = db.Column(db.Integer)
+    quota = db.Column(db.Integer, default=app.config['DEFAULT_USER_QUOTA'])
+    role = db.Column(db.Integer, default=1)
 
     def hash_password(self, password):
         self.password_hash = pwd_context.encrypt(password)
 
     def verify_password(self, password):
         return pwd_context.verify(password, self.password_hash)
+
+    def is_admin(self):
+        if self.role == 0:
+            return True
+        else:
+            return False
 
 
 class Subdomain(db.Model):
