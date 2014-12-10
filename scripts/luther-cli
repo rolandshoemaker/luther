@@ -278,10 +278,17 @@ def view_subdomain(name):
             click.secho('No subdomain: '+name+'.\n', fg='red')
 
 @cli.command('count_subdomains')
-def count_subdomains():
+@click.option('--v6', is_flag=True)
+@click.option('--v4', is_flag=True)
+def count_subdomains(v6, v4):
     """Count all subdomains"""
     with app.app_context():
-        click.secho(str(Subdomain.query.count())+' subdomains exist.\n', fg='yellow')
+        if not v6 or not v4:
+            click.secho(str(Subdomain.query.count())+' subdomains exist.\n', fg='yellow')
+        if v6:
+            click.secho(str(Subdomain.query.filter_by(v6=True).count())+' IPv6 subdomains exist.\n', fg='yellow')
+        if v4:
+            click.secho(str(Subdomain.query.filter_by(v6=False).count())+' IPv4 subdomains exist.\n', fg='yellow')
 
 @cli.command('count_users_subdomains')
 @click.argument('email')

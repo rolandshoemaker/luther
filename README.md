@@ -555,21 +555,19 @@ or you can view the documentation for the latest release at [https://docs.luther
 ## TODO
 
 * ADD: Write example client tools
-* FINISH: `setup.py` installer file
-* ADD: write tests
+* FINISH: tests
   * Users
-    * TEST: Add user (JSON/URLARGS)
-    * TEST: Change user pass (JSON/URLARGS)
-    * TEST: Delete user (JSON/URLARGS)
+    * TEST: Add user (URLARGS)
+    * TEST: Change user pass (URLARGS)
+    * TEST: Delete user (URLARGS)
   * Subdomains
-    * TEST: Add subdomain (JSON/URLARGS)
+    * TEST: Add subdomain (URLARGS)
     * TEST: List subdomains
-    * TEST: Delete subdomain (JSON/URLARGS)
-    * TEST: Regen subdomain token (JSON/URLARGS)
+    * TEST: Delete subdomain (URLARGS)
+    * TEST: Regen subdomain token (URLARGS)
     * TEST: Update subdomain with GET route
-    * TEST: Update subdomain with fancy route (JSON/URLARGS)
+    * TEST: Update subdomain with fancy route (URLARGS)
       * *Single* **+** *Multiple* domains
-  * TEST: get-ip route
 * FIX: Slim down configuration file, there is a bit of duplication
 * FINISH: writing the README (._.)
 * FINISH: writing all the documentation
