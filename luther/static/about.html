@@ -61,13 +61,13 @@ Date: Thu, 04 Dec 2014 10:04:05 GMT
   “status”: 201
 }%</code></pre>
 <h3 id="changing-your-password"><a name="user-content-changing-your-password" href="#changing-your-password" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Changing your password</h3>
-<p>To change your password all you need to do it a simple POST request to <code>https://dnsd.co/api/v1/edit_user</code> with your new password.<br>
+<p>To change your password all you need to do it a simple PUT request to <code>https://dnsd.co/api/v1/user</code> with your new password.<br>
 Since you need an account to do this you can use <code>curl -u username:password</code> to identify yourself to the service.</p>
-<pre><code># curl -u guy@gmail.com:password ‘https://dnsd.co/api/v1/edit_user’ -i -X POST -H ‘Content-type: application/json’ -d ‘{“new_password”:”betterpassword”}’
+<pre><code># curl -u guy@gmail.com:password ‘https://dnsd.co/api/v1/user’ -i -X PUT -H ‘Content-type: application/json’ -d ‘{“new_password”:”betterpassword”}’
 
 – or –
 
-# curl -u guy@gmail.com:password ‘https://dnsd.co/api/v1/edit_user?new_password=betterpassword’ -i -X POST
+# curl -u guy@gmail.com:password ‘https://dnsd.co/api/v1/user?new_password=betterpassword’ -i -X PUT
 
 HTTP/1.0 200 OK
 Content-Type: application/json
@@ -80,12 +80,12 @@ Date: Thu, 04 Dec 2014 10:13:41 GMT
   “status”: 200
 }%</code></pre>
 <h3 id="deleting-your-account"><a name="user-content-deleting-your-account" href="#deleting-your-account" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Deleting your account</h3>
-<p>If you’d like to delete your account (<code>:&lt;</code>) you can with a DELETE request to <code>https://dnsd.co/api/v1/edit_user</code> with the variable <code>confirm</code> set to <code>DELETE</code>. When you delete your account all of your user information and subdomains will be immediately deleted.</p>
-<pre><code># curl -u guy@gmail.com:betterpassword ‘https://dnsd.co/api/v1/edit_user’ -i -X DELETE -H ‘Content-type: application/json’ -d ‘{“confirm”:”DELETE”}’
+<p>If you’d like to delete your account (<code>:&lt;</code>) you can with a DELETE request to <code>https://dnsd.co/api/v1/user</code> with the variable <code>confirm</code> set to <code>DELETE</code>. When you delete your account all of your user information and subdomains will be immediately deleted.</p>
+<pre><code># curl -u guy@gmail.com:betterpassword ‘https://dnsd.co/api/v1/user’ -i -X DELETE -H ‘Content-type: application/json’ -d ‘{“confirm”:”DELETE”}’
 
 – or –
 
-# curl -u guy@gmail.com:betterpassword ‘https://dnsd.co/api/v1/edit_user?confirm=DELETE’ -i -X DELETE
+# curl -u guy@gmail.com:betterpassword ‘https://dnsd.co/api/v1/user?confirm=DELETE’ -i -X DELETE
 
 HTTP/1.0 200 OK
 Content-Type: application/json

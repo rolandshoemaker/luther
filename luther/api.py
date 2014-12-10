@@ -1143,7 +1143,7 @@ if app.config['ENABLE_STATS']:
         threading.Timer(app.config['STATS_INTERVAL'], update_stats).start()
         with app.app_context():
             stats = predis.get('luther/stats')
-            now = str(datetime.datetime.now())
+            now = str(datetime.datetime.utcnow())
             if not stats:
                 stats = {
                     'users': [],

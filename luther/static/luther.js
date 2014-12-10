@@ -2,7 +2,6 @@ function LutherMainViewModel() {
     var self = this;
     self.subdomainsURI = "http://192.168.1.8/api/v1/subdomains"; // this should be set to https
     self.userURI = "http://192.168.1.8/api/v1/user";
-    self.edit_userURI = "http://192.168.1.8/api/v1/edit_user";
     self.regenURI = "http://192.168.1.8/api/v1/regen_subdomain_token";
     self.refresh_interval = 600000; // ten minutes
     self.email = "";
@@ -158,12 +157,14 @@ function LutherMainViewModel() {
         $('#editPass').modal('hide');
         if (self.new_password() == self.new_password_two()) {
             data = {new_password: self.new_password()}
-            self.ajax(self.edit_userURI, 'PUT', data).done(function() {
+            self.ajax(self.userURI, 'PUT', data).done(function() {
                 self.api_errors.push({message: 'Password changed.', level: 'alert-info'});
             });
         } else {
             self.api_errors.push({message: 'Passwords don\'t match.', level: 'alert-warning'});
         }
+        self.new_password("");
+        self.new_password_two("");
     }
 
     self.beginDelete = function() {
@@ -173,7 +174,7 @@ function LutherMainViewModel() {
     self.deleteUser = function() {
         $('#delUser').modal('hide');
         data = {'confirm':'DELETE'};
-        self.ajax(self.edit_userURI, 'DELETE', data).done(function() {
+        self.ajax(self.userURI, 'DELETE', data).done(function() {
             self.subdomains.removeAll();
             self.api_errors.removeAll();
             loginViewModel.user_errors.removeAll();

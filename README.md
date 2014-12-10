@@ -68,7 +68,7 @@ If you install *luther* using `setup.py` all these modules will attempt to be in
   * sqlalchemy
   * tabulate (for the cli tool)
   * click (for the cli tool)
-  * redis (for storing stats)
+  * redis (for rate limiting and storing stats)
 * Local or remote services not provided by *luther*
   * DNS server that supports RFC 2136 DNS Updates (BIND > 8, PowerDNS > 3.4, etc)
   * SQL database (MySQL, PostgreSQL, SQLite, etc)
@@ -203,14 +203,14 @@ address and password you wish to use.
 
 ### Changing your password
 
-To change your password all you need to do it a simple POST request to `https://dnsd.co/api/v1/edit_user` with your new password.
+To change your password all you need to do it a simple PUT request to `https://dnsd.co/api/v1/user` with your new password.
 Since you need an account to do this you can use `curl -u username:password` to identify yourself to the service.
 
-    # curl -u guy@gmail.com:password 'https://dnsd.co/api/v1/edit_user' -i -X POST -H 'Content-type: application/json' -d '{"new_password":"betterpassword"}'
+    # curl -u guy@gmail.com:password 'https://dnsd.co/api/v1/user' -i -X PUT -H 'Content-type: application/json' -d '{"new_password":"betterpassword"}'
 
     -- or --
 
-    # curl -u guy@gmail.com:password 'https://dnsd.co/api/v1/edit_user?new_password=betterpassword' -i -X POST 
+    # curl -u guy@gmail.com:password 'https://dnsd.co/api/v1/user?new_password=betterpassword' -i -X PUT 
 
     HTTP/1.0 200 OK
     Content-Type: application/json
@@ -225,13 +225,13 @@ Since you need an account to do this you can use `curl -u username:password` to 
 
 ### Deleting your account
 
-If you'd like to delete your account (`:<`) you can with a DELETE request to `https://dnsd.co/api/v1/edit_user` with the variable `confirm` set to `DELETE`. When you delete your account all of your user information and subdomains will be immediately deleted.
+If you'd like to delete your account (`:<`) you can with a DELETE request to `https://dnsd.co/api/v1/user` with the variable `confirm` set to `DELETE`. When you delete your account all of your user information and subdomains will be immediately deleted.
 
-    # curl -u guy@gmail.com:betterpassword 'https://dnsd.co/api/v1/edit_user' -i -X DELETE -H 'Content-type: application/json' -d '{"confirm":"DELETE"}'
+    # curl -u guy@gmail.com:betterpassword 'https://dnsd.co/api/v1/user' -i -X DELETE -H 'Content-type: application/json' -d '{"confirm":"DELETE"}'
 
     -- or --
 
-    # curl -u guy@gmail.com:betterpassword 'https://dnsd.co/api/v1/edit_user?confirm=DELETE' -i -X DELETE
+    # curl -u guy@gmail.com:betterpassword 'https://dnsd.co/api/v1/user?confirm=DELETE' -i -X DELETE
 
     HTTP/1.0 200 OK
     Content-Type: application/json

@@ -401,7 +401,7 @@ def dev_server(host, port, reloader, stats):
 def check_stats():
     """Get the most recent stats from redis (relies on app.config['ENABLE_STATS'] = True)"""
     stats = predis.get('luther/stats')
-    click.echo(tabulate([[stats['users'][len(stats['users'])-1][1], stats['subdomains'][len(stats['subdomains'])-1][1], stats['users'][len(stats['users'])-1][0]]], ['num users', 'num subdomains', 'updated']))
+    click.echo(tabulate([[stats['users'][-1][1], stats['subdomains'][-1][1], stats['updates'][-1][1], stats['users'][-1][0]]], ['num users', 'num subdomains', 'updates', 'updated']))
     return True
 
 if __name__ == "__main__":
