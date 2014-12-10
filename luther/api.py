@@ -112,8 +112,10 @@ def validate_ip(ip, v6=False):
             test = ipaddress.IPv6Address(ip)
         correct_subnet = False
         for subnet in app.config['ALLOWED_DDNS_IPV4_SUBNETS']:
-            if (not v6 and test in ipaddress.IPv4Network(subnet)) \
-                    or (v6 and test in ipaddress.IPv6Network(subnet)):
+            if test in ipaddress.IPv4Network(subnet):
+                correct_subnet = True
+        for subnet in app.config['ALLOWED_DDNS_IPV6_SUBNETS']:
+            if test in ipaddress.IPv6Network(subnet):
                 correct_subnet = True
         if (test.is_private and not app.config['ALLOW_PRIVATE_ADDRESSES']) \
                 or not correct_subnet:
@@ -121,7 +123,6 @@ def validate_ip(ip, v6=False):
         return test.exploded
     except ipaddress.AddressValueError:
         return False
-
 
 def in_allowed_network(ip, v4_networks=app.config['ALLOWED_USER_V4_SUBNETS'],
                        v6_networks=app.config['ALLOWED_USER_V6_SUBNETS']):
@@ -424,7 +425,7 @@ def update_ddns(subdomain, ip, v6=False, on_api=True):
             db.session.commit()
         else:
             if on_api:
-                raise LutherBroke('Bad request, invalid IPv4 address')
+                raise LutherBroke('Bad request, invalid IP address')
             else:
                 return False
     else:
@@ -453,7 +454,7 @@ def update_ddns(subdomain, ip, v6=False, on_api=True):
             db.session.commit()
         else:
             if on_api:
-                raise LutherBroke('Bad request, invalid IPv4 address')
+                raise LutherBroke('Bad request, invalid IP address')
             else:
                 return False
     if dns_query(update, on_api):
