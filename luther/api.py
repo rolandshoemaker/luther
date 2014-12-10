@@ -94,6 +94,24 @@ if not app.debug:
 ##################
 
 
+def subdomain_api_object(d, message=None, status=None):
+    resp = {
+        'subdomain': d.name,
+        'full_domain': d.name+"."+app.config['DNS_ROOT_DOMAIN'],
+        'ip': d.ip,
+        'subdomain_token': d.token,
+        'regenerate_subdomain_token_URI': app.config['ROOT_HTTP']+'/api/v1/regen_token/'+d.name,
+        'GET_update_URI': app.config['ROOT_HTTP']+'/api/v1/subdomains/'+d.name+'/'+d.token,
+        'last_updated': str(d.last_updated)
+    }
+    if status:
+        resp['status'] = status
+    else:
+        resp['status'] = 200
+    if message not in [None, '']:
+        resp['message'] = message
+    return resp
+
 def validate_ip(ip, v6=False):
     """validate_ip uses the ipaddress library to validate IPv4 and IPv6
     Addresses.
@@ -704,177 +722,175 @@ def new_user():
         'status': 201,
         'email': user.email,
         'resources': {
-            'Subdomains':
+            'Subdomain URI':
             app.config['ROOT_HTTP']+'/api/v1/subdomains',
-            'Guess_IP':
-            app.config['ROOT_HTTP']+'/api/v1/guess_ip'
+            'Guess IP URI':
+            app.config['ROOT_HTTP']+'/api/v1/guess_ip',
+            'Change password URI':
+            app.config['ROOT_HTTP']+'/api/v1/user',
         }
     })
     resp.status_code = 201
     return resp
 
 
-@app.route('/api/v1/user', methods=['DELETE', 'PUT'])
+@app.route('/api/v1/user', methods=['DELETE'])
 @auth.login_required
-def edit_user():
+def del_user():
     """Delete an existing user or change it's password, parameters
     can be passed as either JSON or URL arguments.
 
     :returns: object -- JSON response indicating the outcome of action.
     """
-    if request.method == 'DELETE':
-        if request.json and not request.args:
-            sure = request.json.get('confirm')
-        elif request.args:
-            sure = request.args.get('confirm')
-        else:
-            raise LutherBroke('Bad request, no data')
-        if sure in [None, ''] or not sure == 'DELETE':
-            print(sure)
-            raise LutherBroke('Bad request, missing or malformed arguments')
-        for d in g.user.subdomains:
-            delete_ddns(d.name)
-        db.session.delete(g.user)
-        g.user = None
-        db.session.commit()
-        return json_status_message('User deleted, bai bai :<', 200)
-    elif request.method == 'PUT':
-        if request.json and not request.args:
-            password = request.json.get('new_password')
-        elif request.args:
-            password = request.args.get('new_password')
-        else:
-            raise LutherBroke('Bad request, no data')
-        if password in [None, '']:
-            raise LutherBroke('Bad request, missing arguments')
-        g.user.hash_password(password)
-        db.session.commit()
-        return json_status_message('Password updated', 200)
+    if request.json and not request.args:
+        sure = request.json.get('confirm')
+    elif request.args:
+        sure = request.args.get('confirm')
+    else:
+        raise LutherBroke('Bad request, no data')
+    if sure in [None, ''] or not sure == 'DELETE':
+        print(sure)
+        raise LutherBroke('Bad request, missing or malformed arguments')
+    for d in g.user.subdomains:
+        delete_ddns(d.name)
+    db.session.delete(g.user)
+    g.user = None
+    db.session.commit()
+    return json_status_message('User deleted, bai bai :<', 200)
+
+
+@app.route('/api/v1/user', methods=['PUT'])
+@auth.login_required
+def edit_user():
+    if request.json and not request.args:
+        password = request.json.get('new_password')
+    elif request.args:
+        password = request.args.get('new_password')
+    else:
+        raise LutherBroke('Bad request, no data')
+    if password in [None, '']:
+        raise LutherBroke('Bad request, missing arguments')
+    g.user.hash_password(password)
+    db.session.commit()
+    return json_status_message('Password updated', 200)
 
 ################################
 # Domain create / delete route #
 ################################
 
 
-@app.route('/api/v1/subdomains', methods=['GET', 'POST', 'DELETE'])
+@app.route('/api/v1/subdomains', methods=['GET'])
 # @ratelimit(limit=100, per=60*60)
 @auth.login_required
-def domain_mainuplator():
+def get_subdomains():
     """Create subdomain, delete subdomain, or get list of users subdomains,
     parameters can be passed as either JSON or URL arguments.
 
     :returns: object -- JSON response indicating the outcome of action.
     """
-    if request.method == 'GET':
-        domains = g.user.subdomains if \
-            not g.user.is_admin else Subdomain.query.all()
-        info = {'email': g.user.email, 'subdomains': []}
-        for d in domains:
-            info['subdomains'].append({
-                'subdomain': d.name,
-                'full_domain': d.name+"."+app.config['DNS_ROOT_DOMAIN'],
-                'ip': d.ip,
-                'subdomain_token': d.token,
-                'regenerate_subdomain_token_endpoint': app.config['ROOT_HTTP']+'/api/v1/regen_subdomain_token/'+d.name,
-                'GET_update_endpoint': app.config['ROOT_HTTP']+'/api/v1/update/'+d.name+'/'+d.token,
-                'last_updated': str(d.last_updated)})
-        if len(info['subdomains']) > 0:
-            info['status'] = 200
-            return jsonify(info)
-        else:
-            return jsonify({
-                'subdomains': [],
-                'message': 'You have no '+app.config['ROOT_DOMAIN']+' subdomains',
-                'status': 200
-                })
-    elif request.method == 'POST':
-        if Subdomain.query.count() <= app.config['TOTAL_SUBDOMAIN_LIMIT']:
-            if g.user.quota is 0 \
-                    or not g.user.subdomains.count() == g.user.quota:
-                if request.json and not request.args:
-                    domain_name = request.json.get('subdomain')
-                    ip = request.json.get('ip')
-                elif request.args and not request.json:
-                    domain_name = request.args.get('subdomain')
-                    ip = request.args.get('ip')
-                else:
-                    raise LutherBroke('Bad request, no data')
-                if domain_name in [None, '']:
-                    raise LutherBroke('Bad request, missing arguments')
-                if Subdomain.query.filter_by(name=domain_name).first():
-                    raise LutherBroke('Conflict in request, subdomain already exists', status_code=409)
-                if ip in [None, '']:
-                    ip = request.remote_addr
-                if not validate_subdomain(domain_name):
-                    raise LutherBroke('Bad request, invalid subdomain')
-                if validate_ip(ip):
-                    ipv6 = False
-                else:
-                    if validate_ip(ip, v6=True):
-                        ipv6 = True
-                    else:
-                        raise LutherBroke('Bad request, IP address invalid or not in allowed subnets')
-                new_domain = Subdomain(
-                    name=domain_name,
-                    ip=ip,
-                    v6=ipv6,
-                    user=g.user
-                )
-                new_domain.generate_domain_token()
-                ddns_result = new_ddns(domain_name, ip, ipv6)
-                if ddns_result:
-                    db.session.add(new_domain)
-                    db.session.commit()
-                    resp = jsonify({
-                        'status': 201,
-                        'subdomain': domain_name,
-                        'full_domain': new_domain.name+"."+app.config['DNS_ROOT_DOMAIN'],
-                        'ip': ip,
-                        'subdomain_token': new_domain.token,
-                        'GET_update_endpoint': app.config['ROOT_HTTP']+'/api/v1/update/'+new_domain.name+'/'+new_domain.token,
-                        'last_updated': str(new_domain.last_updated)
-                    })
-                    resp.status_code = 201
-                    return resp
-                else:
-                    raise LutherBroke()
+    domains = g.user.subdomains if \
+        not g.user.is_admin else Subdomain.query.all()
+    info = {'email': g.user.email, 'subdomains': []}
+    for d in domains:
+        info['subdomains'].append(subdomain_api_object(d))
+    if len(info['subdomains']) > 0:
+        info['status'] = 200
+        return jsonify(info)
+    else:
+        return jsonify({
+            'subdomains': [],
+            'message': 'You have no '+app.config['ROOT_DOMAIN']+' subdomains',
+            'status': 200
+            })
+
+@app.route('/api/v1/subdomains', methods=['POST'])
+# @ratelimit(limit=100, per=60*60)
+@auth.login_required   
+def add_subdomain():
+    if Subdomain.query.count() <= app.config['TOTAL_SUBDOMAIN_LIMIT']:
+        if g.user.quota is 0 \
+                or not g.user.subdomains.count() == g.user.quota:
+            if request.json and not request.args:
+                domain_name = request.json.get('subdomain')
+                ip = request.json.get('ip')
+            elif request.args and not request.json:
+                domain_name = request.args.get('subdomain')
+                ip = request.args.get('ip')
             else:
-                raise LutherBroke(
-                    'You have reached your subdomain quota, the subdomain wasn\'t added'
-                )
+                raise LutherBroke('Bad request, no data')
+            if domain_name in [None, '']:
+                raise LutherBroke('Bad request, missing arguments')
+            if Subdomain.query.filter_by(name=domain_name).first():
+                raise LutherBroke('Conflict in request, subdomain already exists', status_code=409)
+            if ip in [None, '']:
+                ip = request.remote_addr
+            if not validate_subdomain(domain_name):
+                raise LutherBroke('Bad request, invalid subdomain')
+            if validate_ip(ip):
+                ipv6 = False
+            else:
+                if validate_ip(ip, v6=True):
+                    ipv6 = True
+                else:
+                    raise LutherBroke('Bad request, IP address invalid or not in allowed subnets')
+            new_domain = Subdomain(
+                name=domain_name,
+                ip=ip,
+                v6=ipv6,
+                user=g.user
+            )
+            new_domain.generate_domain_token()
+            ddns_result = new_ddns(domain_name, ip, ipv6)
+            if ddns_result:
+                db.session.add(new_domain)
+                db.session.commit()
+                resp = jsonify(subdomain_api_object(new_domain, status=201))
+                resp.status_code = 201
+                return resp
+            else:
+                raise LutherBroke()
         else:
             raise LutherBroke(
-                'Bad request, service subdomain limit reached!'
+                'You have reached your subdomain quota, the subdomain wasn\'t added'
             )
-    elif request.method == 'DELETE':
-        if request.json and not request.args:
-            domain_name = request.json.get('subdomain')
-            confirm = request.json.get('confirm')
-        elif request.args and not request.json:
-            domain_name = request.args.get('subdomain')
-            confirm = request.args.get('confirm')
-        else:
-            raise LutherBroke('Bad request, no data')
-        if domain_name in [None, '']:
-            raise LutherBroke('Bad request, missing arguments')
-        if not confirm == 'DELETE':
-            raise LutherBroke('Bad request, malformed or missing arguments')
-        domains = g.user.subdomains if \
-            not g.user.is_admin else Subdomain.query.all()
-        for d in domains:
-            if d.name == domain_name:
-                ddns_result = delete_ddns(d.name)
-                if ddns_result:
-                    db.session.delete(d)
-                    db.session.commit()
-                    return json_status_message('Subdomain deleted', 200)
-                else:
-                    raise LutherBroke('Internal server error', status_code=500)
-        raise LutherBroke('Bad request, invalid subdomain')
+    else:
+        raise LutherBroke(
+            'Bad request, service subdomain limit reached!'
+        )
 
 
-@app.route('/api/v1/regen_subdomain_token/<subdomain_name>', methods=['POST'])
-@app.route('/api/v1/regen_subdomain_token', methods=['POST'])
+@app.route('/api/v1/subdomains', methods=['DELETE'])
+# @ratelimit(limit=100, per=60*60)
+@auth.login_required
+def del_subdomain():
+    if request.json and not request.args:
+        domain_name = request.json.get('subdomain')
+        confirm = request.json.get('confirm')
+    elif request.args and not request.json:
+        domain_name = request.args.get('subdomain')
+        confirm = request.args.get('confirm')
+    else:
+        raise LutherBroke('Bad request, no data')
+    if domain_name in [None, '']:
+        raise LutherBroke('Bad request, missing arguments')
+    if not confirm == 'DELETE':
+        raise LutherBroke('Bad request, malformed or missing arguments')
+    domains = g.user.subdomains if \
+        not g.user.is_admin else Subdomain.query.all()
+    for d in domains:
+        if d.name == domain_name:
+            ddns_result = delete_ddns(d.name)
+            if ddns_result:
+                db.session.delete(d)
+                db.session.commit()
+                return json_status_message('Subdomain deleted', 200)
+            else:
+                raise LutherBroke('Internal server error', status_code=500)
+    raise LutherBroke('Bad request, invalid subdomain')
+
+
+@app.route('/api/v1/regen_token/<subdomain_name>', methods=['POST'])
+@app.route('/api/v1/regen_token', methods=['POST'])
 # @ratelimit(limit=100, per=60*60)
 @auth.login_required
 def regen_subdomain_token(subdomain_name=None):
@@ -899,16 +915,7 @@ def regen_subdomain_token(subdomain_name=None):
         if domain_name == d.name:
             d.generate_domain_token()
             db.session.commit()
-            return jsonify({
-                'status': 200,
-                'subdomain': d.name,
-                'full_domain': d.name+"."+app.config['DNS_ROOT_DOMAIN'],
-                'ip': d.ip,
-                'subdomain_token': d.token,
-                'GET_update_endpoint': app.config['ROOT_HTTP']+'/api/v1/update/'+d.name+'/'+d.token,
-                'last_updated': str(d.last_updated),
-                'message': 'Subdomain token regenerated'
-            })
+            return jsonify(subdomain_api_object(d, message='Subdomain token regenerated'))
     raise LutherBroke('Bad request, invalid subdomain')
 
 #################################
@@ -916,7 +923,7 @@ def regen_subdomain_token(subdomain_name=None):
 #################################
 
 
-@app.route('/api/v1/update', methods=['POST'])
+@app.route('/api/v1/subdomains', methods=['PUT'])
 # @ratelimit(limit=100, per=60*60)
 def fancy_interface():
     """The fancy interface for updating subdomain IP addresses,
@@ -969,15 +976,7 @@ def fancy_interface():
         domain = Subdomain.query.filter_by(name=domain_obj[0]).first()
         if domain and domain.verify_domain_token(domain_obj[1]):
             if domain_obj[2] == domain.ip:
-                results.append({
-                    'status': 200,
-                    'subdomain': domain.name,
-                    'full_domain': domain.name+"."+app.config['DNS_ROOT_DOMAIN'],
-                    'ip': domain.ip,
-                    'subdomain_token': domain.token,
-                    'GET_update_endpoint': app.config['ROOT_HTTP']+'/api/v1/update/'+domain.name+'/'+domain.token,
-                    'last_updated': str(domain.last_updated),
-                    'message': 'Nothing to do, supplied IP is the same as current IP.'})
+                results.append(subdomain_api_object(domain, message='Nothing to do, supplied IP is the same as current IP.'))
             else:
                 if domain.v6:
                     ddns_result = update_ddns(
@@ -990,15 +989,7 @@ def fancy_interface():
                 if ddns_result:
                     domain.ip = domain_obj[2]
                     db.session.commit()
-                    results.append({
-                        'status': 200,
-                        'subdomain': domain.name,
-                        'full_domain': domain.name+"."+app.config['DNS_ROOT_DOMAIN'],
-                        'ip': domain.ip,
-                        'subdomain_token': domain.token,
-                        'GET_update_endpoint': app.config['ROOT_HTTP']+'/api/v1/update/'+domain.name+'/'+domain.token,
-                        'last_updated': str(domain.last_updated),
-                        'message': 'Subdomain updated.'})
+                    results.append(subdomain_api_object(domain, message='Subdomain updated.'))
                 else:
                     raise LutherBroke()
         else:
@@ -1014,11 +1005,11 @@ def fancy_interface():
 
 
 @app.route(
-    '/api/v1/update/<domain_name>/<domain_token>/<domain_ip>',
+    '/api/v1/subdomains/<domain_name>/<domain_token>/<domain_ip>',
     methods=['GET']
 )
 @app.route(
-    '/api/v1/update/<domain_name>/<domain_token>',
+    '/api/v1/subdomains/<domain_name>/<domain_token>',
     methods=['GET']
 )
 # @ratelimit(limit=100, per=60*60)
@@ -1039,16 +1030,7 @@ def get_interface(domain_name, domain_token, domain_ip=None):
         if domain_ip in [None, '']:
             domain_ip = request.remote_addr
         if domain_ip == domain.ip:
-            return jsonify({
-                'status': 200,
-                'subdomain': domain.name,
-                'full_domain': domain.name+"."+app.config['DNS_ROOT_DOMAIN'],
-                'ip': domain.ip,
-                'subdomain_token': domain.token,
-                'GET_update_endpoint': app.config['ROOT_HTTP']+'/api/v1/update/'+domain.name+'/'+domain.token,
-                'last_updated': str(domain.last_updated),
-                'message': 'Nothing to do, supplied IP is the same as current IP.'
-            })
+            return jsonify(subdomain_api_object(domain, message='Nothing to do, supplied IP is the same as current IP.'))
         else:
             if domain.v6:
                 ddns_result = update_ddns(domain, domain_ip, v6=True)
@@ -1057,16 +1039,7 @@ def get_interface(domain_name, domain_token, domain_ip=None):
             if ddns_result:
                 domain.ip = domain_ip
                 db.session.commit()
-                return jsonify({
-                    'status': 200,
-                    'subdomain': domain.name,
-                    'full_domain': domain.name+"."+app.config['DNS_ROOT_DOMAIN'],
-                    'ip': domain.ip,
-                    'subdomain_token': domain.token,
-                    'GET_update_endpoint': app.config['ROOT_HTTP']+'/api/v1/update/'+domain.name+'/'+domain.token,
-                    'last_updated': str(domain.last_updated),
-                    'message': 'Subdomain updated.'
-                })
+                return jsonify(subdomain_api_object(domain, message='Subdomain updated.'))
             else:
                 raise LutherBroke()
     else:

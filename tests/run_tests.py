@@ -14,6 +14,14 @@ class LutherTestCase(unittest.TestCase):
             environ_base=environ_base
         )
 
+    def put_json(self, url, data, environ_base={'REMOTE_ADDR':'1.1.1.1'}):
+        return self.app.put(
+            url,
+            data=data,
+            content_type='application/json',
+            environ_base=environ_base
+        )
+
     def post_json_auth(self, url, data, username, password, environ_base={'REMOTE_ADDR':'1.1.1.1'}):
         creds = '%s:%s' % (username, password)
         b64_str = base64.standard_b64encode(bytes(creds.encode('ascii')))
@@ -225,8 +233,8 @@ class LutherTestCase(unittest.TestCase):
         self.assertEqual(rd['subdomains'][1]['subdomain'], 'travis-ip-example')
         self.assertIsNotNone(rd['subdomains'][0]['subdomain_token'])
         self.assertIsNotNone(rd['subdomains'][1]['subdomain_token'])
-        addr_one = rd['subdomains'][0]['GET_update_endpoint']
-        addr_two = rd['subdomains'][1]['GET_update_endpoint']
+        addr_one = rd['subdomains'][0]['GET_update_URI']
+        addr_two = rd['subdomains'][1]['GET_update_URI']
 
         # Update via GET interface
         rv = self.app.get(addr_one+'/5.5.5.5', environ_base={'REMOTE_ADDR':'1.1.1.1'})
@@ -262,7 +270,7 @@ class LutherTestCase(unittest.TestCase):
 
         # Update via fancy interface inc. guess, convert back to IPv4
         d = '{"subdomains": [{"subdomain": "travis-example", "subdomain_token": "'+token_one+'"},{"subdomain": "travis-ip-example", "subdomain_token": "'+token_two+'", "ip": "8.8.8.8"}]}'
-        rv = self.post_json('/api/v1/update', d)
+        rv = self.put_json('/api/v1/subdomains', d)
         self.assertEqual(rv.status_code, 200)
         rd = json.loads(rv.data.decode('ascii'))
         self.assertEqual(rd['status'], 200)
@@ -285,8 +293,8 @@ class LutherTestCase(unittest.TestCase):
         self.assertEqual(rd['subdomains'][1]['subdomain'], 'travis-ip-example')
         self.assertIsNotNone(rd['subdomains'][0]['subdomain_token'])
         self.assertIsNotNone(rd['subdomains'][1]['subdomain_token'])
-        addr_one = rd['subdomains'][0]['regenerate_subdomain_token_endpoint']
-        addr_two = rd['subdomains'][1]['regenerate_subdomain_token_endpoint']
+        addr_one = rd['subdomains'][0]['regenerate_subdomain_token_URI']
+        addr_two = rd['subdomains'][1]['regenerate_subdomain_token_URI']
         token_one = rd['subdomains'][0]['subdomain_token']
         token_two = rd['subdomains'][1]['subdomain_token']
 

@@ -2,7 +2,7 @@ function LutherMainViewModel() {
     var self = this;
     self.subdomainsURI = "http://192.168.1.8/api/v1/subdomains"; // this should be set to https
     self.userURI = "http://192.168.1.8/api/v1/user";
-    self.regenURI = "http://192.168.1.8/api/v1/regen_subdomain_token";
+    self.regenURI = "http://192.168.1.8/api/v1/regen_token";
     self.refresh_interval = 600000; // ten minutes
     self.email = "";
     self.password = "";
@@ -42,9 +42,9 @@ function LutherMainViewModel() {
                     loginViewModel.user_errors.push({message: jqXHR.message});
                 }
             }
-        };
+        }
 
-        return $.ajax(request)
+        return $.ajax(request);
     }
 
     self.beginLogin = function() {
@@ -62,7 +62,7 @@ function LutherMainViewModel() {
                     subdomain: ko.observable(data.subdomains[i].subdomain),
                     ip: ko.observable(data.subdomains[i].ip),
                     token: ko.observable(data.subdomains[i].subdomain_token),
-                    last_update: ko.observable(data.subdomains[i].last_updated)
+                    last_update: ko.observable(data.subdomains[i].last_updated+' UTC')
                 });
             }
             $('#login').modal('hide');
@@ -194,7 +194,7 @@ function LutherMainViewModel() {
             self.subdomains()[i].subdomain(data.subdomain);
             self.subdomains()[i].ip(data.ip);
             self.subdomains()[i].token(data.subdomain_token);
-            self.subdomains()[i].last_update(data.last_updated);
+            self.subdomains()[i].last_update(data.last_updated+' UTC');
         });
     }
 
@@ -206,7 +206,7 @@ function LutherMainViewModel() {
                 subdomain: ko.observable(data.subdomain),
                 ip: ko.observable(data.ip),
                 token: ko.observable(data.subdomain_token),
-                last_update: ko.observable(data.last_updated)
+                last_update: ko.observable(data.last_updated+' UTC')
             });
         });
     }
@@ -228,7 +228,7 @@ function LutherMainViewModel() {
         self.subdomains()[i].subdomain(newSubdomain.subdomain);
         self.subdomains()[i].ip(newSubdomain.ip);
         self.subdomains()[i].token(newSubdomain.subdomain_token);
-        self.subdomains()[i].last_update(newSubdomain.last_updated);
+        self.subdomains()[i].last_update(newSubdomain.last_updated+' UTC');
     }
 
     // self.beginLogin();
