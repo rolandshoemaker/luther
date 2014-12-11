@@ -34,8 +34,9 @@ luther is written by [Roland Shoemaker](https://www.bind.es/).
     - [*luther* configuration file](#luther-configuration-file)
     - [Dev server](#dev-server)
     - [WSGI Server](#wsgi-server)
-  - [Using the CLI tool on the server running *luther*](#using-the-cli-tool-on-the-server-running-luther)
+  - [Using `luther-cli`](#using-luther-cli)
 - [**Interacting with the *luther* REST API as a user**](#interacting-with-the-luther-rest-api-as-a-user)
+  - [Endpoints](#endpoints)
   - [Creating a User](#creating-a-user)
   - [Changing your password](#changing-your-password)
   - [Deleting your account](#deleting-your-account)
@@ -131,14 +132,16 @@ To run the tests (*yay you*) run the `tests/run_tests.py`. **But** remember you 
 
     # python tests/run_tests.py
 
-### Using the CLI tool on the server running luther
+### Using `luther-cli`
+
+`luther-cli` is a simple CLI tool for admistering a luther service, allowing you to list, search, count, etc both registered Users and Subdomains.
 
     # luther-cli
     Usage: luther-cli [OPTIONS] COMMAND [ARGS]...
 
       CLI tool for interacting with luther -- v0.1 -- roland shoemaker
 
-      [this is somewhat dangerous to luther, i guess. so be careful ._.]
+      [this can be somewhat dangerous to a luther service, i guess. so be careful ._.]
 
     Options:
       --help  Show this message and exit.
@@ -177,22 +180,32 @@ All of the endpoints we will be talking about here, with the exception of the `G
 
 This table provides a quick layout of the entirety of the *luther* API.
 
-    URL                                                                         HTTP Method     Purpose
-    ---                                                                         -----------     -------
+    URL                                                                       HTTP Method
+    ---                                                                       -----------
 
-    /api/v1/guess_ip                                                            GET             Retrieve the IP luther thinks you are coming from
-    /api/v1/user                                                                POST            Create a new user
-    /api/v1/user                                                                PUT             Change your password
-    /api/v1/user                                                                DELETE          Delete your user
+    /api/v1/guess_ip                                                          GET             
+    > Retrieve the IP luther thinks you are coming from
+    /api/v1/user                                                              POST
+    > Create a new user
+    /api/v1/user                                                              PUT
+    > Change your password
+    /api/v1/user                                                              DELETE
+    > Delete your user
 
-    /api/v1/subdomains                                                          GET             Get a list of subdomains you own
-    /api/v1/subdomains                                                          POST            Add a new subdomain
-    /api/v1/subdomains                                                          DELETE          Delete a subdomain
+    /api/v1/subdomains                                                        GET
+    > Get a list of subdomains you own
+    /api/v1/subdomains                                                        POST
+    > Add a new subdomain
+    /api/v1/subdomains                                                        DELETE
+    > Delete a subdomain
 
-    /api/v1/subdomains                                                          PUT             Update a single or multiple subdomain using the fancy update interface
-    /api/v1/subdomains/<subdomain_name>/<subdomain_token>{</optional_ip>}       GET             Update a single subdomain using the GET update interface
+    /api/v1/subdomains                                                        PUT
+    > Update single/multiple subdomains using the fancy update interface
+    /api/v1/subdomains/<subdomain_name>/<subdomain_token>{</optional_ip>}     GET
+    > Update a single subdomain using the GET update interface
 
-    /api/v1/regen_token                                                         POST            Regenerate the token used to authenticate subdomain updates
+    /api/v1/regen_token                                                       POST
+    > Regenerate the token used to authenticate subdomain updates
 
 
 ***NOTE:*** In the following examples I have generally used `IPv4` addresses, **BUT** `IPv6` and `IPv4` addresses can be used interchangably!
@@ -497,7 +510,7 @@ so our `curl` command would look like this
 
 ##### URL parameters
 
-The URL parameter version of the interface is a little finicky (and I'm not 100% sure it needs to continue existing) it expects two variables `subdomains` and `subdomain_tokens` and an optional variable `addresses`, all of these variables should either a single subdomain name, subdomain_token, and address or a comma-seperated list of the same pieces of information. The three lists must have the exact same number of elements, although `addresses` can have either less than or equal items (if `addresses` < `subdomains` all addresses after `len(addresses)` will use the guessed address) or not be specified at all, which means *luther* will use your guessed address for all the subdomains you are updating (you can specify empty items in `addresses`, in order to tell *luther* to use the guessed addreses, by typing `,,`, e.g. `1.2.3.4,,1.2.3.5`). These lists should be relative meaning the `subdomain_token` for the subdomain specified first in the `subdomains` list should be first in the `subdomain_tokens` list etc.
+The URL parameter version of the interface is a little finicky (and I'm not 100% sure it needs to continue existing) it expects two variables `subdomains` and `subdomain_tokens` and an optional variable `addresses`, all of these variables should be either a single subdomain name, subdomain_token, and address or a comma-seperated list of the same pieces of information. The three lists must have the exact same number of elements, although `addresses` can have either less than or equal items (if `addresses < subdomains` all addresses after `len(addresses)` will use the guessed address) or not be specified at all, which means *luther* will use your guessed address for all the subdomains you are updating (you can specify empty items in `addresses`, in order to tell *luther* to use the guessed addreses, by typing `,,`, e.g. `1.2.3.4,,1.2.3.5`). These lists should be relative meaning the `subdomain_token` for the subdomain specified first in the `subdomains` list should be first in the `subdomain_tokens` list etc.
 
 So if we want to update these subdomains to these addresses
 
@@ -543,7 +556,7 @@ we would use this `curl` command
       ]
     }%
 
-See what I mean, SILLY!
+See what I mean, **SILLY!**
 
 ### Regenerating a `subdomain_token`
 

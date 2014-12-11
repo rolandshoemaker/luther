@@ -29,7 +29,7 @@ import dns.resolver
 def cli():
     """CLI tool for interacting with luther -- v0.1 -- roland shoemaker
 
-    [this is somewhat dangerous to luther, i guess. so be careful ._.]
+    [this can be somewhat dangerous to a luther service, i guess. so be careful ._.]
     """
     pass
 
