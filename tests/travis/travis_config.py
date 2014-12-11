@@ -40,7 +40,7 @@ ENABLE_FRONTEND = True
 ################
 
 # Should luther collect statistics
-ENABLE_STATS = True
+ENABLE_STATS = False
 # Redis server hostname/address
 REDIS_HOST = 'localhost'
 # Redis server port
