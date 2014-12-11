@@ -84,6 +84,10 @@ class LutherTestCase(unittest.TestCase):
     def tearDown(self):
         pass
 
+    ##############
+    # Good tests #
+    ##############
+
     def test_aa_guess_ipv4(self):
         rv = self.app.get('/api/v1/geuss_ip', environ_base={'REMOTE_ADDR':'1.1.1.1'})
         rd = json.loads(rv.data.decode('ascii'))
@@ -120,33 +124,13 @@ class LutherTestCase(unittest.TestCase):
         self.assertEqual(rd['email'], "tester@travis-ci.org")
         self.assertEqual(rd['status'], 201)
 
-    # Can we add bad users?
-    def test_bba_add_bad_user_email(self):
-        # bad email (regex)
-        d = '{"email":"tester", "password":"weakpassword"}'
+        d = '{"email":"anothertester@travis-ci.org", "password":"weakpassword"}'
         rv = self.post_json('/api/v1/user', d)
+        self.assertEqual(rv.status_code, 201)
         rd = json.loads(rv.data.decode('ascii'))
-        self.assertEqual(rv.status_code, 400)
-        self.assertEqual(rd['status'], 400)
-        self.assertEqual(rd['message'], 'Invalid email address')
-
-    def test_bbc_add_bad_user_pass(self):
-        # bad password
-        d = '{"email":"tester@gmail.com", "password":""}'
-        rv = self.post_json('/api/v1/user', d)
-        rd = json.loads(rv.data.decode('ascii'))
-        self.assertEqual(rv.status_code, 400)
-        self.assertEqual(rd['status'], 400)
-        self.assertEqual(rd['message'], 'Bad request, missing arguments')
-
-    def test_bbd_add_bad_user_mx(self):
-        # bad email (MX check)
-        d = '{"email":"tester@fakefakeasdasd.badtld", "password":"password"}'
-        rv = self.post_json('/api/v1/user', d)
-        rd = json.loads(rv.data.decode('ascii'))
-        self.assertEqual(rv.status_code, 400)
-        self.assertEqual(rd['status'], 400)
-        self.assertEqual(rd['message'], 'Invalid email address, domain has no MX record')
+        self.assertEqual(rv.status_code, 201)
+        self.assertEqual(rd['email'], "anothertester@travis-ci.org")
+        self.assertEqual(rd['status'], 201)
 
     def test_bc_auth_user(self):
         # Can we authenticate as the user we added
@@ -155,24 +139,6 @@ class LutherTestCase(unittest.TestCase):
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(rd['status'], 200)
         self.assertEqual(len(rd['subdomains']), 0)
-
-    def test_bca_auth_bad_user(self):
-        # Can we authenticate a random user not registered
-        rv = self.open_with_auth('/api/v1/subdomains', 'GET', 'der@der.com', 'weakpassword')
-        self.assertEqual(rv.status_code, 403)
-
-    def test_bcb_auth_bad_user_pass(self):
-        # Bad credentials
-        rv = self.open_with_auth('/api/v1/subdomains', 'GET', 'der@der.com', '')
-        self.assertEqual(rv.status_code, 403)
-
-    def test_bcd_auth_bad_user_email(self):
-        rv = self.open_with_auth('/api/v1/subdomains', 'GET', '', 'weakpassword')
-        self.assertEqual(rv.status_code, 403)
-
-    def test_bce_auth_bad_user_both(self):
-        rv = self.open_with_auth('/api/v1/subdomains', 'GET', '', '')
-        self.assertEqual(rv.status_code, 403)
 
     def test_bd_edit_user(self):
         d = '{"new_password":"betterpassword"}'
@@ -331,6 +297,94 @@ class LutherTestCase(unittest.TestCase):
         rd = json.loads(rv.data.decode('ascii'))
         self.assertEqual(rd['status'], 200)
         self.assertEqual(len(rd['subdomains']), 0)
+
+
+    #############
+    # Bad tests #
+    #############
+
+    # Can we add bad users?
+    def test_xaa_add_bad_user_email(self):
+        # bad email (regex)
+        d = '{"email":"tester", "password":"weakpassword"}'
+        rv = self.post_json('/api/v1/user', d)
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(rd['status'], 400)
+        self.assertEqual(rd['message'], 'Invalid email address')
+
+    def test_xab_add_bad_user_pass(self):
+        # bad password
+        d = '{"email":"tester@gmail.com", "password":""}'
+        rv = self.post_json('/api/v1/user', d)
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(rd['status'], 400)
+        self.assertEqual(rd['message'], 'Bad request, missing arguments')
+
+    def test_xac_add_bad_user_mx(self):
+        # bad email (MX check)
+        d = '{"email":"tester@fakefakeasdasd.badtld", "password":"password"}'
+        rv = self.post_json('/api/v1/user', d)
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(rd['status'], 400)
+        self.assertEqual(rd['message'], 'Invalid email address, domain has no MX record')
+
+    def test_xba_auth_bad_user(self):
+        # Can we authenticate a random user not registered
+        rv = self.open_with_auth('/api/v1/subdomains', 'GET', 'der@der.com', 'weakpassword')
+        self.assertEqual(rv.status_code, 403)
+
+    def test_xbb_auth_bad_user_pass(self):
+        # Bad credentials
+        rv = self.open_with_auth('/api/v1/subdomains', 'GET', 'der@der.com', '')
+        self.assertEqual(rv.status_code, 403)
+
+    def test_xbc_auth_bad_user_email(self):
+        rv = self.open_with_auth('/api/v1/subdomains', 'GET', '', 'weakpassword')
+        self.assertEqual(rv.status_code, 403)
+
+    def test_xbd_auth_bad_user_both(self):
+        rv = self.open_with_auth('/api/v1/subdomains', 'GET', '', '')
+        self.assertEqual(rv.status_code, 403)
+
+    def test_xca_delete_user_bad_creds(self):
+        d = '{"confirm":"DELETE"}'
+        rv = self.delete_json_auth('/api/v1/user', d, 'tester@travis-ci.org', 'notmypassword')
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rv.status_code, 403)
+        self.assertEqual(rd['error'], 'Unauthorized access')
+
+    def test_xx_guess_bad_ip(self):
+        rv = self.app.get('/api/v1/geuss_ip', environ_base={'REMOTE_ADDR':'asdimnotaipaddress'})
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rv.status_code, 403)
+        self.assertEqual(rd['status'], 403)
+        self.assertEqual(rd['message'], 'You are not in an authorized network')
+
+    def test_xxx_guess_bad_ip(self):
+        rv = self.app.get('/api/v1/geuss_ip', environ_base={'REMOTE_ADDR':'7.7.7.7.7'})
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rv.status_code, 403)
+        self.assertEqual(rd['status'], 403)
+        self.assertEqual(rd['message'], 'You are not in an authorized network')
+
+    def test_xxxx_guess_bad_ip(self):
+        rv = self.app.get('/api/v1/geuss_ip', environ_base={'REMOTE_ADDR':'2074613113'})
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rv.status_code, 403)
+        self.assertEqual(rd['status'], 403)
+        self.assertEqual(rd['message'], 'You are not in an authorized network')
+
+    def test_z_rate_limit(self):
+        with self.assertRaises(AssertionError):
+            for i in range(luther.app.config['RATE_LIMIT_ACTIONS']):
+                rv = self.app.get('/api/v1/geuss_ip', environ_base={'REMOTE_ADDR':'99.99.99.99'})
+                rd = json.loads(rv.data.decode('ascii'))
+                self.assertEqual(rv.status_code, 200)
+                self.assertEqual(rd['status'], 200)
+                self.assertEqual(rd['guessed_ip'], '1.1.1.1')
 
 if __name__ == '__main__':
     unittest.main()

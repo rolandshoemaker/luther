@@ -551,8 +551,7 @@ def ratelimit(limit, per=225,
             key = 'rate-limit/%s/%s/' % (key_func(), scope_func())
             rlimit = RateLimit(key, limit, per, send_x_headers)
             g._view_rate_limit = rlimit
-            if over_limit is not None and rlimit.over_limit \
-                    and not g.user.is_admin():
+            if over_limit is not None and rlimit.over_limit:
                 return over_limit(rlimit)
             return f(*args, **kwargs)
         return update_wrapper(rate_limited, f)
@@ -724,11 +723,11 @@ def new_user():
         'email': user.email,
         'resources': {
             'Subdomain URI':
-            app.config['ROOT_HTTP']+'/api/v1/subdomains',
+            app.config['ROOT_HTTP']+url_for('get_subdomains'),
             'Guess IP URI':
-            app.config['ROOT_HTTP']+'/api/v1/guess_ip',
+            app.config['ROOT_HTTP']+url_for('get_ip'),
             'Change password URI':
-            app.config['ROOT_HTTP']+'/api/v1/user',
+            app.config['ROOT_HTTP']+url_for('edit_user'),
         }
     })
     resp.status_code = 201
