@@ -369,12 +369,12 @@ def dig_subdomain(name, nameserver):
                         match = True
             if match:
                 click.secho('IP address returned from nameservers matches address in database ('+sub.ip+').', fg='green')
-                click.echo('Returned addresses where:')
+                click.echo('Returned addresses were:')
                 click.echo(tabulate(returned_ips))
                 click.echo()
             else:
                 click.secho('IP address returned from nameservers doesnt match address in database ('+sub.ip+').', fg='red')
-                click.echo('Returned addresses where:')
+                click.echo('Returned addresses were:')
                 click.echo(tabulate(returned_ips))
                 click.echo()
                 return False

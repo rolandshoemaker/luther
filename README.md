@@ -22,10 +22,11 @@ luther is also the backend infrastructure for the free (*__beta__, 5 subdomain l
 
 luther is written by [Roland Shoemaker](https://www.bind.es/).
 
+## Features
+
 ## *Table of Contents*
 
-[**Quickstart**](#quickstart)
-
+- [**Quickstart**](#quickstart)
   - [Requirements](#requirements)
   - [Installation](#installation)
   - [Configuration](#configuration)
@@ -34,7 +35,7 @@ luther is written by [Roland Shoemaker](https://www.bind.es/).
     - [Dev server](#dev-server)
     - [WSGI Server](#wsgi-server)
   - [Using the CLI tool on the server running *luther*](#using-the-cli-tool-on-the-server-running-luther)
-- [Interacting with the *luther* REST API as a user](#interacting-with-the-luther-rest-api-as-a-user)
+- [**Interacting with the *luther* REST API as a user**](#interacting-with-the-luther-rest-api-as-a-user)
   - [Creating a User](#creating-a-user)
   - [Changing your password](#changing-your-password)
   - [Deleting your account](#deleting-your-account)
@@ -48,14 +49,13 @@ luther is written by [Roland Shoemaker](https://www.bind.es/).
       - [JSON](#json)
       - [URL parameters](#url)
   - [Regenerating a subdomain_token](#regenerating-a-subdomain_token)
-
-[**Documentation**](#documentation)
-
-[**TODO**](#todo)
-
-[**License**](#license)
+- [**Documentation**](#documentation)
+- [**TODO**](#todo)
+- [**License**](#license)
 
 ## Quickstart
+
+Lets get *luther* up and running!
 
 ### Requirements
 
@@ -173,7 +173,29 @@ Here we will be using the command `curl` to interact with the API, but any other
 
 All of the endpoints we will be talking about here, with the exception of the `GET` subdomain interface and get-ip endpoint, can be used either with URL parameters or with JSON data, just to make your life easier.
 
-***NOTE:*** In these examples I have used `IPv4` addresses, **BUT** `IPv6` and `IPv4` addresses can be used interchangably!
+### Endpoints
+
+This table provides a quick layout of the entirety of the *luther* API.
+
+    URL                                                                         HTTP Method     Purpose
+    ---                                                                         -----------     -------
+
+    /api/v1/guess_ip                                                            GET             Retrieve the IP luther thinks you are coming from
+    /api/v1/user                                                                POST            Create a new user
+    /api/v1/user                                                                PUT             Change your password
+    /api/v1/user                                                                DELETE          Delete your user
+
+    /api/v1/subdomains                                                          GET             Get a list of subdomains you own
+    /api/v1/subdomains                                                          POST            Add a new subdomain
+    /api/v1/subdomains                                                          DELETE          Delete a subdomain
+
+    /api/v1/subdomains                                                          PUT             Update a single or multiple subdomain using the fancy update interface
+    /api/v1/subdomains/<subdomain_name>/<subdomain_token>{</optional_ip>}       GET             Update a single subdomain using the GET update interface
+
+    /api/v1/regen_token                                                         POST            Regenerate the token used to authenticate subdomain updates
+
+
+***NOTE:*** In the following examples I have generally used `IPv4` addresses, **BUT** `IPv6` and `IPv4` addresses can be used interchangably!
 Beware though that the `IP` guessing system *luther* uses is somewhat `IPv4`-biased so if you are using `IPv6` you will probably want to set the `IP` manually when creating and updating subdomains.
 
 ### Creating a User
@@ -265,7 +287,7 @@ A very simple endpoint allows you do do this by sending a GET request to `https:
 
 ### Creating a Subdomain
 
-To create a new subdomain you need to send a POST request to `https://dnsd.co/api/v1/subdomains` with the variables `subdomain` (optionally `ip`, if you don't set this *luther* will try to guess the IP that you are coming from).
+To create a new subdomain you need to send a PT request to `https://dnsd.co/api/v1/subdomains` with the variables `subdomain` (optionally `ip`, if you don't set this *luther* will try to guess the IP that you are coming from).
 
     # curl -u guy@gmail.com:betterpassword 'https://dnsd.co/api/v1/subdomains' -i -X POST -H 'Content-type: application/json' -d '{"subdomain":"example"}'
 
@@ -288,10 +310,11 @@ To create a new subdomain you need to send a POST request to `https://dnsd.co/ap
     Date: Thu, 04 Dec 2014 10:30:11 GMT
 
     {
-      "GET_update_endpoint": "https://dnsd.co/api/v1/update/example/bd6b24e3-ac7f-46d9-abd9-baecfc386a0c",
+      "GET_update_URI": "https://dnsd.co/api/v1/subdomains/example/bd6b24e3-ac7f-46d9-abd9-baecfc386a0c",
       "full_domain": "example.dnsd.co",
       "ip": "1.1.1.1",
       "last_updated": "2014-12-04 10:30:11",
+      "regenerate_subdomain_token_URI": "https://dnsd.co/api/v1/regen_token/example",
       "status": 201,
       "subdomain": "example",
       "subdomain_token": "bd6b24e3-ac7f-46d9-abd9-baecfc386a0c"
@@ -314,29 +337,29 @@ To get a list of all of your subdomains and their update tokens you need to send
       "status": 200,
       "subdomains": [
         {
-          "GET_update_endpoint": "https://dnsd.co/api/v1/update/example/6b89fa82-4b20-4bd7-90d2-3e33f3980bde",
+          "GET_update_URI": "https://dnsd.co/api/v1/subdomains/example/6b89fa82-4b20-4bd7-90d2-3e33f3980bde",
           "full_domain": "example.dnsd.co",
           "ip": "1.1.1.1",
           "last_updated": "2014-12-04 10:36:24",
-          "regenerate_subdomain_token_endpoint": "https://dnsd.co/api/v1/regen_subdomain_token/example",
+          "regenerate_subdomain_token_URI": "https://dnsd.co/api/v1/regen_token/example",
           "subdomain": "example",
           "subdomain_token": "6b89fa82-4b20-4bd7-90d2-3e33f3980bde"
         },
         {
-          "GET_update_endpoint": "https://dnsd.co/api/v1/update/example2/23d37da2-be94-4166-8b5b-ab45084be337",
+          "GET_update_URI": "https://dnsd.co/api/v1/subdomains/example2/23d37da2-be94-4166-8b5b-ab45084be337",
           "full_domain": "example2.dnsd.co",
           "ip": "1.1.1.2",
           "last_updated": "2014-12-04 10:48:01",
-          "regenerate_subdomain_token_endpoint": "https://dnsd.co/api/v1/regen_subdomain_token/example2",
+          "regenerate_subdomain_token_URI": "https://dnsd.co/api/v1/regen_token/example2",
           "subdomain": "example2",
           "subdomain_token": "23d37da2-be94-4166-8b5b-ab45084be337"
         },
         {
-          "GET_update_endpoint": "https://dnsd.co/api/v1/update/example3/e106a924-c39b-4ce0-a683-5b9dd686b4f5",
+          "GET_update_URI": "https://dnsd.co/api/v1/subdomains/example3/e106a924-c39b-4ce0-a683-5b9dd686b4f5",
           "full_domain": "example3.dnsd.co",
           "ip": "1.1.1.4",
           "last_updated": "2014-12-04 10:48:06",
-          "regenerate_subdomain_token_endpoint": "https://dnsd.co/api/v1/regen_subdomain_token/example3",
+          "regenerate_subdomain_token_URI": "https://dnsd.co/api/v1/regen_token/example3",
           "subdomain": "example3",
           "subdomain_token": "e106a924-c39b-4ce0-a683-5b9dd686b4f5"
         }
@@ -373,17 +396,17 @@ Updating a subdomain is different from updating/deleting users or creating subdo
 
 #### GET interface
 
-The `GET_update_endpoint` returned via `GET /api/v1/subdomains` and `POST /api/v1/subdomains` points to the simple `GET` interface. This interface allows you to update the IP address associated with a subdomain, but is limited to updating one subdomain at a time. Using this interface all the parameters are specificed in the url path as so (if the last part of the path, indicating the `IP`, is left off *luther* will attempt to guess your IP address)
+The `GET_update_URI` returned via `GET /api/v1/subdomains` and `POST /api/v1/subdomains` points to the simple `GET` interface. This interface allows you to update the IP address associated with a subdomain, but is limited to updating one subdomain at a time. Using this interface all the parameters are specificed in the url path as so (if the last part of the path, indicating the `IP`, is left off *luther* will attempt to guess your IP address)
 
-    # curl -i 'https://dnsd.co/api/v1/update/subdomain_name/subdomain_token(/optional_ip)'
+    # curl -i 'https://dnsd.co/api/v1/subdomains/subdomain_name/subdomain_token(/optional_ip)'
 
 So to update one of the subdomains we already created we would send these requests
 
-    # curl -i 'https://dnsd.co/api/v1/update/example/6b89fa82-4b20-4bd7-90d2-3e33f3980bde'
+    # curl -i 'https://dnsd.co/api/v1/subdomains/example/6b89fa82-4b20-4bd7-90d2-3e33f3980bde'
 
     -- or --
 
-    # curl -i 'https://dnsd.co/api/v1/update/example/6b89fa82-4b20-4bd7-90d2-3e33f3980bde/2.2.2.2'
+    # curl -i 'https://dnsd.co/api/v1/subdomains/example/6b89fa82-4b20-4bd7-90d2-3e33f3980bde/2.2.2.2'
 
     HTTP/1.0 200 OK
     Content-Type: application/json
@@ -392,10 +415,11 @@ So to update one of the subdomains we already created we would send these reques
     Date: Thu, 04 Dec 2014 10:54:54 GMT
 
     {
-      "GET_update_endpoint": "https://dnsd.co/api/v1/update/example/6b89fa82-4b20-4bd7-90d2-3e33f3980bde",
+      "GET_update_URI": "https://dnsd.co/api/v1/subdomains/example/6b89fa82-4b20-4bd7-90d2-3e33f3980bde",
       "full_domain": "example.dnsd.co",
       "ip": "2.2.2.2",
       "last_updated": "2014-12-04 10:54:54",
+      "regenerate_subdomain_token_URI": "https://dnsd.co/api/v1/regen_token/example",
       "message": "Subdomain updated.",
       "status": 200,
       "subdomain": "example",
@@ -404,7 +428,7 @@ So to update one of the subdomains we already created we would send these reques
 
 #### Fancy interface
 
-The fancy interface simply means instead of using GET requests it uses POST requests to `https://dnsd.co/api/v1/update` and allows you to specify multiple domains at a time. Since the way you specify subdomains and subdomain_tokens slightly differently with JSON and URL parameters we will deal with them seperately.
+The fancy interface simply means instead of using GET requests it uses PUT requests to `https://dnsd.co/api/v1/subdomains` and allows you to specify multiple domains at a time. Since the way you specify subdomains and subdomain_tokens slightly differently with JSON and URL parameters we will deal with them seperately.
 
 ##### JSON
 
@@ -424,7 +448,7 @@ The JSON version of the interface expects a data object that looks like this (wh
 
 so our `curl` command would look like this
 
-    # curl -u guy@gmail.com:betterpassword -X POST 'https://dnsd.co/api/v1/update' -H 'Content-type: application/json' -i -d '{ 
+    # curl -u guy@gmail.com:betterpassword -X PUT 'https://dnsd.co/api/v1/subdomains' -H 'Content-type: application/json' -i -d '{ 
               "subdomains": [
                 {
                   "subdomain": "example",
@@ -446,20 +470,22 @@ so our `curl` command would look like this
       "results": [
         [
           {
-            "GET_update_endpoint": "https://dnsd.co/api/v1/update/example/692508f1-5774-43cb-abc0-4cff25c3eaea",
+            "GET_update_URI": "https://dnsd.co/api/v1/subdomains/example/692508f1-5774-43cb-abc0-4cff25c3eaea",
             "full_domain": "example.dnsd.co",
             "ip": "1.1.1.1",
             "last_updated": "2014-12-04 11:43:42",
+            "regenerate_subdomain_token_URI": "https://dnsd.co/api/v1/regen_token/example",
             "message": "Subdomain updated.",
             "status": 200,
             "subdomain": "example",
             "subdomain_token": "692508f1-5774-43cb-abc0-4cff25c3eaea"
           },
           {
-            "GET_update_endpoint": "https://dnsd.co/api/v1/update/example2/23d37da2-be94-4166-8b5b-ab45084be337",
+            "GET_update_URI": "https://dnsd.co/api/v1/subdomains/example2/23d37da2-be94-4166-8b5b-ab45084be337",
             "full_domain": "example2.dnsd.co",
             "ip": "3.3.3.3",
             "last_updated": "2014-12-04 11:43:42",
+            "regenerate_subdomain_token_URI": "https://dnsd.co/api/v1/regen_token/example2",
             "message": "Subdomain updated.",
             "status": 200,
             "subdomain": "example2",
@@ -480,7 +506,7 @@ So if we want to update these subdomains to these addresses
 
 we would use this `curl` command
 
-    # curl -i -X POST 'https://dnsd.co/api/v1/update?subdomains=example,example2&subdomain_tokens=692508f1-5774-43cb-abc0-4cff25c3eaea,23d37da2-be94-4166-8b5b-ab45084be337&addresses=,5.5.5.6'
+    # curl -i -X PUT 'https://dnsd.co/api/v1/subdomains?subdomains=example,example2&subdomain_tokens=692508f1-5774-43cb-abc0-4cff25c3eaea,23d37da2-be94-4166-8b5b-ab45084be337&addresses=,5.5.5.6'
 
     HTTP/1.0 200 OK
     Content-Type: application/json
@@ -492,20 +518,22 @@ we would use this `curl` command
       "results": [
         [
           {
-            "GET_update_endpoint": "https://dnsd.co/api/v1/update/example/692508f1-5774-43cb-abc0-4cff25c3eaea",
+            "GET_update_URI": "https://dnsd.co/api/v1/subdomains/example/692508f1-5774-43cb-abc0-4cff25c3eaea",
             "full_domain": "example.dnsd.co",
             "ip": "1.1.1.1",
             "last_updated": "2014-12-04 12:07:25",
+            "regenerate_subdomain_token_URI": "https://dnsd.co/api/v1/regen_token/example",
             "message": "Subdomain updated.",
             "status": 200,
             "subdomain": "example",
             "subdomain_token": "692508f1-5774-43cb-abc0-4cff25c3eaea"
           },
           {
-            "GET_update_endpoint": "https://dnsd.co/api/v1/update/example2/23d37da2-be94-4166-8b5b-ab45084be337",
+            "GET_update_URI": "https://dnsd.co/api/v1/subdomains/example2/23d37da2-be94-4166-8b5b-ab45084be337",
             "full_domain": "example2.dnsd.co",
             "ip": "5.5.5.6",
             "last_updated": "2014-12-04 12:07:54",
+            "regenerate_subdomain_token_URI": "https://dnsd.co/api/v1/regen_token/example2",
             "message": "Subdomain updated.",
             "status": 200,
             "subdomain": "example2",
@@ -519,13 +547,13 @@ See what I mean, SILLY!
 
 ### Regenerating a `subdomain_token`
 
-To regenerate the `subdomain_token` used to authenticate updates send a authenticated POST request to `https://dnsd.co/api/v1/regen_subdomain_token` with the variable `subdomain` indicating which subdomain you'd like to regenerate the `subdomain_token` for
+To regenerate the `subdomain_token` used to authenticate updates send a authenticated POST request to `https://dnsd.co/api/v1/regen_token` with the variable `subdomain` indicating which subdomain you'd like to regenerate the `subdomain_token` for
 
-    # curl -u guy@gmail.com:betterpassword -X POST 'https://dnsd.co/api/v1/regen_subdomain_token' -i -X POST -H 'Content-type: application/json' -d '{"subdomain":"example"}'
+    # curl -u guy@gmail.com:betterpassword -X POST 'https://dnsd.co/api/v1/regen_token' -i -X POST -H 'Content-type: application/json' -d '{"subdomain":"example"}'
 
     -- or --
 
-    # curl -u guy@gmail.com:betterpassword -X POST 'https://dnsd.co/api/v1/regen_subdomain_token?subdomain=example' -i
+    # curl -u guy@gmail.com:betterpassword -X POST 'https://dnsd.co/api/v1/regen_token?subdomain=example' -i
 
     HTTP/1.0 200 OK
     Content-Type: application/json
@@ -534,10 +562,11 @@ To regenerate the `subdomain_token` used to authenticate updates send a authenti
     Date: Thu, 04 Dec 2014 11:09:03 GMT
 
     {
-      "GET_update_endpoint": "https://dnsd.co/api/v1/update/example/a388a2ba-a461-4fbf-b907-281f25723586",
+      "GET_update_URI": "https://dnsd.co/api/v1/subdomains/example/a388a2ba-a461-4fbf-b907-281f25723586",
       "full_domain": "example.dnsd.co",
       "ip": "2.2.2.2",
       "last_updated": "2014-12-04 11:09:03",
+      "regenerate_subdomain_token_URI": "https://dnsd.co/api/v1/regen_token/example",
       "message": "subdomain_token regenerated",
       "status": 200,
       "subdomain": "example",
