@@ -28,6 +28,8 @@ ROOT_DOMAIN = 'localhost'
 # Subdomains restricted from being added by users ('' probably isn't needed)
 RESTRICTED_SUBDOMAINS = ['', 'www', 'ww', 'w', 'mail', 'mx', 'ns',
                          'ns1', 'ns2', 'ns3', 'ns4', 'ns5', 'dns']
+RATE_LIMIT_ACTIONS = 100 
+RATE_LIMIT_WINDOW = 60*60
 # Hard limit on subdomains that can be added by users
 TOTAL_SUBDOMAIN_LIMIT = 5000
 # Should luther display the Knockout.js frontend?
