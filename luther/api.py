@@ -26,7 +26,7 @@ from luther.models import User, Subdomain
 #################
 
 from flask import g, request, jsonify, \
-    render_template, make_response
+    render_template, make_response, url_for
 from flask.ext.httpauth import HTTPBasicAuth
 
 ###############
@@ -100,8 +100,8 @@ def subdomain_api_object(d, message=None, status=None):
         'full_domain': d.name+"."+app.config['DNS_ROOT_DOMAIN'],
         'ip': d.ip,
         'subdomain_token': d.token,
-        'regenerate_subdomain_token_URI': app.config['ROOT_HTTP']+'/api/v1/regen_token/'+d.name,
-        'GET_update_URI': app.config['ROOT_HTTP']+'/api/v1/subdomains/'+d.name+'/'+d.token,
+        'regenerate_subdomain_token_URI': app.config['ROOT_HTTP']+url_for('regen_subdomain_token', subdomain_name=d.name),
+        'GET_update_URI': app.config['ROOT_HTTP']+url_for('get_interface', domain_name=d.name, domain_token=d.token),
         'last_updated': str(d.last_updated)
     }
     if status:
@@ -552,7 +552,7 @@ def ratelimit(limit, per=225,
             rlimit = RateLimit(key, limit, per, send_x_headers)
             g._view_rate_limit = rlimit
             if over_limit is not None and rlimit.over_limit \
-                    and not g.user.is_admin:
+                    and not g.user.is_admin():
                 return over_limit(rlimit)
             return f(*args, **kwargs)
         return update_wrapper(rate_limited, f)
@@ -691,6 +691,7 @@ def verify_password(email, password):
 
 
 @app.route('/api/v1/user', methods=['POST'])
+@ratelimit(limit=app.config['RATE_LIMIT_ACTIONS'], per=app.config['RATE_LIMIT_WINDOW'])
 def new_user():
     """Add a new user, parameters can be passed as
     either JSON or URL arguments.
@@ -735,6 +736,7 @@ def new_user():
 
 
 @app.route('/api/v1/user', methods=['DELETE'])
+@ratelimit(limit=app.config['RATE_LIMIT_ACTIONS'], per=app.config['RATE_LIMIT_WINDOW'])
 @auth.login_required
 def del_user():
     """Delete an existing user or change it's password, parameters
@@ -760,6 +762,7 @@ def del_user():
 
 
 @app.route('/api/v1/user', methods=['PUT'])
+@ratelimit(limit=app.config['RATE_LIMIT_ACTIONS'], per=app.config['RATE_LIMIT_WINDOW'])
 @auth.login_required
 def edit_user():
     if request.json and not request.args:
@@ -780,7 +783,7 @@ def edit_user():
 
 
 @app.route('/api/v1/subdomains', methods=['GET'])
-# @ratelimit(limit=100, per=60*60)
+@ratelimit(limit=app.config['RATE_LIMIT_ACTIONS'], per=app.config['RATE_LIMIT_WINDOW'])
 @auth.login_required
 def get_subdomains():
     """Create subdomain, delete subdomain, or get list of users subdomains,
@@ -788,8 +791,7 @@ def get_subdomains():
 
     :returns: object -- JSON response indicating the outcome of action.
     """
-    domains = g.user.subdomains if \
-        not g.user.is_admin else Subdomain.query.all()
+    domains = g.user.subdomains if not g.user.is_admin() else Subdomain.query.all()
     info = {'email': g.user.email, 'subdomains': []}
     for d in domains:
         info['subdomains'].append(subdomain_api_object(d))
@@ -804,7 +806,7 @@ def get_subdomains():
             })
 
 @app.route('/api/v1/subdomains', methods=['POST'])
-# @ratelimit(limit=100, per=60*60)
+@ratelimit(limit=app.config['RATE_LIMIT_ACTIONS'], per=app.config['RATE_LIMIT_WINDOW'])
 @auth.login_required   
 def add_subdomain():
     if Subdomain.query.count() <= app.config['TOTAL_SUBDOMAIN_LIMIT']:
@@ -860,7 +862,7 @@ def add_subdomain():
 
 
 @app.route('/api/v1/subdomains', methods=['DELETE'])
-# @ratelimit(limit=100, per=60*60)
+@ratelimit(limit=app.config['RATE_LIMIT_ACTIONS'], per=app.config['RATE_LIMIT_WINDOW'])
 @auth.login_required
 def del_subdomain():
     if request.json and not request.args:
@@ -876,7 +878,7 @@ def del_subdomain():
     if not confirm == 'DELETE':
         raise LutherBroke('Bad request, malformed or missing arguments')
     domains = g.user.subdomains if \
-        not g.user.is_admin else Subdomain.query.all()
+        not g.user.is_admin() else Subdomain.query.all()
     for d in domains:
         if d.name == domain_name:
             ddns_result = delete_ddns(d.name)
@@ -891,7 +893,7 @@ def del_subdomain():
 
 @app.route('/api/v1/regen_token/<subdomain_name>', methods=['POST'])
 @app.route('/api/v1/regen_token', methods=['POST'])
-# @ratelimit(limit=100, per=60*60)
+@ratelimit(limit=app.config['RATE_LIMIT_ACTIONS'], per=app.config['RATE_LIMIT_WINDOW'])
 @auth.login_required
 def regen_subdomain_token(subdomain_name=None):
     """Regenerate subdomain token, parameters can be passed as either
@@ -910,11 +912,15 @@ def regen_subdomain_token(subdomain_name=None):
     if domain_name in [None, '']:
         raise LutherBroke('Bad request, missing arguments')
     domains = g.user.subdomains if \
-        not g.user.is_admin else Subdomain.query.all()
+        not g.user.is_admin() else Subdomain.query.all()
     for d in domains:
         if domain_name == d.name:
             d.generate_domain_token()
             db.session.commit()
+            if app.config['ENABLE_STATS']:
+                update_counter = predis.get('luther/counter')
+                update_counter += 1
+                predis.set('luther/counter', update_counter)
             return jsonify(subdomain_api_object(d, message='Subdomain token regenerated'))
     raise LutherBroke('Bad request, invalid subdomain')
 
@@ -924,7 +930,7 @@ def regen_subdomain_token(subdomain_name=None):
 
 
 @app.route('/api/v1/subdomains', methods=['PUT'])
-# @ratelimit(limit=100, per=60*60)
+@ratelimit(limit=app.config['RATE_LIMIT_ACTIONS'], per=app.config['RATE_LIMIT_WINDOW'])
 def fancy_interface():
     """The fancy interface for updating subdomain IP addresses,
     this is the only for a user to update multiple subdomains
@@ -990,6 +996,10 @@ def fancy_interface():
                     domain.ip = domain_obj[2]
                     db.session.commit()
                     results.append(subdomain_api_object(domain, message='Subdomain updated.'))
+                    if app.config['ENABLE_STATS']:
+                        update_counter = predis.get('luther/counter')
+                        update_counter += 1
+                        predis.set('luther/counter', update_counter)
                 else:
                     raise LutherBroke()
         else:
@@ -1012,7 +1022,7 @@ def fancy_interface():
     '/api/v1/subdomains/<domain_name>/<domain_token>',
     methods=['GET']
 )
-# @ratelimit(limit=100, per=60*60)
+@ratelimit(limit=app.config['RATE_LIMIT_ACTIONS'], per=app.config['RATE_LIMIT_WINDOW'])
 def get_interface(domain_name, domain_token, domain_ip=None):
     """The (stone age) GET interface for updating a single subdomain
     IP address.
@@ -1039,6 +1049,10 @@ def get_interface(domain_name, domain_token, domain_ip=None):
             if ddns_result:
                 domain.ip = domain_ip
                 db.session.commit()
+                if app.config['ENABLE_STATS']:
+                    update_counter = predis.get('luther/counter')
+                    update_counter += 1
+                    predis.set('luther/counter', update_counter)
                 return jsonify(subdomain_api_object(domain, message='Subdomain updated.'))
             else:
                 raise LutherBroke()
@@ -1051,6 +1065,7 @@ def get_interface(domain_name, domain_token, domain_ip=None):
 
 
 @app.route('/api/v1/geuss_ip', methods=['GET'])
+@ratelimit(limit=app.config['RATE_LIMIT_ACTIONS'], per=app.config['RATE_LIMIT_WINDOW'])
 def get_ip():
     """Return the IP used to request the endpoint.
 
@@ -1071,14 +1086,6 @@ if app.config['ENABLE_FRONTEND']:
             stats = predis.get('luther/stats')
         else:
             stats = None
-        # for a, b in stats['users']:
-        #     results['users'].append([str(a), b])
-        # for a, b in stats['subdomains']:
-        #     results['subdomains'].append([str(a), b])
-        # for a, b in stats['subdomain_limit']:
-        #     results['subdomain_limit'].append([str(a), b])
-        # for a, b in stats['updates']:
-        #     results['updates'].append([str(a), b])
         return render_template(
             'luther.html',
             client_ip=request.remote_addr,
@@ -1116,15 +1123,18 @@ if app.config['ENABLE_STATS']:
         threading.Timer(app.config['STATS_INTERVAL'], update_stats).start()
         with app.app_context():
             stats = predis.get('luther/stats')
+            counter = predis.get('luther/counter')
             now = str(datetime.datetime.utcnow())
             if not stats:
                 stats = {
                     'users': [],
                     'subdomains': [],
                     'subdomain_limit': [],
-                    'updates': []
+                    'updates': [],
+                    'counter': 0
                 }
-
+            if not counter:
+                counter = 0
             if len(stats['users']) >= app.config['STATS_ENTRIES']:
                 stats['users'].pop(0)
                 stats['subdomains'].pop(0)
@@ -1136,14 +1146,7 @@ if app.config['ENABLE_STATS']:
                 now,
                 app.config['TOTAL_SUBDOMAIN_LIMIT']
             ])
-            if len(stats['updates']) > 0:
-                last_update = datetime.datetime.strptime(stats['updates'][-1][0], '%Y-%m-%d %H:%M:%S.%f')
-                stats['updates'].append([
-                    now,
-                    Subdomain.query.filter(
-                        Subdomain.last_updated > last_update
-                    ).count()
-                ])
-            else:
-                stats['updates'].append([now, 0])
+            stats['updates'].append([now, counter])
+            counter = 0
             predis.set('luther/stats', stats)
+            predis.set('luther/counter', counter)

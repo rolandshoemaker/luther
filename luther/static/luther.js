@@ -57,8 +57,8 @@ function LutherMainViewModel() {
             self.subdomains.removeAll()
             for (var i = 0;i<data.subdomains.length;i++) {
                 self.subdomains.push({
-                    update_uri: ko.observable(data.subdomains[i].GET_update_endpoint),
-                    regen_uri: ko.observable(data.subdomains[i].regenerate_subdomain_token_endpoint),
+                    update_uri: ko.observable(data.subdomains[i].GET_update_URI),
+                    regen_uri: ko.observable(data.subdomains[i].regenerate_subdomain_token_URI),
                     subdomain: ko.observable(data.subdomains[i].subdomain),
                     ip: ko.observable(data.subdomains[i].ip),
                     token: ko.observable(data.subdomains[i].subdomain_token),
@@ -189,8 +189,8 @@ function LutherMainViewModel() {
         data = {subdomain: subdomain.subdomain()}
         self.ajax(self.regenURI, 'POST', data).done(function(data) {
             var i = self.subdomains.indexOf(subdomain);
-            self.subdomains()[i].update_uri(data.GET_update_endpoint);
-            self.subdomains()[i].regen_uri(data.regenerate_subdomain_token_endpoint);
+            self.subdomains()[i].update_uri(data.GET_update_URI);
+            self.subdomains()[i].regen_uri(data.regenerate_subdomain_token_URI);
             self.subdomains()[i].subdomain(data.subdomain);
             self.subdomains()[i].ip(data.ip);
             self.subdomains()[i].token(data.subdomain_token);
@@ -201,8 +201,8 @@ function LutherMainViewModel() {
     self.add = function(subdomain) {
         self.ajax(self.subdomainsURI, 'POST', subdomain).done(function(data) {
             self.subdomains.push({
-                update_uri: ko.observable(data.GET_update_endpoint),
-                regen_uri: ko.observable(data.regenerate_subdomain_token_endpoint),
+                update_uri: ko.observable(data.GET_update_URI),
+                regen_uri: ko.observable(data.regenerate_subdomain_token_URI),
                 subdomain: ko.observable(data.subdomain),
                 ip: ko.observable(data.ip),
                 token: ko.observable(data.subdomain_token),
@@ -223,8 +223,8 @@ function LutherMainViewModel() {
 
     self.updateSubdomain = function(subdomain, newSubdomain) {
         var i = self.subdomains.indexOf(subdomain);
-        self.subdomains()[i].update_uri(newSubdomain.GET_update_endpoint);
-        self.subdomains()[i].regen_uri(newSubdomain.regenerate_subdomain_token_endpoint);
+        self.subdomains()[i].update_uri(newSubdomain.GET_update_URI);
+        self.subdomains()[i].regen_uri(newSubdomain.regenerate_subdomain_token_URI);
         self.subdomains()[i].subdomain(newSubdomain.subdomain);
         self.subdomains()[i].ip(newSubdomain.ip);
         self.subdomains()[i].token(newSubdomain.subdomain_token);
