@@ -276,28 +276,6 @@ class LutherTestCase(unittest.TestCase):
         self.assertEqual(rd['status'], 200)
         self.assertNotEqual(rd['subdomain_token'], token_two)
 
-    def test_cf_delete_subs(self):
-        d = '{"subdomain":"travis-example", "confirm":"DELETE"}'
-        rv = self.delete_json_auth('/api/v1/subdomains', d, 'tester@travis-ci.org', 'betterpassword')
-        rd = json.loads(rv.data.decode('ascii'))
-        self.assertEqual(rv.status_code, 200)
-        self.assertEqual(rd['status'], 200)
-        self.assertEqual(rd['message'], 'Subdomain deleted')
-
-        d = '{"subdomain":"travis-ip-example", "confirm":"DELETE"}'
-        rv = self.delete_json_auth('/api/v1/subdomains', d, 'tester@travis-ci.org', 'betterpassword')
-        self.assertEqual(rv.status_code, 200)
-        rd = json.loads(rv.data.decode('ascii'))
-        self.assertEqual(rd['status'], 200)
-        self.assertEqual(rd['message'], 'Subdomain deleted')
-
-    def test_cg_list_no_subs(self):
-        rv = self.open_with_auth('/api/v1/subdomains', 'GET', 'tester@travis-ci.org', 'betterpassword')
-        self.assertEqual(rv.status_code, 200)
-        rd = json.loads(rv.data.decode('ascii'))
-        self.assertEqual(rd['status'], 200)
-        self.assertEqual(len(rd['subdomains']), 0)
-
 
     #############
     # Bad tests #
@@ -356,6 +334,29 @@ class LutherTestCase(unittest.TestCase):
         self.assertEqual(rv.status_code, 403)
         self.assertEqual(rd['error'], 'Unauthorized access')
 
+    def test_xda_delete_sub_bad_user(self):
+        d = '{"subdomain":"travis-example", "confirm":"DELETE"}'
+        rv = self.delete_json_auth('/api/v1/subdomains', d, 'anothertester@travis-ci.org', 'weakpassword')
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(rd['status'], 400)
+        self.assertEqual(rd['message'], 'Bad request, invalid subdomain')
+
+    def test_xdb_delete_sub_no_user(self):
+        d = '{"subdomain":"travis-example", "confirm":"DELETE"}'
+        rv = self.delete_json_auth('/api/v1/subdomains', d, '', '')
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rv.status_code, 403)
+        self.assertEqual(rd['error'], 'Unauthorized access')
+
+    def test_xdc_delete_sub_bad_sub(self):
+        d = '{"subdomain":"travis-not-an-example", "confirm":"DELETE"}'
+        rv = self.delete_json_auth('/api/v1/subdomains', d, 'anothertester@travis-ci.org', 'weakpassword')
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(rd['status'], 400)
+        self.assertEqual(rd['message'], 'Bad request, invalid subdomain')
+
     def test_xx_guess_bad_ip(self):
         rv = self.app.get('/api/v1/geuss_ip', environ_base={'REMOTE_ADDR':'asdimnotaipaddress'})
         rd = json.loads(rv.data.decode('ascii'))
@@ -377,7 +378,50 @@ class LutherTestCase(unittest.TestCase):
         self.assertEqual(rd['status'], 403)
         self.assertEqual(rd['message'], 'You are not in an authorized network')
 
-    def test_z_rate_limit(self):
+    ##########################
+    # Cleanup, also tests... #
+    ##########################
+
+    def test_z_delete_subs(self):
+        d = '{"subdomain":"travis-example", "confirm":"DELETE"}'
+        rv = self.delete_json_auth('/api/v1/subdomains', d, 'tester@travis-ci.org', 'betterpassword')
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(rd['status'], 200)
+        self.assertEqual(rd['message'], 'Subdomain deleted')
+
+        d = '{"subdomain":"travis-ip-example", "confirm":"DELETE"}'
+        rv = self.delete_json_auth('/api/v1/subdomains', d, 'tester@travis-ci.org', 'betterpassword')
+        self.assertEqual(rv.status_code, 200)
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rd['status'], 200)
+        self.assertEqual(rd['message'], 'Subdomain deleted')
+
+    def test_zz_list_no_subs(self):
+        rv = self.open_with_auth('/api/v1/subdomains', 'GET', 'tester@travis-ci.org', 'betterpassword')
+        self.assertEqual(rv.status_code, 200)
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rd['status'], 200)
+        self.assertEqual(len(rd['subdomains']), 0)
+
+    def test_zzz_delete_users(self):
+        d = '{"confirm":"DELETE"}'
+        rv = self.delete_json_auth('/api/v1/user', d, 'tester@travis-ci.org', 'betterpassword')
+        rd = json.loads(rv.data.decode('ascii'))
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(rd['status'], 200)
+        self.assertEqual(rd['message'], 'User deleted, bai bai :<')
+
+        d = '{"confirm":"DELETE"}'
+        rv = self.delete_json_auth('/api/v1/user', d, 'anothertester@travis-ci.org', 'weakpassword')
+        rd = json.loads(rv.data.decode('ascii'))
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(rd['status'], 200)
+        self.assertEqual(rd['message'], 'User deleted, bai bai :<')
+
+    def test_zzzz_rate_limit(self):
         with self.assertRaises(AssertionError):
             for i in range(luther.app.config['RATE_LIMIT_ACTIONS']):
                 rv = self.app.get('/api/v1/geuss_ip', environ_base={'REMOTE_ADDR':'99.99.99.99'})
