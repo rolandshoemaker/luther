@@ -15,7 +15,7 @@ import uuid
 ##################
 
 # Database URI
-SQLALCHEMY_DATABASE_URI = 'sqlite://'
+SQLALCHEMY_DATABASE_URI = 'mysql://travis@localhost/luther_test'
 # Flask secret key
 SECRET_KEY = str(uuid.uuid4())
 
