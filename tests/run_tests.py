@@ -432,7 +432,6 @@ class LutherTestCase(unittest.TestCase):
 if __name__ == '__main__':
     luther.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite://'
     luther.app.config['TESTING'] = True
-    luther.models.init_db()
-    # timer = luther.apiv1.run_stats()
+    # luther.models.init_db()
     unittest.main()
     timer.stop()
