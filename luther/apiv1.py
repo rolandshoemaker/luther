@@ -154,7 +154,6 @@ predis = PickledRedis(
 
 
 def update_stats():
-    # timer = threading.Timer(app.config['STATS_INTERVAL'], update_stats)
     with app.app_context():
         stats = predis.get('luther/stats')
         counter = predis.get('luther/counter')
@@ -184,11 +183,14 @@ def update_stats():
         counter = 0
         predis.set('luther/stats', stats)
         predis.set('luther/counter', counter)
-    # return timer
 
 
 def run_stats():
-    update_stats()
+    if not predis.get('luther/stats'):
+        update_stats()
+    # Hm, this is a bit hacky, but since the cli tool shouldn't run for
+    # longer than STATS_INTERVAL it should be fine (Should probably
+    # find a better fix though...)
     timer = Manager()
     timer.add_operation(update_stats, app.config['STATS_INTERVAL'])
     return timer

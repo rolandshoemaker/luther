@@ -75,6 +75,8 @@ class LutherTestCase(unittest.TestCase):
             environ_base=environ_base
         )
 
+
+    # I know this is bad but it works for me for now...
     def setUp(self):
         self.app = luther.app.test_client()
 
@@ -431,6 +433,6 @@ if __name__ == '__main__':
     luther.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite://'
     luther.app.config['TESTING'] = True
     luther.models.init_db()
-    timer = luther.apiv1.run_stats()
+    # timer = luther.apiv1.run_stats()
     unittest.main()
     timer.stop()

@@ -26,8 +26,9 @@ else:
 
 db = SQLAlchemy(app)
 
-from luther.apiv1 import api_v1
+from luther.apiv1 import api_v1, run_stats
 app.register_blueprint(api_v1, url_prefix='/api/v1')
+timer = run_stats()
 if app.config['ENABLE_FRONTEND']:
     from luther.frontend import frontend
     app.register_blueprint(frontend)

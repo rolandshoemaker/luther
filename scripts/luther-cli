@@ -9,7 +9,7 @@
 
 from luther import app, db
 from luther.apiv1 import new_ddns, update_ddns, \
-    delete_ddns, validate_ip, predis, update_stats
+    delete_ddns, validate_ip, predis, run_stats
 from luther.models import User, Subdomain
 import ipaddress
 from tabulate import tabulate
@@ -81,10 +81,12 @@ def delete_user(email):
     with app.app_context():
         user = User.query.filter_by(email=email).first()
         if user:
-            for sub in user.subdomains:
-                if not delete_ddns(sub.name, on_api=False):
-                    click.secho('Error deleting subdomain: '+sub.name+'!\n', fg='red')
-                    return False
+            if len(user.subdomains) > 0:
+                click.secho('Deleting subdomains belonging to '+user.name, fg='red')
+                for sub in user.subdomains:
+                    if not delete_ddns(sub.name, on_api=False):
+                        click.secho('Error deleting subdomain: '+sub.name+'! User was not deleted.\n', fg='red')
+                        return False
             db.session.delete(user)
             db.session.commit()
             click.secho('Deleted user: '+user.email+'.\n', fg='green')
@@ -390,13 +392,13 @@ def dev_server(host, port, reloader, stats):
     """Run the development web server"""
     if stats:
         with app.app_context():
-            update_stats()
+            run_stats()
 
     app.run(debug=True, use_reloader=reloader, host=host, port=port)
 
 @cli.command('check_stats')
 def check_stats():
-    """Get the most recent stats from redis (relies on app.config['ENABLE_STATS'] = True)"""
+    """Get the most recent stats from redis"""
     stats = predis.get('luther/stats')
     click.echo(tabulate([[stats['users'][-1][1], stats['subdomains'][-1][1], stats['updates'][-1][1], stats['users'][-1][0]]], ['num users', 'num subdomains', 'updates', 'updated']))
     return True
