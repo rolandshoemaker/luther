@@ -8,7 +8,7 @@
 #
 
 from luther import app, db
-from luther.api import new_ddns, update_ddns, \
+from luther.apiv1 import new_ddns, update_ddns, \
     delete_ddns, validate_ip, predis
 from luther.models import User, Subdomain
 

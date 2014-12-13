@@ -26,8 +26,11 @@ from luther.models import User, Subdomain
 #################
 
 from flask import g, request, jsonify, \
-    render_template, make_response, url_for
+    render_template, make_response, url_for, \
+    current_app, Blueprint
 from flask.ext.httpauth import HTTPBasicAuth
+
+api_v1 = Blueprint('api_v1',  __name__, None)
 
 ###############
 # dns imports #
@@ -101,11 +104,11 @@ def subdomain_api_object(d, message=None, status=None):
         'ip': d.ip,
         'subdomain_token': d.token,
         'regenerate_subdomain_token_URI': app.config['ROOT_HTTP']+url_for(
-            'regen_subdomain_token',
+            '.regen_subdomain_token',
             subdomain_name=d.name
         ),
         'GET_update_URI': app.config['ROOT_HTTP']+url_for(
-            'get_interface',
+            '.get_interface',
             domain_name=d.name,
             domain_token=d.token
         ),
@@ -251,7 +254,7 @@ class LutherBroke(Exception):
         return rv
 
 
-@app.errorhandler(LutherBroke)
+@api_v1.errorhandler(LutherBroke)
 def handle_broken(error):
     response = jsonify(error.to_dict())
     response.status_code = error.status_code
@@ -570,7 +573,7 @@ def ratelimit(limit, per=225,
     return decorator
 
 
-@app.after_request
+@api_v1.after_request
 def inject_x_rate_headers(response):
     """inject_x_rate_headers adds rate limiting headers to HTTP responses.
 
@@ -588,7 +591,7 @@ def inject_x_rate_headers(response):
 ################################
 
 
-@app.before_request
+@api_v1.before_request
 def check_user_network():
     """Before request is processed check if the users remote addreses
     is within the configured allowed networks using in_allowed_network().
@@ -704,7 +707,7 @@ def verify_password(email, password):
     return True
 
 
-@app.route('/api/v1/user', methods=['POST'])
+@api_v1.route('/api/v1/user', methods=['POST'])
 @ratelimit(
     limit=app.config['RATE_LIMIT_ACTIONS'],
     per=app.config['RATE_LIMIT_WINDOW']
@@ -741,18 +744,18 @@ def new_user():
         'email': user.email,
         'resources': {
             'Subdomain URI':
-            app.config['ROOT_HTTP']+url_for('get_subdomains'),
+            app.config['ROOT_HTTP']+url_for('.get_subdomains'),
             'Guess IP URI':
-            app.config['ROOT_HTTP']+url_for('get_ip'),
+            app.config['ROOT_HTTP']+url_for('.get_ip'),
             'Change password URI':
-            app.config['ROOT_HTTP']+url_for('edit_user'),
+            app.config['ROOT_HTTP']+url_for('.edit_user'),
         }
     })
     resp.status_code = 201
     return resp
 
 
-@app.route('/api/v1/user', methods=['DELETE'])
+@api_v1.route('/api/v1/user', methods=['DELETE'])
 @ratelimit(
     limit=app.config['RATE_LIMIT_ACTIONS'],
     per=app.config['RATE_LIMIT_WINDOW']
@@ -781,7 +784,7 @@ def del_user():
     return json_status_message('User deleted, bai bai :<', 200)
 
 
-@app.route('/api/v1/user', methods=['PUT'])
+@api_v1.route('/api/v1/user', methods=['PUT'])
 @ratelimit(
     limit=app.config['RATE_LIMIT_ACTIONS'],
     per=app.config['RATE_LIMIT_WINDOW']
@@ -805,7 +808,7 @@ def edit_user():
 ################################
 
 
-@app.route('/api/v1/subdomains', methods=['GET'])
+@api_v1.route('/api/v1/subdomains', methods=['GET'])
 @ratelimit(
     limit=app.config['RATE_LIMIT_ACTIONS'],
     per=app.config['RATE_LIMIT_WINDOW']
@@ -833,7 +836,7 @@ def get_subdomains():
             })
 
 
-@app.route('/api/v1/subdomains', methods=['POST'])
+@api_v1.route('/api/v1/subdomains', methods=['POST'])
 @ratelimit(
     limit=app.config['RATE_LIMIT_ACTIONS'],
     per=app.config['RATE_LIMIT_WINDOW']
@@ -897,7 +900,7 @@ def add_subdomain():
         )
 
 
-@app.route('/api/v1/subdomains', methods=['DELETE'])
+@api_v1.route('/api/v1/subdomains', methods=['DELETE'])
 @ratelimit(
     limit=app.config['RATE_LIMIT_ACTIONS'],
     per=app.config['RATE_LIMIT_WINDOW']
@@ -927,8 +930,8 @@ def del_subdomain():
     raise LutherBroke('Bad request, invalid subdomain')
 
 
-@app.route('/api/v1/regen_token/<subdomain_name>', methods=['POST'])
-@app.route('/api/v1/regen_token', methods=['POST'])
+@api_v1.route('/api/v1/regen_token/<subdomain_name>', methods=['POST'])
+@api_v1.route('/api/v1/regen_token', methods=['POST'])
 @ratelimit(
     limit=app.config['RATE_LIMIT_ACTIONS'],
     per=app.config['RATE_LIMIT_WINDOW']
@@ -1014,7 +1017,7 @@ def get_subdomain_args():
             domain_list.append([names[i], tokens[i], request.remote_addr])
 
 
-@app.route('/api/v1/subdomains', methods=['PUT'])
+@api_v1.route('/api/v1/subdomains', methods=['PUT'])
 @ratelimit(
     limit=app.config['RATE_LIMIT_ACTIONS'],
     per=app.config['RATE_LIMIT_WINDOW']
@@ -1074,11 +1077,11 @@ def fancy_interface():
 #########################
 
 
-@app.route(
+@api_v1.route(
     '/api/v1/subdomains/<domain_name>/<domain_token>/<domain_ip>',
     methods=['GET']
 )
-@app.route(
+@api_v1.route(
     '/api/v1/subdomains/<domain_name>/<domain_token>',
     methods=['GET']
 )
@@ -1134,7 +1137,7 @@ def get_interface(domain_name, domain_token, domain_ip=None):
 ################
 
 
-@app.route('/api/v1/geuss_ip', methods=['GET'])
+@api_v1.route('/api/v1/geuss_ip', methods=['GET'])
 @ratelimit(
     limit=app.config['RATE_LIMIT_ACTIONS'],
     per=app.config['RATE_LIMIT_WINDOW']
@@ -1152,7 +1155,7 @@ def get_ip():
 
 
 if app.config['ENABLE_FRONTEND']:
-    @app.route('/')
+    @api_v1.route('/')
     def index():
         if app.config['ENABLE_STATS']:
             stats = predis.get('luther/stats')

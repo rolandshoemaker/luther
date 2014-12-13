@@ -24,6 +24,12 @@ luther is written by [Roland Shoemaker](https://www.bind.es/).
 
 ## Features
 
+* `GET` subdomain update
+* `POST` JSON/URL args subdomain update
+* Interchangable `IPv4/6` address use
+* REST User account creation, management, and deletion
+* Simple *Knockout.js* frontend interface
+
 ## *Table of Contents*
 
 - [**Quickstart**](#quickstart)
@@ -60,7 +66,7 @@ Lets get *luther* up and running!
 
 ### Requirements
 
-If you install *luther* using `setup.py` all these modules will attempt to be installed.
+If you install *luther* using `setup.py` all these Python packages will be installed (or attempted).
 
 * Python packages
   * dnspython3
@@ -70,6 +76,7 @@ If you install *luther* using `setup.py` all these modules will attempt to be in
   * tabulate (for the cli tool)
   * click (for the cli tool)
   * redis (for rate limiting and storing stats)
+
 * Local or remote services not provided by *luther*
   * DNS server that supports RFC 2136 DNS Updates (BIND > 8, PowerDNS > 3.4, etc)
   * SQL database (MySQL, PostgreSQL, SQLite, etc)
@@ -134,7 +141,7 @@ To run the tests (*yay you*) run the `tests/run_tests.py`. **But** remember you 
 
 ### Using `luther-cli`
 
-`luther-cli` is a simple CLI tool for admistering a luther service, allowing you to list, search, count, etc both registered Users and Subdomains.
+`luther-cli` is a simple CLI tool for admistering a luther service, allowing you to add, edit, delete, list, and search both Users and Subdomains among a few other random functions you might need.
 
     # luther-cli
     Usage: luther-cli [OPTIONS] COMMAND [ARGS]...
@@ -180,11 +187,12 @@ All of the endpoints we will be talking about here, with the exception of the `G
 
 This table provides a quick layout of the entirety of the *luther* API.
 
-    URL                                                                       HTTP Method
-    ---                                                                       -----------
+    Endpoint                                                                  HTTP Method
+    --------                                                                  -----------
 
     /api/v1/guess_ip                                                          GET             
     > Retrieve the IP luther thinks you are coming from
+
     /api/v1/user                                                              POST
     > Create a new user
     /api/v1/user                                                              PUT

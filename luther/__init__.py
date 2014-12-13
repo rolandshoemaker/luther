@@ -26,4 +26,5 @@ else:
 
 db = SQLAlchemy(app)
 
-from luther import api
+from luther.apiv1 import api_v1
+app.register_blueprint(api_v1)

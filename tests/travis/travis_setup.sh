@@ -42,4 +42,4 @@ sudo service bind9 restart
 # Upgrade setuptools
 echo
 echo "# Upgrading python setuptools"
-easy_install -U setuptools
+suod easy_install -U setuptools
