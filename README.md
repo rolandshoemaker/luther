@@ -25,7 +25,7 @@ luther is written by [Roland Shoemaker](https://www.bind.es/).
 ## Features
 
 * `GET` subdomain update
-* `POST` JSON/URL args subdomain update
+* `POST` JSON/URL args multiple subdomain update
 * Interchangable `IPv4/6` address use
 * REST User account creation, management, and deletion
 * Simple *Knockout.js* frontend interface

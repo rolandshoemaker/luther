@@ -7,7 +7,7 @@
 #
 
 """
-.. module:: luther.api
+.. module:: luther.apiv1
     :platform: Unix
     :synopsis: lightweight REST API for managing Dynamic DNS.
 
@@ -26,8 +26,7 @@ from luther.models import User, Subdomain
 #################
 
 from flask import g, request, jsonify, \
-    render_template, make_response, url_for, \
-    current_app, Blueprint
+    make_response, url_for, Blueprint
 from flask.ext.httpauth import HTTPBasicAuth
 
 api_v1 = Blueprint('api_v1',  __name__, None)
@@ -47,7 +46,7 @@ from dns.resolver import NoAnswer, NXDOMAIN
 # redis imports #
 #################
 
-from redis import Redis
+from redis import Redis, StrictRedis
 
 ##################
 # system imports #
@@ -58,6 +57,9 @@ import time
 import ipaddress
 import re
 import datetime
+import _thread
+import threading
+import pickle
 
 ##############################
 # flask + plugin object init #
@@ -91,6 +93,104 @@ if not app.debug:
     loggers = [app.logger]
     for logger in loggers:
         logger.addHandler(fh)
+
+################
+# luther stats #
+################
+
+
+class Operation(threading.Timer):
+    def __init__(self, *args, **kwargs):
+        threading.Timer.__init__(self, *args, **kwargs)
+        self.setDaemon(True)
+
+    def run(self):
+        while True:
+            self.finished.clear()
+            self.finished.wait(self.interval)
+            if not self.finished.isSet():
+                self.function(*self.args, **self.kwargs)
+            else:
+                return
+            self.finished.set()
+
+
+class Manager(object):
+
+    ops = []
+
+    def add_operation(self, operation, interval, args=[], kwargs={}):
+        op = Operation(interval, operation, args, kwargs)
+        self.ops.append(op)
+        _thread.start_new_thread(op.run, ())
+
+    def stop(self):
+        for op in self.ops:
+            op.cancel()
+        self._event.set()
+
+
+class PickledRedis(StrictRedis):
+    def get(self, name):
+        pickled_value = super(PickledRedis, self).get(name)
+        if pickled_value in [None, '']:
+            return None
+        return pickle.loads(pickled_value)
+
+    def set(self, name, value, ex=None, px=None, nx=False, xx=False):
+        return super(PickledRedis, self).set(
+            name,
+            pickle.dumps(value),
+            ex,
+            px,
+            nx,
+            xx
+        )
+
+predis = PickledRedis(
+    host=app.config['REDIS_HOST'],
+    port=app.config['REDIS_PORT']
+)
+
+
+def update_stats():
+    # timer = threading.Timer(app.config['STATS_INTERVAL'], update_stats)
+    with app.app_context():
+        stats = predis.get('luther/stats')
+        counter = predis.get('luther/counter')
+        now = str(datetime.datetime.utcnow())
+        if not stats:
+            stats = {
+                'users': [],
+                'subdomains': [],
+                'subdomain_limit': [],
+                'updates': [],
+                'counter': 0
+            }
+        if not counter:
+            counter = 0
+        if len(stats['users']) >= app.config['STATS_ENTRIES']:
+            stats['users'].pop(0)
+            stats['subdomains'].pop(0)
+            stats['subdomain_limit'].pop(0)
+            stats['updates'].pop(0)
+        stats['users'].append([now, User.query.count()])
+        stats['subdomains'].append([now, Subdomain.query.count()])
+        stats['subdomain_limit'].append([
+            now,
+            app.config['TOTAL_SUBDOMAIN_LIMIT']
+        ])
+        stats['updates'].append([now, counter])
+        counter = 0
+        predis.set('luther/stats', stats)
+        predis.set('luther/counter', counter)
+    # return timer
+
+
+def run_stats():
+    timer = Manager()
+    timer.add_operation(update_stats, app.config['STATS_INTERVAL'])
+    return timer
 
 ##################
 # Util functions #
@@ -707,7 +807,7 @@ def verify_password(email, password):
     return True
 
 
-@api_v1.route('/api/v1/user', methods=['POST'])
+@api_v1.route('/user', methods=['POST'])
 @ratelimit(
     limit=app.config['RATE_LIMIT_ACTIONS'],
     per=app.config['RATE_LIMIT_WINDOW']
@@ -755,7 +855,7 @@ def new_user():
     return resp
 
 
-@api_v1.route('/api/v1/user', methods=['DELETE'])
+@api_v1.route('/user', methods=['DELETE'])
 @ratelimit(
     limit=app.config['RATE_LIMIT_ACTIONS'],
     per=app.config['RATE_LIMIT_WINDOW']
@@ -784,7 +884,7 @@ def del_user():
     return json_status_message('User deleted, bai bai :<', 200)
 
 
-@api_v1.route('/api/v1/user', methods=['PUT'])
+@api_v1.route('/user', methods=['PUT'])
 @ratelimit(
     limit=app.config['RATE_LIMIT_ACTIONS'],
     per=app.config['RATE_LIMIT_WINDOW']
@@ -808,7 +908,7 @@ def edit_user():
 ################################
 
 
-@api_v1.route('/api/v1/subdomains', methods=['GET'])
+@api_v1.route('/subdomains', methods=['GET'])
 @ratelimit(
     limit=app.config['RATE_LIMIT_ACTIONS'],
     per=app.config['RATE_LIMIT_WINDOW']
@@ -836,7 +936,7 @@ def get_subdomains():
             })
 
 
-@api_v1.route('/api/v1/subdomains', methods=['POST'])
+@api_v1.route('/subdomains', methods=['POST'])
 @ratelimit(
     limit=app.config['RATE_LIMIT_ACTIONS'],
     per=app.config['RATE_LIMIT_WINDOW']
@@ -900,7 +1000,7 @@ def add_subdomain():
         )
 
 
-@api_v1.route('/api/v1/subdomains', methods=['DELETE'])
+@api_v1.route('/subdomains', methods=['DELETE'])
 @ratelimit(
     limit=app.config['RATE_LIMIT_ACTIONS'],
     per=app.config['RATE_LIMIT_WINDOW']
@@ -930,8 +1030,8 @@ def del_subdomain():
     raise LutherBroke('Bad request, invalid subdomain')
 
 
-@api_v1.route('/api/v1/regen_token/<subdomain_name>', methods=['POST'])
-@api_v1.route('/api/v1/regen_token', methods=['POST'])
+@api_v1.route('/regen_token/<subdomain_name>', methods=['POST'])
+@api_v1.route('/regen_token', methods=['POST'])
 @ratelimit(
     limit=app.config['RATE_LIMIT_ACTIONS'],
     per=app.config['RATE_LIMIT_WINDOW']
@@ -959,10 +1059,9 @@ def regen_subdomain_token(subdomain_name=None):
         if domain_name == d.name:
             d.generate_domain_token()
             db.session.commit()
-            if app.config['ENABLE_STATS']:
-                update_counter = predis.get('luther/counter')
-                update_counter += 1
-                predis.set('luther/counter', update_counter)
+            update_counter = predis.get('luther/counter')
+            update_counter += 1
+            predis.set('luther/counter', update_counter)
             return jsonify(
                 subdomain_api_object(
                     d,
@@ -1017,7 +1116,7 @@ def get_subdomain_args():
             domain_list.append([names[i], tokens[i], request.remote_addr])
 
 
-@api_v1.route('/api/v1/subdomains', methods=['PUT'])
+@api_v1.route('/subdomains', methods=['PUT'])
 @ratelimit(
     limit=app.config['RATE_LIMIT_ACTIONS'],
     per=app.config['RATE_LIMIT_WINDOW']
@@ -1059,10 +1158,9 @@ def fancy_interface():
                             message='Subdomain updated.'
                         )
                     )
-                    if app.config['ENABLE_STATS']:
-                        update_counter = predis.get('luther/counter')
-                        update_counter += 1
-                        predis.set('luther/counter', update_counter)
+                    update_counter = predis.get('luther/counter')
+                    update_counter += 1
+                    predis.set('luther/counter', update_counter)
                 else:
                     raise LutherBroke()
         else:
@@ -1078,11 +1176,11 @@ def fancy_interface():
 
 
 @api_v1.route(
-    '/api/v1/subdomains/<domain_name>/<domain_token>/<domain_ip>',
+    '/subdomains/<domain_name>/<domain_token>/<domain_ip>',
     methods=['GET']
 )
 @api_v1.route(
-    '/api/v1/subdomains/<domain_name>/<domain_token>',
+    '/subdomains/<domain_name>/<domain_token>',
     methods=['GET']
 )
 @ratelimit(
@@ -1120,10 +1218,9 @@ def get_interface(domain_name, domain_token, domain_ip=None):
             if ddns_result:
                 domain.ip = domain_ip
                 db.session.commit()
-                if app.config['ENABLE_STATS']:
-                    update_counter = predis.get('luther/counter')
-                    update_counter += 1
-                    predis.set('luther/counter', update_counter)
+                update_counter = predis.get('luther/counter')
+                update_counter += 1
+                predis.set('luther/counter', update_counter)
                 return jsonify(
                     subdomain_api_object(domain, message='Subdomain updated.')
                 )
@@ -1137,7 +1234,7 @@ def get_interface(domain_name, domain_token, domain_ip=None):
 ################
 
 
-@api_v1.route('/api/v1/geuss_ip', methods=['GET'])
+@api_v1.route('/geuss_ip', methods=['GET'])
 @ratelimit(
     limit=app.config['RATE_LIMIT_ACTIONS'],
     per=app.config['RATE_LIMIT_WINDOW']
@@ -1148,80 +1245,3 @@ def get_ip():
     :returns: string -- The IP address used to request the endpoint.
     """
     return jsonify({'guessed_ip': request.remote_addr, 'status': 200})
-
-###################
-# luther frontend #
-###################
-
-
-if app.config['ENABLE_FRONTEND']:
-    @api_v1.route('/')
-    def index():
-        if app.config['ENABLE_STATS']:
-            stats = predis.get('luther/stats')
-        else:
-            stats = None
-        return render_template(
-            'luther.html',
-            client_ip=request.remote_addr,
-            luther_stats=stats
-        )
-
-if app.config['ENABLE_STATS']:
-    import threading
-    import pickle
-    from redis import StrictRedis
-
-    class PickledRedis(StrictRedis):
-        def get(self, name):
-            pickled_value = super(PickledRedis, self).get(name)
-            if pickled_value in [None, '']:
-                return None
-            return pickle.loads(pickled_value)
-
-        def set(self, name, value, ex=None, px=None, nx=False, xx=False):
-            return super(PickledRedis, self).set(
-                name,
-                pickle.dumps(value),
-                ex,
-                px,
-                nx,
-                xx
-            )
-
-    predis = PickledRedis(
-        host=app.config['REDIS_HOST'],
-        port=app.config['REDIS_PORT']
-    )
-
-    def update_stats():
-        threading.Timer(app.config['STATS_INTERVAL'], update_stats).start()
-        with app.app_context():
-            stats = predis.get('luther/stats')
-            counter = predis.get('luther/counter')
-            now = str(datetime.datetime.utcnow())
-            if not stats:
-                stats = {
-                    'users': [],
-                    'subdomains': [],
-                    'subdomain_limit': [],
-                    'updates': [],
-                    'counter': 0
-                }
-            if not counter:
-                counter = 0
-            if len(stats['users']) >= app.config['STATS_ENTRIES']:
-                stats['users'].pop(0)
-                stats['subdomains'].pop(0)
-                stats['subdomain_limit'].pop(0)
-                stats['updates'].pop(0)
-            stats['users'].append([now, User.query.count()])
-            stats['subdomains'].append([now, Subdomain.query.count()])
-            stats['subdomain_limit'].append([
-                now,
-                app.config['TOTAL_SUBDOMAIN_LIMIT']
-            ])
-            stats['updates'].append([now, counter])
-            counter = 0
-            predis.set('luther/stats', stats)
-            predis.set('luther/counter', counter)

@@ -9,21 +9,14 @@
 
 from luther import app, db
 from luther.apiv1 import new_ddns, update_ddns, \
-    delete_ddns, validate_ip, predis
+    delete_ddns, validate_ip, predis, update_stats
 from luther.models import User, Subdomain
-
 import ipaddress
-
 from tabulate import tabulate
-
 import click
-
 import dns.message
 import dns.query
 import dns.resolver
-
-# db.init_app(app)
-
 
 @click.group()
 def cli():
@@ -32,7 +25,6 @@ def cli():
     [this can be somewhat dangerous to a luther service, i guess. so be careful ._.]
     """
     pass
-
 
 @cli.command('add_user')
 @click.argument('email')
@@ -396,8 +388,6 @@ def init_db():
 @click.option('--stats/--no-stats', default=False, help='Generate statistics')
 def dev_server(host, port, reloader, stats):
     """Run the development web server"""
-    from luther.api import update_stats
-
     if stats:
         with app.app_context():
             update_stats()

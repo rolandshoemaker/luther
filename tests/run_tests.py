@@ -109,9 +109,9 @@ class LutherTestCase(unittest.TestCase):
         self.assertEqual(rd['status'], 200)
         self.assertEqual(rd['guessed_ip'], 'FE80:0000:0000:0000:0202:B3FF:FE1E:8329')
 
-    def test_ba_unauth_user(self):
+    def test_ba_frontend_unauth_user(self):
         # How are unauthenticated requests handled
-        rv = self.app.get('/')
+        rv = self.app.get('/api/v1/subdomains', environ_base={'REMOTE_ADDR':'1.1.1.1'})
         self.assertEqual(rv.status_code, 403)
 
     def test_bb_add_user(self):
@@ -431,4 +431,6 @@ class LutherTestCase(unittest.TestCase):
                 self.assertEqual(rd['guessed_ip'], '1.1.1.1')
 
 if __name__ == '__main__':
+    timer = luther.apiv1.run_stats()
     unittest.main()
+    timer.stop()
