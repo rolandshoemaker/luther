@@ -6,6 +6,7 @@ services:
 env: LUTHER_SETTINGS=$TRAVIS_BUILD_DIR/tests/travis/travis_config.py
 before_install: 
     - bash tests/travis/travis_setup.sh
+    - sudo apt-get install -y python3-setuptools
     - sudo easy_install3 PyMySQL
 install: python setup.py build install
 before_script: mysql -e 'create database luther_test;'
