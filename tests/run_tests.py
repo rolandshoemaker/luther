@@ -76,10 +76,7 @@ class LutherTestCase(unittest.TestCase):
         )
 
     def setUp(self):
-        luther.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite://'
-        luther.app.config['TESTING'] = True
         self.app = luther.app.test_client()
-        luther.models.init_db()
 
     def tearDown(self):
         pass
@@ -431,6 +428,9 @@ class LutherTestCase(unittest.TestCase):
                 self.assertEqual(rd['guessed_ip'], '1.1.1.1')
 
 if __name__ == '__main__':
+    luther.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite://'
+    luther.app.config['TESTING'] = True
+    luther.models.init_db()
     timer = luther.apiv1.run_stats()
     unittest.main()
     timer.stop()
