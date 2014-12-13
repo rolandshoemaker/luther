@@ -3,17 +3,14 @@ python:
   - "3.4"
 services:
   - redis-server
+addons:
+  postgresql: "9.3"
 env: LUTHER_SETTINGS=$TRAVIS_BUILD_DIR/tests/travis/travis_config.py
 before_install: 
     - bash tests/travis/travis_setup.sh
-    - sudo apt-get install -y python3-setuptools
-    - curl -L -L https://github.com/PyMySQL/PyMySQL/tarball/pymysql-0.6.3 | tar xz
-    - cd PyMySQL*
-    - python setup.py install
-    - cd ..
-    - rm -rf PyMySQL*
+    - sudo apt-get install python3-psycopg2
 install: python setup.py build install
-before_script: mysql -e 'create database luther_test;'
+before_script: psql -c 'create database luther_test;' -U postgres
 script: python3 tests/run_tests.py
 after_failure:
     - sudo cat /var/log/syslog

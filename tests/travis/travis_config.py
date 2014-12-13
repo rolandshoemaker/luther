@@ -15,7 +15,7 @@ import uuid
 ##################
 
 # Database URI
-SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://travis@localhost/luther_test'
+SQLALCHEMY_DATABASE_URI = 'postgresql://postgres@localhost/luther_test'
 # Flask secret key
 SECRET_KEY = str(uuid.uuid4())
 
