@@ -9,9 +9,9 @@ before_install:
     - sudo apt-get install -y python3-setuptools
     - curl -L -L https://github.com/PyMySQL/PyMySQL/tarball/pymysql-0.6.3 | tar xz
     - cd PyMySQL*
-    - sudo python3.4 setup.py install
+    - python3.4 setup.py install
     - cd ..
-    - sudo rm -rf PyMySQL*
+    - rm -rf PyMySQL*
 install: python setup.py build install
 before_script: mysql -e 'create database luther_test;'
 script: python3 tests/run_tests.py
