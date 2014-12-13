@@ -188,6 +188,7 @@ def update_stats():
 
 
 def run_stats():
+    update_stats()
     timer = Manager()
     timer.add_operation(update_stats, app.config['STATS_INTERVAL'])
     return timer
