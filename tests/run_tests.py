@@ -430,8 +430,5 @@ class LutherTestCase(unittest.TestCase):
                 self.assertEqual(rd['guessed_ip'], '1.1.1.1')
 
 if __name__ == '__main__':
-    # luther.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite://'
     luther.app.config['TESTING'] = True
-    # luther.models.init_db()
     unittest.main()
-    timer.stop()

@@ -1,15 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
-
     <head>
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="description" content="">
         <meta name="author" content="">
-
         <title>dnsd.co</title>
-
         <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css">
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
         <link rel="stylesheet" href="/static/luther.css">
@@ -249,73 +246,13 @@
                 </div>
             </div>
         </div>
-        <script>
-            var luther_client_address = '{{client_ip}}';
-        </script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
         <script src="http://cdnjs.cloudflare.com/ajax/libs/knockout/3.1.0/knockout-min.js"></script>
         <script src="https://code.highcharts.com/highcharts.js"></script>
-        <script src="/static/luther.js"></script>
         <script>
-            {% if luther_stats %}
-            $(function () {
-                var stuff = JSON.parse('{{luther_stats|tojson|safe}}');
-                for (var i = 0; i < stuff.users.length; i++) {
-                    stuff.users[i][0] = Date.parse(stuff.users[i][0])
-                }
-                for (var i = 0; i < stuff.subdomains.length; i++) {
-                    stuff.subdomains[i][0] = Date.parse(stuff.subdomains[i][0])
-                }
-                for (var i = 0; i < stuff.subdomain_limit.length; i++) {
-                    stuff.subdomain_limit[i][0] = Date.parse(stuff.subdomain_limit[i][0])
-                }
-                for (var i = 0; i < stuff.updates.length; i++) {
-                    stuff.updates[i][0] = Date.parse(stuff.updates[i][0])
-                }
-                $('#luther-stats').highcharts({
-                    chart: {
-                        type: 'spline'
-                    },
-                    plotOptions: {
-                        spline: {
-                            marker: {
-                                enabled: false
-                            }
-                        }
-                    },
-                    title: {
-                        text: ''
-                    },
-                    xAxis: {
-                        type: 'datetime',
-                        title: {
-                            text: 'Date'
-                        }
-                    },
-                    yAxis: {
-                        min: 0,
-                        allowDecimals: false
-                    },
-                    series: [{
-                        name: 'Number of Users',
-                        data: stuff.users
-                    },{
-                        name: 'Number of Subdomains',
-                        data: stuff.subdomains
-                    },{
-                        name: 'Number of Subdomain Updates since last check',
-                        data: stuff.updates
-                    },{
-                        name: 'Subdomain limit',
-                        data: stuff.subdomain_limit,
-                        dashStyle: 'longdash',
-                        color: '#ff0000',
-                        lineWidth: 1
-                    }]
-                })
-            })
-            {% endif %}
+            var luther_client_address = '{{client_ip}}';
         </script>
+        <script src="/static/luther.js"></script>
     </body>
 </html>

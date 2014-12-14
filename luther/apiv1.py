@@ -156,15 +156,14 @@ predis = PickledRedis(
 def update_stats():
     with app.app_context():
         stats = predis.get('luther/stats')
-        counter = predis.get('luther/counter')
+        counter = redis.get('luther/counter')
         now = str(datetime.datetime.utcnow())
         if not stats:
             stats = {
                 'users': [],
                 'subdomains': [],
                 'subdomain_limit': [],
-                'updates': [],
-                'counter': 0
+                'updates': []
             }
         if not counter:
             counter = 0
@@ -180,9 +179,8 @@ def update_stats():
             app.config['TOTAL_SUBDOMAIN_LIMIT']
         ])
         stats['updates'].append([now, counter])
-        counter = 0
         predis.set('luther/stats', stats)
-        predis.set('luther/counter', counter)
+        redis.set('luther/counter', 0)
 
 
 def run_stats():
@@ -1062,9 +1060,7 @@ def regen_subdomain_token(subdomain_name=None):
         if domain_name == d.name:
             d.generate_domain_token()
             db.session.commit()
-            update_counter = predis.get('luther/counter')
-            update_counter += 1
-            predis.set('luther/counter', update_counter)
+            redis.incr('luther/counter')
             return jsonify(
                 subdomain_api_object(
                     d,
@@ -1161,9 +1157,7 @@ def fancy_interface():
                             message='Subdomain updated.'
                         )
                     )
-                    update_counter = predis.get('luther/counter')
-                    update_counter += 1
-                    predis.set('luther/counter', update_counter)
+                    redis.incr('luther/counter')
                 else:
                     raise LutherBroke()
         else:
@@ -1221,9 +1215,7 @@ def get_interface(domain_name, domain_token, domain_ip=None):
             if ddns_result:
                 domain.ip = domain_ip
                 db.session.commit()
-                update_counter = predis.get('luther/counter')
-                update_counter += 1
-                predis.set('luther/counter', update_counter)
+                redis.incr('luther/counter')
                 return jsonify(
                     subdomain_api_object(domain, message='Subdomain updated.')
                 )
@@ -1248,3 +1240,16 @@ def get_ip():
     :returns: string -- The IP address used to request the endpoint.
     """
     return jsonify({'guessed_ip': request.remote_addr, 'status': 200})
+
+###############
+# Stats route #
+###############
+
+
+@api_v1.route('/stats', methods=['GET'])
+def get_stats():
+    stats = predis.get('luther/stats')
+    if stats:
+        return jsonify(stats)
+    else:
+        return jsonify({'message': 'No statistics.'})

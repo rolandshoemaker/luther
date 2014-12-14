@@ -29,6 +29,7 @@ luther is written by [Roland Shoemaker](https://www.bind.es/).
 * Interchangable `IPv4/6` address use
 * REST User account creation, management, and deletion
 * Simple *Knockout.js* frontend interface
+* CLI tool for administrative actions
 
 ## *Table of Contents*
 

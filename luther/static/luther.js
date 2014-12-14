@@ -309,8 +309,65 @@ ko.applyBindings(addSubdomainViewModel, $('#addSub')[0]);
 ko.applyBindings(editSubdomainViewModel, $('#editSub')[0]);
 ko.applyBindings(loginViewModel, $('#login')[0]);
 
-
 var link = document.querySelector('link[rel="import"]');
 var template = link.import.querySelector('template');
 var clone = document.importNode(template.content, true);
 document.querySelector('#about').appendChild(clone);
+
+$.ajax('http://192.168.1.8/api/v1/stats', 'GET').done(function(stuff) {
+    for (var i = 0; i < stuff.users.length; i++) {
+        stuff.users[i][0] = Date.parse(stuff.users[i][0]);
+    }
+    for (var i = 0; i < stuff.subdomains.length; i++) {
+        stuff.subdomains[i][0] = Date.parse(stuff.subdomains[i][0]);
+    }
+    for (var i = 0; i < stuff.subdomain_limit.length; i++) {
+        stuff.subdomain_limit[i][0] = Date.parse(stuff.subdomain_limit[i][0]);
+    }
+    for (var i = 0; i < stuff.updates.length; i++) {
+        stuff.updates[i][0] = Date.parse(stuff.updates[i][0]);
+    }
+    $('#luther-stats').highcharts({
+        chart: {
+            type: 'spline'
+        },
+        plotOptions: {
+            spline: {
+                marker: {
+                    enabled: false
+                }
+            }
+        },
+        title: {
+            text: ''
+        },
+        xAxis: {
+            type: 'datetime',
+            title: {
+                text: 'Date'
+            }
+        },
+        yAxis: {
+            min: 0,
+            allowDecimals: false
+        },
+        series: [
+            {
+                name: 'Number of Users',
+                data: stuff.users
+            },{
+                name: 'Number of Subdomains',
+                data: stuff.subdomains
+            },{
+                name: 'Number of Subdomain Updates since last check',
+                data: stuff.updates
+            },{
+                name: 'Subdomain limit',
+                data: stuff.subdomain_limit,
+                dashStyle: 'longdash',
+                color: '#ff0000',
+                lineWidth: 1
+            }
+        ]
+    });
+});
