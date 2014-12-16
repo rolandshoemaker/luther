@@ -191,6 +191,7 @@ hr {
 
 a.delacct:hover {
     background-color: rgb(255, 134, 134) !important;
+    color: white !important;
 }
 
 td {

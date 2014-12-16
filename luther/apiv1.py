@@ -309,7 +309,7 @@ def validate_subdomain(subdomain):
     hostname = subdomain+'.'+app.config['DNS_ROOT_DOMAIN']
     if len(hostname) > 255:
         raise LutherBroke(
-            'Subdomain is too long. (max = '+str(255-len('.'+app.config['DNS_ROOT_DOMAIN']))+' characters)'
+            'Subdomain is too long. (max = '+str(app.config['SUB_MAX_LENGTH'])+' characters)'
         )
     allowed = re.compile("(?!-)[A-Z\d-]{1,63}(?<!-)$", re.IGNORECASE)
     return all(allowed.match(x) for x in hostname.split(".")) \

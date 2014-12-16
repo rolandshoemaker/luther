@@ -24,6 +24,7 @@ if app.config.get('OVERRIDE_HTTPS') and app.config['OVERRIDE_HTTPS']:
     app.config['ROOT_HTTP'] = 'http://'+app.config['ROOT_DOMAIN']
 else:
     app.config['ROOT_HTTP'] = 'https://'+app.config['ROOT_DOMAIN']
+app.config['SUB_MAX_LENGTH'] = 255-len('.'+app.config['DNS_ROOT_DOMAIN'])
 
 db = SQLAlchemy(app)
 
