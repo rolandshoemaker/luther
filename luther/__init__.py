@@ -7,7 +7,9 @@
 #
 
 
-"""lightweight REST API for managing DDNS.
+"""
+.. module:: luther
+    :synopsis: lightweight DDNS service with REST API and JS frontend.
 
 .. moduleauthor:: Roland Shoemaker <rolandshoemaker@gmail.com>
 """
@@ -16,7 +18,6 @@ from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
-
 app.config.from_envvar('LUTHER_SETTINGS')
 
 if app.config.get('OVERRIDE_HTTPS') and app.config['OVERRIDE_HTTPS']:
@@ -31,6 +32,12 @@ app.register_blueprint(api_v1, url_prefix='/api/v1')
 if app.config['ENABLE_FRONTEND']:
     from luther.frontend import frontend
     app.register_blueprint(frontend)
+
 from luther.models import init_db
 init_db()
+
+if app.config['PROXIED']:
+    from werkzeug.contrib.fixers import ProxyFix
+    app.wsgi_app = ProxyFix(app.wsgi_app)
+
 timer = run_stats()

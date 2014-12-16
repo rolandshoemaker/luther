@@ -18,32 +18,9 @@
                 <div class="modal-content">
                     <div class="modal-header">
                         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                        <h2 class="modal-title" id="loginLabel" style="text-align: center;">dnsd.co</h2>
+                        <h2 class="modal-title" id="loginLabel" style="text-align: center;">Register</h2>
                     </div>
                     <div class="modal-body">
-                        <h3 style="text-align: center;">Login</h3>
-                        <!-- ko if: user_errors().length -->
-                        <!-- ko foreach: user_errors -->
-                        <div class="alert alert-danger" data-bind="text: message"></div>
-                        <!-- /ko -->
-                        <!-- /ko -->
-                        <form>
-                            <div class="control-group form-group">
-                                <label class="control-label" for="email">Email</label>
-                                <div class="controls">
-                                    <input data-bind="value: email" id="email" class="form-control" placeholder="you@email.com">
-                                </div>
-                            </div>
-                             <div class="control-group form-group">
-                                <label class="control-label" for="password">Password</label>
-                                <div class="controls">
-                                    <input data-bind="value: password" type="password" id="password" class="form-control" placeholder="">
-                                </div>
-                            </div>
-                            <button data-bind="click: login" class="btn btn-primary">Login</button>
-                        </form>
-                        <hr>
-                        <h3 style="text-align: center;">Register</h3>
                         <form>
                             <div class="control-group form-group">
                                 <label class="control-label" for="new_email">Email</label>
@@ -69,120 +46,265 @@
                 </div>
             </div>
         </div>
-        <div id="main" class="container">
-            <div class="row">
-                <div class="col-lg-12 col-centered">
-                    <h1 style="text-align: center; cursor: default;">dnsd.co</h1>
+        <div id="main">
+            <nav id="navie" class="navbar navbar-default" role="navigation">
+                <div class="container-fluid">
+                    <!-- Brand and toggle get grouped for better mobile display -->
+                    <div class="navbar-header">
+                        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1"> <span class="sr-only">Toggle navigation</span>
+                             <span class="icon-bar"></span>
+                             <span class="icon-bar"></span>
+                             <span class="icon-bar"></span>
+                        </button> 
+                        <div class="navbar-brand">
+                            dnsd.co
+                        </div>
+                    </div>
+                    <!-- Collect the nav links, forms, and other content for toggling -->
+                    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                        <!-- ko if: loggedin() -->
+                        <ul class="nav navbar-nav navbar-right">
+                            <li>
+                                <a data-bind="click: beginAdd"><i class="fa fa-plus fa-fw"></i><div class="link-text">Add subdomain</div></a>
+                            </li>
+                            <li class="dropdown">
+                                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-user fa-fw"></i><div class="link-text">User Management</div> <span class="caret"></span></a>
+                                <ul class="dropdown-menu" role="menu">
+                                    <li><a data-bind="click: beginChangePassword">Change password</a></li>
+                                    <li><a data-bind="click: beginDelete" class="delacct">Delete account</a></li>
+                                    <li><a data-bind="click: logout">Logout</a></li>
+                                </ul>
+                            </li>
+                        </ul>
+                        <!-- /ko -->
+                    </div>
+                    <!-- /.navbar-collapse -->
                 </div>
-            </div>
-            <!-- ko if: loggedin() -->
-            <div class="row">
-                <div class="col-lg-12 col-centered">
-                    <!-- ko if: loggedin() -->
-                    <div class="useracts">
-                        <div class="btn-group">
-                            <button data-bind="click: beginChangePassword" class="btn btn-info">Change Password</button>
-                            <button data-bind="click: beginDelete" class="btn btn-danger">Delete Account</button>
-                            <button data-bind="click: logout" class="btn btn-warning">Logout</button>
+                <!-- /.container-fluid -->
+            </nav>
+            <div id="main-content" class="container">
+                <div class="row">
+                    <div class="col-lg-6 col-centered" style="text-align: center; margin-top: 20px; margin-bottom: 10px;">
+                        <div class="well well-sm well-about">
+                            <p><em>dnsd.co</em> is a (<em>beta</em>) free dynamic DNS service running <em><a href="https://lutherd.org" target="_blank">luther</a></em>.</p>
                         </div>
                     </div>
-                    <div class="modal fade" id="delUser" tabindex="-1" role="dialog" aria-labelledby="delUserLabel" aria-hidden="true">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                                    <h4 class="modal-title" id="delUserLabel">Delete Account</h4>
-                                </div>
-                                <div class="modal-body">
-                                    <p>Are you sure?</p>
-                                </div>
-                                <div class="modal-footer">
-                                    <button data-bind="click: deleteUser" class="btn btn-danger">Yep</button>
-                                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal fade" id="editPass" tabindex="-1" role="dialog" aria-labelledby="editPassLabel" aria-hidden="true">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                                    <h4 class="modal-title" id="editPassLabel">Change Password</h4>
-                                </div>
-                                <div class="modal-body">
-                                    <form>
-                                        <div class="control-group form-group">
-                                            <label class="control-label" for="new_password">New Password</label>
-                                            <div class="controls">
-                                                <input data-bind="value: new_password" type="password" type="password" id="password" class="form-control" placeholder="">
-                                            </div>
-                                        </div>
-                                        <div class="control-group form-group">
-                                            <label class="control-label" for="new_password_two">Confirm New Password</label>
-                                            <div class="controls">
-                                                <input data-bind="value: new_password_two" type="password" type="password" id="password" class="form-control" placeholder="">
-                                            </div>
-                                        </div>
-                                        <button data-bind="click: changePassword" class="btn btn-warning">Change</button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
+                    <!-- ko ifnot: loggedin() -->
+                    <div class="col-lg-12 col-centered" style="text-align: center; margin-top: 20px; margin-bottom: 10px;">
+                        <button data-bind="click: beginLogin" class="btn btn-info">Sign up</button>
                     </div>
                     <!-- /ko -->
-                    <h2 style="text-align: center; cursor: default;">Subdomains</h2>
-                    <br>
-                    <!-- ko if: api_errors().length -->
-                    <!-- ko foreach: api_errors -->
-                    <div class="alert alert-dismissable" data-bind="css: level"><div style="display: inline-block;" data-bind="text: message"></div><button id="notif" type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button></div>
-                    <!-- /ko -->
-                    <!-- /ko -->
-                    <div class="table-responsive">
-                        <table class="table table-hover table-condensed">
-                            <tr><td><b>Subdomain</b></td><td><b>IP Address</b></td><td><b>Subdomain_token</b></td><td><b>Last update</b></td><td><b>Options</b></td></tr>
-                            <!-- ko foreach: subdomains -->
-                            <tr>
-                                <td>
-                                    <p data-bind="text: subdomain"></p>
-                                </td>
-                                <td>
-                                    <p data-bind="text: ip"></p>
-                                </td>
-                                <td>
-                                    <p data-bind="text: token"></p>
-                                </td>
-                                <td>
-                                    <p data-bind="text: last_update"></p>
-                                </td>
-                                <td style="text-align: center; min-width: 195px;">
-                                    <div class="btn-group">
-                                        <button data-bind="click: $parent.beginUpdate" class="btn btn-xs btn-success">Update</button>
-                                        <button data-bind="click: $parent.regenToken" class="btn btn-xs btn-warning">Regen token</button>
-                                        <button data-bind="click: $parent.remove" class="btn btn-xs btn-danger">Delete</button>
+                    <div class="col-lg-12 col-centered">
+                        <!-- ko foreach: api_errors -->
+                        <div class="alert alert-dismissable" data-bind="css: level"><div style="display: inline-block;" data-bind="text: message"></div><button id="notif" type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button></div>
+                        <!-- /ko -->
+                    </div>
+                </div>
+                <!-- ko ifnot: loggedin() -->
+                <div class="row" style="width: 80%; margin: 15px auto;">
+                    <div id="token_pane" class="col-lg-6">
+                        <div class="jumbotron">
+                            <h3>Update sudomain with token</h3>
+                            <form>
+                                <div class="control-group form-group">
+                                    <div class="controls">
+                                        <input id="subdomain" class="form-control" placeholder="subdomain">
                                     </div>
-                                </td>
-                            </tr>
-                            <!-- /ko -->
-                        </table>
+                                </div>
+                                <div class="control-group form-group">
+                                    <div class="controls">
+                                        <input id="subdomain_token" class="form-control" placeholder="subdomain_token">
+                                    </div>
+                                </div>
+                                <div class="control-group form-group">
+                                    <div class="controls">
+                                        <input id="ip" class="form-control" placeholder="IP">
+                                    </div>
+                                </div>
+                                <button class="btn btn-primary btn-block">Update</button>
+                            </form>
+                        </div>
                     </div>
-                    <button data-bind="click: beginAdd" class="btn btn-info">Add new subdomain</button>
+                    <div id="login_pane" class="col-lg-6">
+                        <div class="jumbotron">
+                            <h3>Login</h3>
+                            <form>
+                                <div class="control-group form-group">
+                                    <div class="controls">
+                                        <input data-bind="value: email" id="email" class="form-control" placeholder="email">
+                                    </div>
+                                </div>
+                                 <div class="control-group form-group">
+                                    <div class="controls">
+                                        <input data-bind="value: password" type="password" id="password" class="form-control" placeholder="password">
+                                    </div>
+                                </div>
+                                <button data-bind="click: startLogin" class="btn btn-primary btn-block">Login</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <!-- /ko -->
+                <!-- ko if: loggedin() -->
+                <div class="row">
+                    <div class="col-lg-12 col-centered" style="margin-bottom: 20px;">
+                        <!-- ko if: loggedin() -->
+                        <div class="modal fade" id="delUser" tabindex="-1" role="dialog" aria-labelledby="delUserLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                                        <h4 class="modal-title" id="delUserLabel">Delete Account</h4>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p>Are you sure? All y our subdomains will be immediately deleted.</p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button data-bind="click: deleteUser" class="btn btn-danger">Yep</button>
+                                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal fade" id="editPass" tabindex="-1" role="dialog" aria-labelledby="editPassLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                                        <h4 class="modal-title" id="editPassLabel">Change Password</h4>
+                                    </div>
+                                    <div class="modal-body">
+                                        <form>
+                                            <div class="control-group form-group">
+                                                <label class="control-label" for="new_password">New Password</label>
+                                                <div class="controls">
+                                                    <input data-bind="value: new_password" type="password" type="password" id="password" class="form-control" placeholder="">
+                                                </div>
+                                            </div>
+                                            <div class="control-group form-group">
+                                                <label class="control-label" for="new_password_two">Confirm New Password</label>
+                                                <div class="controls">
+                                                    <input data-bind="value: new_password_two" type="password" type="password" id="password" class="form-control" placeholder="">
+                                                </div>
+                                            </div>
+                                            <button data-bind="click: changePassword" class="btn btn-primary">Change</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- /ko -->
+                        <br>
+                        <div class="table-responsive" style="margin-bottom: 20px;">
+                            <table class="table table-hover table-condensed" style="background-color: white;">
+                                <thead>
+                                    <tr style="margin-top:10px; height: 45px; color: white; background-color: #262626;"><th><b>Subdomain</b></th><th><b>IP Address</b></th><th><b>Subdomain_token</b></th><th><b>Last update</b></th><th><b></b></th></tr>
+                                </thead>
+                                <tbody>
+                                <!-- ko foreach: subdomains -->
+                                    <tr>
+                                        <td style="font-family: monospace; white-space: nowrap;">
+                                            <p data-bind="text: subdomain"></p>
+                                        </td>
+                                        <td style="font-family: monospace; white-space: nowrap;">
+                                            <p data-bind="text: ip"></p>
+                                        </td>
+                                        <td style="font-family: monospace; white-space: nowrap;">
+                                            <p data-bind="text: token"></p>
+                                        </td>
+                                        <td style="font-family: monospace; white-space: nowrap;">
+                                            <p data-bind="text: last_update"></p>
+                                        </td>
+                                        <td style="text-align: center; min-width: 200px;">
+                                            <div class="btn-group">
+                                                <button data-bind="click: $parent.beginUpdate" class="btn btn-xs btn-primary">Update IP</button>
+                                                <button data-bind="click: $parent.regenToken" class="btn btn-xs btn-primary">Regen token</button>
+                                                <button data-bind="click: $parent.remove" class="btn btn-xs btn-danger">Delete</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <!-- /ko -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <button data-bind="click: beginAdd" class="btn btn-primary btn-block">Add new subdomain</button>
+                    </div>
+                </div>
+                <!-- /ko -->
+                <div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
+                  <div class="panel panel-default">
+                    <div class="panel-heading" role="tab" id="headingStats">
+                      <h4 class="panel-title">
+                        <a data-toggle="collapse" data-parent="#accordion" href="#collapseStats" aria-expanded="false" aria-controls="collapseStats">
+                          Stats
+                        </a>
+                      </h4>
+                    </div>
+                    <div id="collapseStats" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingStats">
+                      <div class="panel-body">
+                        <div id="luther-stats"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="panel panel-default">
+                    <div class="panel-heading" role="tab" id="headingAbout">
+                      <h4 class="panel-title">
+                        <a class="collapsed" data-toggle="collapse" data-parent="#accordion" href="#collapseAbout" aria-expanded="false" aria-controls="collapseAbout">
+                          About
+                        </a>
+                      </h4>
+                    </div>
+                    <div id="collapseAbout" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingAbout">
+                      <div class="panel-body">
+                        <p><em>dnsd.co</em> is a (<em>beta</em>) free dynamic DNS service running <em><a href="https://lutherd.org" target="_blank">luther</a></em> both of which are maintained by <a href="https://www.bind.es/" target="_blank">roland shoemaker</a>. The aim of <em>luther</em> is to create a lightweight, simple, and easily configurable, customizable, and extendable open source REST API for performing dynamic DNS operations. <em>luther</em> utilizes <a href="http://flask.pocoo.org/" target="_blank">flask</a> for the REST API and <a href="http://www.dnspython.org/" target="_blank">dnspython</a> for handling TSIG authenticated DNS updates to a local or remote DNS server, it also offers a simple <a href="http://knockoutjs.com/" target="_blank">Knockout</a> JS frontend client and a <a href="" targ="_target">redis</a> based statistics gatherer.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="panel panel-default">
+                    <div class="panel-heading" role="tab" id="headingUsagee">
+                      <h4 class="panel-title">
+                        <a class="collapsed" data-toggle="collapse" data-parent="#accordion" href="#collapseUsage" aria-expanded="false" aria-controls="collapseUsage">
+                          Usage
+                        </a>
+                      </h4>
+                    </div>
+                    <div id="collapseUsage" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingUsage">
+                      <div class="panel-body">
+                        <div id="about"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="panel panel-default">
+                    <div class="panel-heading" role="tab" id="headingFAQ">
+                      <h4 class="panel-title">
+                        <a class="collapsed" data-toggle="collapse" data-parent="#accordion" href="#collapseFAQ" aria-expanded="false" aria-controls="collapseFAQ">
+                          FAQ
+                        </a>
+                      </h4>
+                    </div>
+                    <div id="collapseFAQ" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingFAQ">
+                      <div class="panel-body">
+                        <h4>How do I change my password / delete my account?</h4>
+                        <p style="width: 95%; margin: 0 auto;">Click on the little person icon on the right hand side of the navigation bar at the top of the screen and select the option you would like. If you choose to delete your account all data assosiated with it will be immediately deleted.</p>
+                        <h4>What information do  you store?</h4>
+                        <p style="width: 95%; margin: 0 auto;">Your email, hashed password, subdomain names, IP addresses they point to, and the last time they were updated. That is all. We keep no information on <strong>who</strong> is creating/updating/deleting subdomains. The only logs we keep detail DNS errors between our web and DNS servers and activity which may be considered abuse of the service in order to aid in banning users.</p>
+                        <h4>Is this platform secure?</h4>
+                        <p style="width: 95%; margin: 0 auto;">All traffic is forced over SSL (meaning only http is redirected to https), signed using a 256-bit certificate. You can also audit the source code of <em>luther</em> on <a href="https://github.com/rolandshoemaker/luther" target="_blank">github</a> to get a better understanding of what we are doing behind the scenes with the information you provide.</p>
+                        <h4>How stable is this service?</h4>
+                        <p style="width: 95%; margin: 0 auto;">This service is provided for free and is, <strong>seriously</strong>, in beta. It is provided for free as a demonstration of <em><a href="https://lutherd.org/" target="_blank">luther</a></em> and may go down, become unavailable, or have drastic changes in REST API functionality without any notice whatsoever. Our DNS servers are mirrored by the great folks at <a href="https://dns.he.net" target="_blank">hurricane electric</a> so we have great uptime in that respect, but this also imposes a hard limit of 10,000 records (5,000 individual subdomain A records with TXT records) on the service.</p>
+                        <h4>I found a bug! / I have a feature request!</h4>
+                        <p style="width: 95%; margin: 0 auto;">Great! Bug reports can either be sent to <a href="mailto:bugs@dnsd.co" target="_blank">bugs@dnsd.co</a> or (<strong>the much better option</strong>) submitted via the <em>luther</em> github <a href="https://github.com/rolandshoemaker/luther/issues" target="_blank">issues</a> page along with feature requests.</p>
+                        <h4>What DNS server do you use?</h4>
+                        <p style="width: 95%; margin: 0 auto;">Our DNS servers run BIND since why bother reinventing the wheel, 90% of the internet uses it (<em>somewhat based on completely un-factual evidence</em>).</p>
+                        <h4>Why doesn't a reverse lookup of my IP point to my subdomain?</h4>
+                        <p style="width: 95%; margin: 0 auto;">We aren't in charge of the reverse zone that your address resides in, this most likely belongs to your ISP, because of this we won't create any PTR records for your subdomain.</p>
+                        <h4>I'd like to run this for my own domain!</h4>
+                        <p style="width: 95%; margin: 0 auto;">Awesome! That was the real point that drove the development of <em>luther</em>, so if you'd like to setup your own service head over to the <a href="https://lutherd.org/" target="_blank">github</a> page to clone the repository and check out the setup instructions.</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
             </div>
-            <hr>
-            <!-- /ko -->
-            <!-- ko ifnot: loggedin() -->
-            <div class="row">
-                <div class="col-lg-12 col-centered" style="text-align: center; margin-top: 20px; margin-bottom: 10px;">
-                    <button data-bind="click: beginLogin" class="btn btn-info">Login or Register</button>
-                </div>
-            </div>
-            <hr>
-            <!-- /ko -->
-            <h2 style="text-align: center; cursor: default;">Stats</h2>
-            <div id="luther-stats"></div>
-            <hr>
-            <div id="about"></div>
         </div>
         <div class="modal fade" id="addSub" tabindex="-1" role="dialog" aria-labelledby="addSubLabel" aria-hidden="true">
             <div class="modal-dialog">

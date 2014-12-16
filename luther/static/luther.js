@@ -4,8 +4,8 @@ function LutherMainViewModel() {
     self.userURI = "http://192.168.1.8/api/v1/user";
     self.regenURI = "http://192.168.1.8/api/v1/regen_token";
     self.refresh_interval = 600000; // ten minutes
-    self.email = "";
-    self.password = "";
+    self.email = ko.observable();
+    self.password = ko.observable();
     self.subdomains = ko.observableArray();
     self.api_errors = ko.observableArray();
     self.loggedin = ko.observable(false);
@@ -22,7 +22,7 @@ function LutherMainViewModel() {
             dataType: 'json',
             data: JSON.stringify(data),
             beforeSend: function (xhr) {
-                xhr.setRequestHeader("Authorization", "Basic "+btoa(self.email+":"+self.password));
+                xhr.setRequestHeader("Authorization", "Basic "+btoa(self.email()+":"+self.password()));
             },
             error: function(jqXHR) {
                 // debug
@@ -36,10 +36,8 @@ function LutherMainViewModel() {
                         level = "alert-danger";
                     }
                     self.api_errors.push({message: jqXHR.responseJSON.message, level: level});
-                    loginViewModel.user_errors.push({message: jqXHR.responseJSON.message, level: level});
                 } else if (jqXHR.message) {
-                    self.api_errors.push({message: jqXHR.message});
-                    loginViewModel.user_errors.push({message: jqXHR.message});
+                    self.api_errors.push({message: jqXHR.message, level: 'alert-info'});
                 }
             }
         }
@@ -70,20 +68,28 @@ function LutherMainViewModel() {
             if (err.status == 403) {
                 self.loggedin(false);
                 if (!err.responseJSON || err.responseJSON.message == null) {
-                    loginViewModel.user_errors.push({message: 'Invalid credentials'})
+                    self.api_errors.push({message: 'Invalid credentials', level: 'alert-info'})
                 } else if (!(err.responseJSON == null)) {
-                    loginViewModel.user_errors.push({message: err.responseJSON.message})
+                    self.api_errors.push({message: err.responseJSON.message, level: 'alert-info'})
                 }
-                setTimeout(self.beginLogin, 500);
+                // setTimeout(self.beginLogin, 500);
             }
         });
 
         self.resfreshSubs = setTimeout("lutherMainViewModel.refreshSubdomains()", self.refresh_interval);
     }
 
+
+    self.startLogin = function() {
+        if (self.api_errors().length) {
+            self.api_errors.removeAll();
+        }
+        self.login(self.email(), self.password());
+    }
+
     self.login = function(email, password) {
-        self.email = email; 
-        self.password = password;
+        self.email(email); 
+        self.password(password);
 
         self.refreshSubdomains();
     }
@@ -98,8 +104,8 @@ function LutherMainViewModel() {
         if (password == confirm_password) {
             data = {email: email, password: password}
             self.ajax(self.userURI, 'POST', data).done(function(data) {
-                self.email = email;
-                self.password = password;
+                self.email(email);
+                self.password(password);
                 if (self.api_errors().length) {
                     self.api_errors.removeAll();
                 }
@@ -110,16 +116,14 @@ function LutherMainViewModel() {
             }).fail(function(err) {
                 if (err.status == 403) {
                     if (!err.responseJSON || err.responseJSON.message == null) {
-                        loginViewModel.user_errors.push({message: 'Invalid credentials'})
+                        self.api_errors.push({message: 'Invalid credentials', level: 'alert-warning'})
                     } else if (!(err.responseJSON == null)) {
-                        loginViewModel.user_errors.push({message: err.responseJSON.message})
+                        self.api_errors.push({message: err.responseJSON.message, level: 'alert-warning'})
                     }
-                    setTimeout(self.beginLogin, 500);
                 }
             });
         } else {
-            loginViewModel.user_errors.push({message: 'Passwords don\'t match.'});
-            setTimeout(self.beginLogin, 500);
+            self.api_errors.push({message: 'Passwords don\'t match.', level: 'alert-warning'});
         }
     }
 
@@ -140,8 +144,8 @@ function LutherMainViewModel() {
     }
 
     self.logout = function() {
-        self.email = '';
-        self.password = '';
+        self.email('');
+        self.password('');
         self.loggedin(false);
         self.subdomains.removeAll();
         self.api_errors.removeAll();
@@ -159,6 +163,7 @@ function LutherMainViewModel() {
             data = {new_password: self.new_password()}
             self.ajax(self.userURI, 'PUT', data).done(function() {
                 self.api_errors.push({message: 'Password changed.', level: 'alert-info'});
+                self.password(self.new_password());
             });
         } else {
             self.api_errors.push({message: 'Passwords don\'t match.', level: 'alert-warning'});
@@ -295,7 +300,8 @@ function LoginViewModel() {
     }
 
     self.register = function() {
-        lutherMainViewModel.register(self.new_email(), self.new_password(), self.new_password_two())
+        lutherMainViewModel.register(self.new_email(), self.new_password(), self.new_password_two());
+        $('#login').modal('hide');
     }
 }
 
@@ -329,7 +335,8 @@ $.ajax('http://192.168.1.8/api/v1/stats', 'GET').done(function(stuff) {
     }
     $('#luther-stats').highcharts({
         chart: {
-            type: 'spline'
+            type: 'spline',
+            renderTo: '#luther-stats'
         },
         plotOptions: {
             spline: {
@@ -370,4 +377,11 @@ $.ajax('http://192.168.1.8/api/v1/stats', 'GET').done(function(stuff) {
             }
         ]
     });
+});
+
+var width = $('.justified').width();
+$('.justified').css('margin-left', '-' + (width / 2)+'px');
+
+$('#accordion').on('shown.bs.collapse', function () {
+    $(window).resize();
 });

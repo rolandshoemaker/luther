@@ -9,7 +9,7 @@
 """
 .. module:: luther.frontend
     :platform: Unix
-    :synopsis: Frontend for luther service.
+    :synopsis: Frontend Blueprint for luther service.
 
 .. moduleauthor:: Roland Shoemaker <rolandshoemaker@gmail.com>
 """

@@ -14,6 +14,7 @@ import uuid
 # Flask settings #
 ##################
 
+PROXIED = False
 # Database URI
 SQLALCHEMY_DATABASE_URI = 'postgresql://postgres@localhost/luther_test'
 # Flask secret key

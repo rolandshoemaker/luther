@@ -43,3 +43,15 @@ sudo service bind9 restart
 echo
 echo "# Upgrading python setuptools"
 sudo easy_install -U setuptools
+
+# Install python3-psycopg2 for psql
+echo "# Installing psycopg2 system package (python3)"
+sudo apt-get install -y python3-psycopg2
+
+# Install the python package for psql
+echo "# Installing psycopg2 python package"
+pip install psycopg2
+
+# Create psql db
+echo "# Create luther_tests database"
+psql -c 'create database luther_test;' -U postgres

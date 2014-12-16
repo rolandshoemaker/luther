@@ -9,7 +9,7 @@
 """
 .. module:: luther.apiv1
     :platform: Unix
-    :synopsis: lightweight REST API for managing Dynamic DNS.
+    :synopsis: REST API Bleuprint.
 
 .. moduleauthor:: Roland Shoemaker <rolandshoemaker@gmail.com>
 """
@@ -167,6 +167,8 @@ def update_stats():
             }
         if not counter:
             counter = 0
+        else:
+            counter = int(counter)
         if len(stats['users']) >= app.config['STATS_ENTRIES']:
             stats['users'].pop(0)
             stats['subdomains'].pop(0)
@@ -304,11 +306,14 @@ def validate_subdomain(subdomain):
     :returns: bool -- If the subdomain is valid and not restricted.
 
     """
-    if re.match(SUBDOMAIN_REGEX, subdomain) \
-            and subdomain not in app.config['RESTRICTED_SUBDOMAINS']:
-        return True
-    else:
-        return False
+    hostname = subdomain+'.'+app.config['DNS_ROOT_DOMAIN']
+    if len(hostname) > 255:
+        raise LutherBroke(
+            'Subdomain is too long. (max = '+str(255-len('.'+app.config['DNS_ROOT_DOMAIN']))+' characters)'
+        )
+    allowed = re.compile("(?!-)[A-Z\d-]{1,63}(?<!-)$", re.IGNORECASE)
+    return all(allowed.match(x) for x in hostname.split(".")) \
+        and subdomain not in app.config['RESTRICTED_SUBDOMAINS']
 
 
 def json_status_message(message, code, extra=''):
@@ -1252,4 +1257,4 @@ def get_stats():
     if stats:
         return jsonify(stats)
     else:
-        return jsonify({'message': 'No statistics.'})
+        raise LutherBroke('No statistics.', status_code=404)

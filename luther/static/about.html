@@ -1,42 +1,28 @@
 <template>
-<h2>About dnsd.co</h2>
-<p><em>dnsd.co</em> is a (<em>beta</em>) free dynamic DNS service running <em><a href="https://lutherd.org" target="_blank">luther</a></em> both of which are maintained by <a href="https://www.bind.es/" target="_blank">roland shoemaker</a>. The aim of <em>luther</em> is to create a lightweight, simple, and easily configurable, customizable, and extendable open source REST API for performing dynamic DNS operations. <em>luther</em> utilizes <a href="http://flask.pocoo.org/" target="_blank">flask</a> for the REST API and <a href="http://www.dnspython.org/" target="_blank">dnspython</a> for handling TSIG authenticated DNS updates to a local or remote DNS server, it also offers a simple <a href="http://knockoutjs.com/" target="_blank">Knockout</a> JS frontend client and <a href="" targ="_target">redis</a>-based statistics gatherer.</p>
-<br><p style="width: 95%; margin: 0 auto;">For more, various news and write-ups about the service etc can be found on Rolands blog at <em><a href="https://www.bind.es" target="_blank">www.bind.es</a></em>.</p><br>
-
+<p style="width: 95%; margin: 0 auto;">By using the web interface you are only scratching the surface. <em><a href="https://lutherd.org" target="_blank">luther</a></em> is designed to be a highly scriptable service allowing you to perform all the actions you can on the web interface using direct GET & POST requests with JSON or URL parameter payloads. This section will be a quick introduction to how to interact with <em>dnsd.co</em>, for a more in-depth look at what can be done head over to the luther documentation at <a href="https://lutherd.org/docs">lutherd.org/docs</a>.</p>
 <h3>Table of Contents</h3>
 <ul class="task-list">
-      <li><a href="#usage">Usage</a>
-            <ul class="task-list">
-                  <li><a href="#creating-a-user">Creating a User</a></li>
-                  <li><a href="#changing-your-password">Changing your password</a></li>
-                  <li><a href="#deleting-your-account">Deleting your account</a></li>
-                  <li><a href="#checking-what-luther-thinks-your-ip-address-is">Checking what <em>luther</em> thinks your IP address is</a></li>
-                  <li><a href="#creating-a-subdomain">Creating a Subdomain</a></li>
-                  <li><a href="#getting-your-subdomains">Getting your Subdomains</a></li>
-                  <li><a href="#deleting-a-subdomain">Deleting a Subdomain</a></li>
-                  <li><a href="#updating-a-subdomain">Updating a Subdomain</a>
-                        <ul class="task-list">
-                              <li><a href="#get-interface">GET interface</a></li>
-                              <li><a href="#fancy-interface">Fancy interface</a>
-                                    <ul class="task-list">
-                                          <li><a href="#json">JSON</a></li>
-                                          <li><a href="#url">URL parameters</a></li>
-                                    </ul>
-                              </li>
-                        </ul>
-                  </li>
-                  <li><a href="#regenerating-a-subdomain_token">Regenerating a subdomain_token</a></li>
-            </ul>
-      </li>
-      <li><a href="#faq">FAQ</a></li>
-      <li><a href="#tos">Terms of Service</a>
-      <li><a href="#abuse">Abuse Complaints</a>
+  <li><a href="#creating-a-user">Creating a User</a></li>
+  <li><a href="#changing-your-password">Changing your password</a></li>
+  <li><a href="#deleting-your-account">Deleting your account</a></li>
+  <li><a href="#checking-what-luther-thinks-your-ip-address-is">Checking what <em>luther</em> thinks your IP address is</a></li>
+  <li><a href="#creating-a-subdomain">Creating a Subdomain</a></li>
+  <li><a href="#getting-your-subdomains">Getting your Subdomains</a></li>
+  <li><a href="#deleting-a-subdomain">Deleting a Subdomain</a></li>
+  <li><a href="#updating-a-subdomain">Updating a Subdomain</a>
+        <ul class="task-list">
+              <li><a href="#get-interface">GET interface</a></li>
+              <li><a href="#fancy-interface">Fancy interface</a>
+                    <ul class="task-list">
+                          <li><a href="#json">JSON</a></li>
+                          <li><a href="#url">URL parameters</a></li>
+                    </ul>
+              </li>
+        </ul>
+  </li>
+  <li><a href="#regenerating-a-subdomain_token">Regenerating a subdomain_token</a></li>
 </ul>
 
-
-
-<h3 id="usage">Usage</h3>
-<p style="width: 95%; margin: 0 auto;">By using the web interface you are only scratching the surface. <em><a href="https://lutherd.org" target="_blank">luther</a></em> is designed to be a highly scriptable service allowing you to perform all the actions you can on the web interface using direct GET & POST requests with JSON or URL parameter payloads. This section will be a quick introduction to how to interact with <em>dnsd.co</em>, for a more in-depth look at what can be done head over to the luther documentation at <a href="http://lutherd.org/docs">lutherd.org/docs</a>.</p>
 
 <h3 id="creating-a-user"><a name="user-content-creating-a-user" href="#creating-a-user" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Creating a User</h3>
 <p>Creating a user can be accomplised through a POST request to <code>https://dnsd.co/api/v1/user</code> with the email<br>
@@ -363,27 +349,4 @@ Date: Thu, 04 Dec 2014 11:09:03 GMT
   “subdomain”: “example”,
   “subdomain_token”: “a388a2ba-a461-4fbf-b907-281f25723586”
 }%</code></pre>
-
-<h3 id="faq" style="text-align: center; cursor: default;">FAQ</h3>
-<h4>How do I change my password / delete my account?</h4>
-<p style="width: 95%; margin: 0 auto;">Click on the little person icon on the right hand side of the navigation bar at the top of the screen and select the option you would like. If you choose to delete your account all data assosiated with it will be immediately deleted.</p>
-<h4>What information do  you store?</h4>
-<p style="width: 95%; margin: 0 auto;">Your email, hashed password, subdomain names, IP addresses they point to, and the last time they were updated. That is all. We keep no information on <strong>who</strong> is creating/updating/deleting subdomains. The only logs we keep detail DNS errors between our web and DNS servers and activity which may be considered abuse of the service in order to aid in banning users.</p>
-<h4>Is this platform secure?</h4>
-<p style="width: 95%; margin: 0 auto;">All traffic is forced over SSL (meaning only http is redirected to https), signed using a 256-bit certificate. You can also audit the source code of <em>luther</em> on <a href="https://github.com/rolandshoemaker/luther" target="_blank">github</a> to get a better understanding of what we are doing behind the scenes with the information you provide.</p>
-<h4>How stable is this service?</h4>
-<p style="width: 95%; margin: 0 auto;">This service is provided for free and is, <strong>seriously</strong>, in beta. It is provided for free as a demonstration of <em><a href="https://lutherd.org/" target="_blank">luther</a></em> and may go down, become unavailable, or have drastic changes in REST API functionality without any notice whatsoever. Our DNS servers are mirrored by the great folks at <a href="https://dns.he.net" target="_blank">hurricane electric</a> so we have great uptime in that respect, but this also imposes a hard limit of 10,000 records (5,000 individual subdomain A records with TXT records) on the service.</p>
-<h4>I found a bug! / I have a feature request!</h4>
-<p style="width: 95%; margin: 0 auto;">Great! Bug reports can either be sent to <a href="mailto:bugs@dnsd.co" target="_blank">bugs@dnsd.co</a> or (<strong>the much better option</strong>) submitted via the <em>luther</em> github <a href="https://github.com/rolandshoemaker/luther/issues" target="_blank">issues</a> page along with feature requests.</p>
-<h4>What DNS server do you use?</h4>
-<p style="width: 95%; margin: 0 auto;">Our DNS servers run BIND since why bother reinventing the wheel, 90% of the internet uses it (<em>somewhat based on completely un-factual evidence</em>).</p>
-<h4>Why doesn't a reverse lookup of my IP point to my subdomain?</h4>
-<p style="width: 95%; margin: 0 auto;">We aren't in charge of the reverse zone that your address resides in, this most likely belongs to your ISP, because of this we won't create any PTR records for your subdomain.</p>
-<h4>I'd like to run this for my own domain!</h4>
-<p style="width: 95%; margin: 0 auto;">Awesome! That was the real point that drove the development of <em>luther</em>, so if you'd like to setup your own service head over to the <a href="https://lutherd.org/" target="_blank">github</a> page to clone the repository and check out the setup instructions.</p>
-<h3 id="tos">Terms of Service</h3>
-<p style="width: 95%; margin: 0 auto;">somethign something don't be a dick please ._.</p>
-<h3 id="abuse">Abuse Complaints</h3>
-<p style="width: 95%; margin: 0 auto;">If you'd like to file an abuse complaint please email it to <a href="mailto:abuse@dnsd.co" target="_blank">abuse@dnsd.co</a>. We cannot guarantee you will get a response.</p>
-<hr>
 </template>
