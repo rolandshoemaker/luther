@@ -235,7 +235,6 @@ def validate_ip(ip, v6=False):
     :param v6: Address is IPv6.
     :type v6: bool.
     :returns: bool -- If Address is valid.
-
     """
     try:
         if not v6:
@@ -269,7 +268,6 @@ def in_allowed_network(ip, v4_networks=app.config['ALLOWED_USER_V4_SUBNETS'],
     :param v6_networks: List of IPv6 networks to check against.
     :type v6_networks: list.
     :returns: bool -- If address is in one of the provided networks.
-
     """
     in_net = False
     v6 = False
@@ -304,7 +302,6 @@ def validate_subdomain(subdomain):
     :param subdomain: The subdomain to test.
     :type subdomain: string.
     :returns: bool -- If the subdomain is valid and not restricted.
-
     """
     hostname = subdomain+'.'+app.config['DNS_ROOT_DOMAIN']
     if len(hostname) > 255:
@@ -327,7 +324,6 @@ def json_status_message(message, code, extra=''):
     :param extra: Any extra stuff you want appended to the message.
     :type extra: string.
     :returns: obj -- A response object with http status code.
-
     """
     if extra is not '':
         extra = ', '+extra
@@ -1234,7 +1230,7 @@ def get_interface(domain_name, domain_token, domain_ip=None):
 ################
 
 
-@api_v1.route('/geuss_ip', methods=['GET'])
+@api_v1.route('/guess_ip', methods=['GET'])
 @ratelimit(
     limit=app.config['RATE_LIMIT_ACTIONS'],
     per=app.config['RATE_LIMIT_WINDOW']

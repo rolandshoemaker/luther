@@ -43,13 +43,22 @@ body {
     left:50%;
 }
 
+#editTail {
+    color: rgb(160, 160, 160);
+    display: inline-block;
+}
+
+#updIP {
+    display: inline-block;
+}
+
 .well-about {
     background-color: white;
     border-style: dashed;
 }
 
 .panel-default>.panel-heading+.panel-collapse>.panel-body {
-    border-top-color: #262626;
+    border-top-color: #656565;
 }
 
 tbody {
@@ -99,6 +108,20 @@ tbody {
     }
 }
 
+@media (min-width: 768px) {
+    .modal-dialog {
+        width: 800px;
+        margin: 30px auto;
+    }
+}
+
+@media (max-width: 767px) {
+    .modal-dialog {
+        width: auto;
+        margin: 10px;
+    }
+}
+
 .col-centered {
     float: none;
     margin: 0 auto;
@@ -125,10 +148,18 @@ hr {
     border-color: #C9C9C9;
 }
 
-.btn-primary:hover, .btn-primary:focus, .btn-primary.focus, .btn-primary:active, .btn-primary.active, .open>.dropdown-toggle.btn-primary {
+.btn-primary:hover, .open>.dropdown-toggle.btn-primary {
     color: #fff;
     background-color: #B0B0B0;
     border-color: #A9A9A9;
+}
+
+.btn-primary:focus,
+.btn-primary:active,
+.btn-primary.active {
+    color: white !important;
+    background-color: #cccccc;
+    border-color: #CBCBCB;
 }
 
 .modal-backdrop, #login   .modal-backdrop.in {
@@ -145,7 +176,7 @@ hr {
 }
 
 .current .current-row {
-    
+    font-family: monospace;
 }
 
 .current .current-row .bit {
@@ -153,6 +184,13 @@ hr {
     padding: 0px 35px;
     font-size: 18px;
 }
+
+.current .current-row .big-bit {
+    display: inline-block;
+    padding: 0px 35px;
+    font-size: 18px;
+}
+
 
 .current h3 {
     color: black;
@@ -202,7 +240,7 @@ td, th {
     margin-top: 10px;
     height: 30px;
     color: white;
-    background-color: #262626;
+    background-color: #656565;
     font-family: monospace;
 }
 
@@ -969,7 +1007,7 @@ th {
   background-color: rgb(245, 245, 245);
 }
 .table-hover > tbody > tr:hover > th {
-  background-color: #262626;
+  background-color: #656565;
 }
 table col[class*="col-"] {
   position: static;
@@ -1585,13 +1623,10 @@ fieldset[disabled] .btn-default.active {
   border-color: #CBCBCB;
 }
 .btn-primary:hover,
-.btn-primary:focus,
-.btn-primary:active,
-.btn-primary.active,
 .open .dropdown-toggle.btn-primary {
   color: #ffffff;
   background-color: #b8b8b8;
-  border-color: ##B3B3B3;
+  border-color: #B3B3B3;
 }
 .btn-primary:active,
 .btn-primary.active,
@@ -2538,6 +2573,7 @@ input[type="button"].btn-block {
   line-height: 1.428571429;
   color: #333333;
   white-space: nowrap;
+  cursor: pointer;
 }
 .dropdown-menu > li > a:hover,
 .dropdown-menu > li > a:focus {
@@ -3430,7 +3466,7 @@ select[multiple].input-group-sm > .input-group-btn > .btn {
   }
 }
 .navbar-default {
-  background-color: #262626;
+  background-color: #656565;
   border: none;
 }
 .navbar-default .navbar-brand {
@@ -3475,7 +3511,7 @@ select[multiple].input-group-sm > .input-group-btn > .btn {
 }
 .navbar-default .navbar-collapse,
 .navbar-default .navbar-form {
-  border-color: #262626;
+  border-color: #656565;
 }
 .navbar-default .navbar-nav > .open > a,
 .navbar-default .navbar-nav > .open > a:hover,

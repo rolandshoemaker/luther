@@ -67,7 +67,7 @@
                     <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                         <ul class="nav navbar-nav navbar-right">
                             <li>
-                                <a data-bind="click: beginAdd"><i class="fa fa-plus fa-fw"></i><div class="link-text">Add subdomain</div></a>
+                                <a style="cursor: pointer;" data-bind="click: beginAdd"><i class="fa fa-plus fa-fw"></i><div class="link-text">Add subdomain</div></a>
                             </li>
                             <li class="dropdown">
                                 <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-user fa-fw"></i><div class="link-text">User Management</div> <span class="caret"></span></a>
@@ -110,20 +110,20 @@
                             <form>
                                 <div class="control-group form-group">
                                     <div class="controls">
-                                        <input id="subdomain" class="form-control" placeholder="subdomain">
+                                        <input data-bind="value: singleSubdomain" id="subdomain" class="form-control" placeholder="subdomain">
                                     </div>
                                 </div>
                                 <div class="control-group form-group">
                                     <div class="controls">
-                                        <input id="subdomain_token" class="form-control" placeholder="subdomain_token">
+                                        <input data-bind="value: singleToken" id="subdomain_token" class="form-control" placeholder="subdomain_token">
                                     </div>
                                 </div>
                                 <div class="control-group form-group">
                                     <div class="controls">
-                                        <input id="ip" class="form-control" placeholder="IP">
+                                        <input data-bind="value: singleIP" id="ip" class="form-control" placeholder="IP">
                                     </div>
                                 </div>
-                                <button class="btn btn-primary btn-block">Update</button>
+                                <button data-bind="click: singleTokenUpdate" class="btn btn-primary btn-block">Update</button>
                             </form>
                         </div>
                     </div>
@@ -200,7 +200,7 @@
                         <div class="table-responsive" style="margin-bottom: 20px;">
                             <table class="table table-hover table-condensed" style="background-color: white;">
                                 <thead>
-                                    <tr style="margin-top:10px; height: 45px; color: white; background-color: #262626; font-family: monospace;"><th><b>Subdomain</b></th><th><b>IP Address</b></th><th><b>Subdomain_token</b></th><th><b>Last update</b></th><th><b></b></th></tr>
+                                    <tr style="margin-top:10px; height: 45px; color: white; background-color: #656565; font-family: monospace;"><th><b>Subdomain</b></th><th><b>IP Address</b></th><th><b>Subdomain_token</b></th><th><b>Last update</b></th><th><b></b></th></tr>
                                 </thead>
                                 <tbody>
                                 <!-- ko foreach: subdomains -->
@@ -221,7 +221,7 @@
                                             <div class="btn-group">
                                                 <button data-bind="click: $parent.beginUpdate" class="btn btn-xs btn-primary">Update IP</button>
                                                 <button data-bind="click: $parent.regenToken" class="btn btn-xs btn-primary">Regen token</button>
-                                                <button data-bind="click: $parent.remove" class="btn btn-xs btn-danger">Delete</button>
+                                                <button data-bind="click: $parent.beginRemove" class="btn btn-xs btn-danger">Delete</button>
                                             </div>
                                         </td>
                                     </tr>
@@ -229,11 +229,7 @@
                                 </tbody>
                                 <tfoot>
                                     <tr>
-                                        <th></th>
-                                        <th></th>
-                                        <th style="text-align: center;vertical-align: middle;"><i id="refreshSpin" class="fa fa-refresh" data-bind="click: refreshSubdomains" style="cursor: pointer;"></i>   </th>
-                                        <th></th>
-                                        <th></th>
+                                        <th colspan="5" style="text-align: center;vertical-align: middle;"><i id="refreshSpin" class="fa fa-refresh" data-bind="click: refreshSubdomains" style="cursor: pointer;"></i></th>
                                     </tr>
                                 </tfoot>
                             </table>
@@ -270,7 +266,7 @@
                   <div class="panel panel-default">
                     <div class="panel-heading collapsorator" role="tab" id="headingUsagee" class="collapsed" data-toggle="collapse" data-parent="#accordion" href="#collapseUsage" aria-expanded="false" aria-controls="collapseUsage">
                       <h4 class="panel-title">
-                        Usage
+                        REST API Usage
                       </h4>
                     </div>
                     <div id="collapseUsage" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingUsage">
@@ -317,7 +313,11 @@
                         <h4 class="modal-title" id="addSubLabel">Add new subdomain</h4>
                     </div>
                     <div class="modal-body">
-                        <p>Your current IP is (probably): <strong>{{client_ip}}</strong></p>
+                        <div class="well well-sm" style="font-family: monospace;border-style: dashed;text-align: center;">
+                            <strong>You seem to be</strong>
+                            <p>------------------</p>
+                            <p data-bind="text: user_ip" style="font-family: monospace;"></p>
+                        </div>
                         <form>
                             <div class="control-group form-group">
                                 <label class="control-label" for="inputSubdomain">Subdomain name</label>
@@ -349,11 +349,15 @@
                     </div>
                     <div class="modal-body">
                         <div class="current">
-                            <h3>Current</h3>
+                            <div class="well well-sm" style="font-family: monospace;border-style: dashed;text-align: center;">
+                            <strong>Current</strong>
+                            <p>-----------</p>
+                            <div class="current-row"><div class="bit"><div id="updIP" data-bind="text: subdomain"></div><span id="editTail">.dnsd.co</span></div><i class="fa fa-long-arrow-right" style="font-size: 1.5em;"></i><div class="bit" data-bind="text: ip"></div></div>
                             <br>
-                            <div class="current-row"><div class="bit" data-bind="text: subdomain"></div><i class="fa fa-long-arrow-right" style="font-size: 1.5em;"></i><div class="bit" data-bind="text: ip"></div></div>
-                            <br>
-                            <div class="you">You seem to be <strong>{{client_ip}}</strong></div>
+                                <strong>You seem to be</strong>
+                                <p>------------------</p>
+                                <p data-bind="text: user_ip" style="font-family: monospace;"></p>
+                            </div>
                         </div>
                         <form>
                             <div class="control-group form-group">
@@ -366,6 +370,23 @@
                         </form>
                     </div>
                     <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="delSub" tabindex="-1" role="dialog" aria-labelledby="delSubLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                        <h4 class="modal-title" id="delSubLabel">Delete Subdomain</h4>
+                    </div>
+                    <div class="modal-body">
+                        <p>Are you sure you want to delete <code data-bind="text: subdomain"></code>?</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button data-bind="click: remove" class="btn btn-danger">Yep</button>
                         <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
                     </div>
                 </div>

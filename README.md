@@ -41,7 +41,7 @@ luther is written by [Roland Shoemaker](https://www.bind.es/).
     - [*luther* configuration file](#luther-configuration-file)
     - [Dev server](#dev-server)
     - [WSGI Server](#wsgi-server)
-  - [Using `luther-cli`](#using-luther-cli)
+  - [Using the `luther` CLI tool](#using-the-luther-cli-tool)
 - [**Interacting with the *luther* REST API as a user**](#interacting-with-the-luther-rest-api-as-a-user)
   - [Endpoints](#endpoints)
   - [Creating a User](#creating-a-user)
@@ -58,6 +58,7 @@ luther is written by [Roland Shoemaker](https://www.bind.es/).
       - [URL parameters](#url)
   - [Regenerating a subdomain_token](#regenerating-a-subdomain_token)
 - [**Documentation**](#documentation)
+- [**Contributing**](#contributing)
 - [**TODO**](#todo)
 - [**License**](#license)
 
@@ -78,7 +79,10 @@ If you install *luther* using `setup.py` all these Python packages will be insta
   * click (for the cli tool)
   * redis (for rate limiting and storing stats)
 
+You will also need these extra services that *luther* relies on to function.
+
 * Local or remote services not provided by *luther*
+  * WSGI capable Web server (Apache, nginx, gunicorn, etc)
   * DNS server that supports RFC 2136 DNS Updates (BIND > 8, PowerDNS > 3.4, etc)
   * SQL database (MySQL, PostgreSQL, SQLite, etc)
   * Redis database
@@ -140,16 +144,16 @@ To run the tests (*yay you*) run the `tests/run_tests.py`. **But** remember you 
 
     # python tests/run_tests.py
 
-### Using `luther-cli`
+### Using the `luther` CLI tool
 
 `luther-cli` is a simple CLI tool for admistering a luther service, allowing you to add, edit, delete, list, and search both Users and Subdomains among a few other random functions you might need.
 
-    # luther-cli
-    Usage: luther-cli [OPTIONS] COMMAND [ARGS]...
+    # luther
+    Usage: luther [OPTIONS] COMMAND [ARGS]...
 
       CLI tool for interacting with luther -- v0.1 -- roland shoemaker
 
-      [this can be somewhat dangerous to a luther service, i guess. so be careful ._.]
+      [this can be somewhat dangerous to your luther service, i guess. so be careful ._.]
 
     Options:
       --help  Show this message and exit.
@@ -601,7 +605,11 @@ Sphinx documentation can be built from source be navigating to `docs/` and typin
 
     # make html
 
-or you can view the documentation for the latest release at [https://docs.lutherd.org](https://docs.lutherd.org).
+or you can view the documentation for the latest release at [https://www.lutherd.org/docs](https://www.lutherd.org/docs).
+
+## Contributing
+
+Please do! Pull requests are welcomed at the *luther* [github page](https://github.com/rolandshoemaker/luther).
 
 ## TODO
 

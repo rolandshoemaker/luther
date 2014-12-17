@@ -1,8 +1,10 @@
 function LutherMainViewModel() {
     var self = this;
-    self.subdomainsURI = "http://192.168.1.8/api/v1/subdomains"; // this should be set to https
-    self.userURI = "http://192.168.1.8/api/v1/user";
-    self.regenURI = "http://192.168.1.8/api/v1/regen_token";
+    self.baseURI = "http://192.168.1.8";
+    self.subdomainsURI = self.baseURI+"/api/v1/subdomains"; // this should be set to https
+    self.userURI = self.baseURI+"/api/v1/user";
+    self.regenURI = self.baseURI+"/api/v1/regen_token";
+    self.ipURI = self.baseURI+"/api/v1/guess_ip";
     self.refresh_interval = 600000; // ten minutes
     self.email = ko.observable();
     self.password = ko.observable();
@@ -12,6 +14,22 @@ function LutherMainViewModel() {
     self.new_password = ko.observable();
     self.new_password_two = ko.observable();
     self.resfreshSubs = null;
+    self.singleSubdomain = ko.observable('');
+    self.singleToken = ko.observable('');
+    self.getIP = function() {
+        var ip = null;
+        $.ajax({
+            type: 'GET',
+            url: self.ipURI,
+            async: false,
+            success: function(data) {
+                ip = data.guessed_ip;
+            }
+        });
+        return ip;
+    }
+    self.user_ip = self.getIP()
+    self.singleIP = ko.observable(self.user_ip);
 
     self.ajax = function(uri, method, data) {
         var request = {
@@ -25,7 +43,6 @@ function LutherMainViewModel() {
                 xhr.setRequestHeader("Authorization", "Basic "+btoa(self.email()+":"+self.password()));
             },
             error: function(jqXHR) {
-                // debug
                 if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
                     var level = '';
                     if (jqXHR.status < 300) {
@@ -37,12 +54,45 @@ function LutherMainViewModel() {
                     }
                     self.api_errors.push({message: jqXHR.responseJSON.message, level: level});
                 } else if (jqXHR.message) {
-                    self.api_errors.push({message: jqXHR.message, level: 'alert-info'});
+                    self.api_errors.push({message: jqXHR.message, level: 'alert-danger'});
                 }
             }
         }
 
         return $.ajax(request);
+    }
+
+    self.singleTokenUpdate = function() {
+        if (self.singleSubdomain() == '' || self.singleToken == '') {
+            self.api_errors.push({message: 'Both subdomain name and subdomain_token are required', level: 'alert-danger'});
+            return false;
+        }
+        var user_ip = '';
+        if (self.singleIP() == '') {
+            user_ip = self.getIP();
+            self.user_ip = user_ip;
+            self.singleIP(user_ip);
+        }
+        $.get(self.subdomainsURI+'/'+self.singleSubdomain()+'/'+self.singleToken()+'/'+self.singleIP()).done(function(data) {
+            self.api_errors.push({message: data.message, level: 'alert-success'});
+            self.singleSubdomain('');
+            self.singleToken('');
+            self.singleIP(self.user_ip);
+        }).fail(function(err) {
+            if (err.responseJSON && err.responseJSON.message) {
+                    var level = '';
+                    if (err.status < 300) {
+                        level = "alert-info";
+                    } else if (err.status < 500) {
+                        level = "alert-warning";
+                    } else if (err.status < 600) {
+                        level = "alert-danger";
+                    }
+                    self.api_errors.push({message: err.responseJSON.message, level: level});
+                } else if (err.message) {
+                    self.api_errors.push({message: err.message, level: 'alert-danger'});
+                }
+        });
     }
 
     self.beginLogin = function() {
@@ -70,9 +120,9 @@ function LutherMainViewModel() {
             if (err.status == 403) {
                 self.loggedin(false);
                 if (!err.responseJSON || err.responseJSON.message == null) {
-                    self.api_errors.push({message: 'Invalid credentials', level: 'alert-info'})
+                    self.api_errors.push({message: 'Invalid credentials', level: 'alert-danger'})
                 } else if (!(err.responseJSON == null)) {
-                    self.api_errors.push({message: err.responseJSON.message, level: 'alert-info'})
+                    self.api_errors.push({message: err.responseJSON.message, level: 'alert-danger'})
                 }
             }
             $('#refreshSpin').removeClass('fa-spin');
@@ -119,14 +169,14 @@ function LutherMainViewModel() {
             }).fail(function(err) {
                 if (err.status == 403) {
                     if (!err.responseJSON || err.responseJSON.message == null) {
-                        self.api_errors.push({message: 'Invalid credentials', level: 'alert-warning'})
+                        self.api_errors.push({message: 'Invalid credentials', level: 'alert-danger'})
                     } else if (!(err.responseJSON == null)) {
-                        self.api_errors.push({message: err.responseJSON.message, level: 'alert-warning'})
+                        self.api_errors.push({message: err.responseJSON.message, level: 'alert-danger'})
                     }
                 }
             });
         } else {
-            self.api_errors.push({message: 'Passwords don\'t match.', level: 'alert-warning'});
+            self.api_errors.push({message: 'Passwords don\'t match.', level: 'alert-danger'});
         }
     }
 
@@ -139,11 +189,9 @@ function LutherMainViewModel() {
         $('#editSub').modal('show');
     }
 
-    self.remove = function(subdomain) {
-        data = {subdomain: subdomain.subdomain(), confirm: 'DELETE'};
-        self.ajax(self.subdomainsURI, 'DELETE', data).done(function() {
-            self.subdomains.remove(subdomain);
-        });
+    self.beginRemove = function(subdomain) {
+        delSubdomainViewModel.setSubdomain(subdomain);
+        $('#delSub').modal('show');
     }
 
     self.logout = function() {
@@ -165,11 +213,11 @@ function LutherMainViewModel() {
         if (self.new_password() == self.new_password_two()) {
             data = {new_password: self.new_password()}
             self.ajax(self.userURI, 'PUT', data).done(function() {
-                self.api_errors.push({message: 'Password changed.', level: 'alert-info'});
+                self.api_errors.push({message: 'Password changed.', level: 'alert-success'});
                 self.password(self.new_password());
             });
         } else {
-            self.api_errors.push({message: 'Passwords don\'t match.', level: 'alert-warning'});
+            self.api_errors.push({message: 'Passwords don\'t match.', level: 'alert-danger'});
         }
         self.new_password("");
         self.new_password_two("");
@@ -229,6 +277,14 @@ function LutherMainViewModel() {
         });
     }
 
+    self.remove = function(subdomain_obj, subdomain) {
+        data = {subdomain: subdomain, confirm: 'DELETE'};
+        self.ajax(self.subdomainsURI, 'DELETE', data).done(function() {
+            lutherMainViewModel.subdomains.remove(subdomain_obj);
+            lutherMainViewModel.api_errors.push({message: '\''+subdomain+'\' has been deleted', level: 'alert-success'});
+        });
+    }
+
     self.updateSubdomain = function(subdomain, newSubdomain) {
         var i = self.subdomains.indexOf(subdomain);
         self.subdomains()[i].update_uri(newSubdomain.GET_update_URI);
@@ -238,14 +294,13 @@ function LutherMainViewModel() {
         self.subdomains()[i].token(newSubdomain.subdomain_token);
         self.subdomains()[i].last_update(newSubdomain.last_updated+' UTC');
     }
-
-    // self.beginLogin();
 }
 
 function AddSubdomainViewModel() {
     var self = this;
     self.subdomain = ko.observable();
-    self.ip = ko.observable(luther_client_address);
+    self.ip = ko.observable(lutherMainViewModel.user_ip);
+    self.user_ip = ko.observable(self.ip());
 
     self.addSubdomain = function() {
         $('#addSub').modal('hide');
@@ -265,6 +320,7 @@ function EditSubdomainViewModel() {
     self.subdomain_obj = null;
     self.subdomain = ko.observable();
     self.ip = ko.observable();
+    self.user_ip = ko.observable(self.user_ip);
 
     self.setSubdomain = function(subdomain) {
         self.subdomain_obj = subdomain;
@@ -279,6 +335,22 @@ function EditSubdomainViewModel() {
         lutherMainViewModel.update(self.subdomain_obj, {
             ip: self.ip()
         });
+    }
+}
+
+function DelSubdomainViewModel() {
+    var self = this;
+    self.subdomain_obj = null;
+    self.subdomain = ko.observable();
+
+    self.setSubdomain = function(subdomain) {
+        self.subdomain_obj = subdomain;
+        self.subdomain(subdomain.subdomain());
+    }
+
+    self.remove = function() {
+        $('#delSub').modal('hide');
+        lutherMainViewModel.remove(self.subdomain_obj, self.subdomain());
     }
 }
 
@@ -311,11 +383,13 @@ function LoginViewModel() {
 var lutherMainViewModel = new LutherMainViewModel();
 var addSubdomainViewModel = new AddSubdomainViewModel();
 var editSubdomainViewModel = new EditSubdomainViewModel();
+var delSubdomainViewModel = new DelSubdomainViewModel();
 var loginViewModel = new LoginViewModel();
 
 ko.applyBindings(lutherMainViewModel, $('#main')[0]);
 ko.applyBindings(addSubdomainViewModel, $('#addSub')[0]);
 ko.applyBindings(editSubdomainViewModel, $('#editSub')[0]);
+ko.applyBindings(delSubdomainViewModel, $('#delSub')[0]);
 ko.applyBindings(loginViewModel, $('#login')[0]);
 
 var link = document.querySelector('link[rel="import"]');
@@ -369,10 +443,10 @@ $.ajax('http://192.168.1.8/api/v1/stats', 'GET').done(function(stuff) {
                 name: 'Number of Subdomains',
                 data: stuff.subdomains
             },{
-                name: 'Number of Subdomain Updates since last check',
+                name: 'Number of Subdomain updates since last check',
                 data: stuff.updates
             },{
-                name: 'Subdomain limit',
+                name: 'dnsd.co Subdomain limit',
                 data: stuff.subdomain_limit,
                 dashStyle: 'longdash',
                 color: '#ff0000',

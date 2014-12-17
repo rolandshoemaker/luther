@@ -88,21 +88,21 @@ class LutherTestCase(unittest.TestCase):
     ##############
 
     def test_aa_guess_ipv4(self):
-        rv = self.app.get('/api/v1/geuss_ip', environ_base={'REMOTE_ADDR':'1.1.1.1'})
+        rv = self.app.get('/api/v1/guess_ip', environ_base={'REMOTE_ADDR':'1.1.1.1'})
         rd = json.loads(rv.data.decode('ascii'))
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(rd['status'], 200)
         self.assertEqual(rd['guessed_ip'], '1.1.1.1')
 
     def test_ab_guess_ipv6_compact(self):
-        rv = self.app.get('/api/v1/geuss_ip', environ_base={'REMOTE_ADDR':'FE80::0202:B3FF:FE1E:8329'})
+        rv = self.app.get('/api/v1/guess_ip', environ_base={'REMOTE_ADDR':'FE80::0202:B3FF:FE1E:8329'})
         rd = json.loads(rv.data.decode('ascii'))
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(rd['status'], 200)
         self.assertEqual(rd['guessed_ip'], 'FE80::0202:B3FF:FE1E:8329')
 
     def test_ac_guess_ipv6_long(self):
-        rv = self.app.get('/api/v1/geuss_ip', environ_base={'REMOTE_ADDR':'FE80:0000:0000:0000:0202:B3FF:FE1E:8329'})
+        rv = self.app.get('/api/v1/guess_ip', environ_base={'REMOTE_ADDR':'FE80:0000:0000:0000:0202:B3FF:FE1E:8329'})
         rd = json.loads(rv.data.decode('ascii'))
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(rd['status'], 200)
@@ -357,21 +357,21 @@ class LutherTestCase(unittest.TestCase):
         self.assertEqual(rd['message'], 'Bad request, invalid subdomain')
 
     def test_xx_guess_bad_ip(self):
-        rv = self.app.get('/api/v1/geuss_ip', environ_base={'REMOTE_ADDR':'asdimnotaipaddress'})
+        rv = self.app.get('/api/v1/guess_ip', environ_base={'REMOTE_ADDR':'asdimnotaipaddress'})
         rd = json.loads(rv.data.decode('ascii'))
         self.assertEqual(rv.status_code, 403)
         self.assertEqual(rd['status'], 403)
         self.assertEqual(rd['message'], 'You are not in an authorized network')
 
     def test_xxx_guess_bad_ip(self):
-        rv = self.app.get('/api/v1/geuss_ip', environ_base={'REMOTE_ADDR':'7.7.7.7.7'})
+        rv = self.app.get('/api/v1/guess_ip', environ_base={'REMOTE_ADDR':'7.7.7.7.7'})
         rd = json.loads(rv.data.decode('ascii'))
         self.assertEqual(rv.status_code, 403)
         self.assertEqual(rd['status'], 403)
         self.assertEqual(rd['message'], 'You are not in an authorized network')
 
     def test_xxxx_guess_bad_ip(self):
-        rv = self.app.get('/api/v1/geuss_ip', environ_base={'REMOTE_ADDR':'2074613113'})
+        rv = self.app.get('/api/v1/guess_ip', environ_base={'REMOTE_ADDR':'2074613113'})
         rd = json.loads(rv.data.decode('ascii'))
         self.assertEqual(rv.status_code, 403)
         self.assertEqual(rd['status'], 403)
@@ -423,7 +423,7 @@ class LutherTestCase(unittest.TestCase):
     def test_zzzz_rate_limit(self):
         with self.assertRaises(AssertionError):
             for i in range(luther.app.config['RATE_LIMIT_ACTIONS']):
-                rv = self.app.get('/api/v1/geuss_ip', environ_base={'REMOTE_ADDR':'99.99.99.99'})
+                rv = self.app.get('/api/v1/guess_ip', environ_base={'REMOTE_ADDR':'99.99.99.99'})
                 rd = json.loads(rv.data.decode('ascii'))
                 self.assertEqual(rv.status_code, 200)
                 self.assertEqual(rd['status'], 200)
