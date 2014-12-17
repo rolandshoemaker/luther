@@ -50,6 +50,7 @@ function LutherMainViewModel() {
     }
 
     self.refreshSubdomains = function() {
+        $('#refreshSpin').addClass('fa-spin');
         self.ajax(self.subdomainsURI, "GET").done(function(data) {
             self.loggedin(true)
             self.subdomains.removeAll()
@@ -64,6 +65,7 @@ function LutherMainViewModel() {
                 });
             }
             $('#login').modal('hide');
+            $('#refreshSpin').removeClass('fa-spin');
         }).fail(function(err) {
             if (err.status == 403) {
                 self.loggedin(false);
@@ -72,13 +74,16 @@ function LutherMainViewModel() {
                 } else if (!(err.responseJSON == null)) {
                     self.api_errors.push({message: err.responseJSON.message, level: 'alert-info'})
                 }
-                // setTimeout(self.beginLogin, 500);
             }
+            $('#refreshSpin').removeClass('fa-spin');
         });
 
-        self.resfreshSubs = setTimeout("lutherMainViewModel.refreshSubdomains()", self.refresh_interval);
     }
 
+    self.subTimeout = function () {
+        self.refreshSubdomains();
+        self.resfreshSubs = setTimeout("lutherMainViewModel.subTimeout()", self.refresh_interval);
+    }
 
     self.startLogin = function() {
         if (self.api_errors().length) {
@@ -91,7 +96,7 @@ function LutherMainViewModel() {
         self.email(email); 
         self.password(password);
 
-        self.refreshSubdomains();
+        self.subTimeout();
     }
 
     self.register = function(email, password, confirm_password) {
@@ -104,15 +109,13 @@ function LutherMainViewModel() {
         if (password == confirm_password) {
             data = {email: email, password: password}
             self.ajax(self.userURI, 'POST', data).done(function(data) {
-                self.email(email);
-                self.password(password);
                 if (self.api_errors().length) {
                     self.api_errors.removeAll();
                 }
                 if (loginViewModel.user_errors().length) {
                     loginViewModel.user_errors.removeAll();
                 }
-                self.refreshSubdomains();
+                self.login(email, password);
             }).fail(function(err) {
                 if (err.status == 403) {
                     if (!err.responseJSON || err.responseJSON.message == null) {
@@ -373,9 +376,13 @@ $.ajax('http://192.168.1.8/api/v1/stats', 'GET').done(function(stuff) {
                 data: stuff.subdomain_limit,
                 dashStyle: 'longdash',
                 color: '#ff0000',
-                lineWidth: 1
+                lineWidth: 1,
+                visible: false
             }
-        ]
+        ],
+        tooltip: {
+            enabled: false
+        }
     });
 });
 

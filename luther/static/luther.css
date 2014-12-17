@@ -194,10 +194,21 @@ a.delacct:hover {
     color: white !important;
 }
 
-td {
+td, th {
     cursor: default;
 }
 
+.table-condensed > tfoot > tr {
+    margin-top: 10px;
+    height: 30px;
+    color: white;
+    background-color: #262626;
+    font-family: monospace;
+}
+
+.collapsorator {
+    cursor: pointer;
+}
 
 /*! normalize.css v3.0.0 | MIT License | git.io/normalize */
 audio:not([controls]) {
@@ -891,10 +902,7 @@ th {
   width: 100%;
   margin-bottom: 0px;
 }
-.table > tfoot > tr > th,
-.table > thead > tr > td,
-.table > tbody > tr > td,
-.table > tfoot > tr > td {
+.table > tbody > tr > td {
   padding: 8px;
   line-height: 1.428571429;
   vertical-align: middle;
@@ -904,6 +912,7 @@ th {
 .table > tbody > tr > td > p {
     vertical-align: middle;
     margin: 1px 0 0 1px;
+    display: inline
 }
 .table > thead > tr > th,
 .table > tbody > tr > th {
@@ -3224,6 +3233,7 @@ select[multiple].input-group-sm > .input-group-btn > .btn {
   font-size: 18px;
   line-height: 20px;
   height: 50px;
+  cursor: default;
 }
 .navbar-brand:hover,
 .navbar-brand:focus {
@@ -3454,7 +3464,7 @@ select[multiple].input-group-sm > .input-group-btn > .btn {
   background-color: transparent;
 }
 .navbar-default .navbar-toggle {
-  border-color: #dddddd;
+  border: none;
 }
 .navbar-default .navbar-toggle:hover,
 .navbar-default .navbar-toggle:focus {

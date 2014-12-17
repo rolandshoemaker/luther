@@ -7,16 +7,25 @@
 # |_| \__,_| \__||_| |_| \___||_|
 #
 
-from luther import app, db
-from luther.apiv1 import new_ddns, update_ddns, \
-    delete_ddns, validate_ip, predis, run_stats
-from luther.models import User, Subdomain
 import ipaddress
 from tabulate import tabulate
 import click
 import dns.message
 import dns.query
 import dns.resolver
+
+def build_config_file():
+    click.echo('yup, welp')
+    exit(0)
+
+try:
+    from luther import app, db
+except RuntimeError:
+    click.secho('you seem to have no config (LUTHER_SETTINGS is not set or broken), lets go make one!', fg='red')
+    build_config_file()
+from luther.apiv1 import new_ddns, update_ddns, \
+    delete_ddns, validate_ip, predis, run_stats
+from luther.models import User, Subdomain
 
 @click.group()
 def cli():
@@ -303,8 +312,8 @@ def list_subdomains(ctx):
     with app.app_context():
         results = []
         for sub in Subdomain.query.all():
-            results.append([sub.name, sub.ip, sub.token, sub.last_updated, sub.user.email])
-        click.echo(tabulate(results, ['subdomain', 'ip', 'token', 'last updated', 'user']))
+            results.append([sub.name, sub.name+'.'+app.config['DNS_ROOT_DOMAIN'], sub.ip, sub.token, sub.last_updated, sub.user.email])
+        click.echo(tabulate(results, ['subdomain', 'fqdn', 'ip', 'token', 'last updated', 'user']))
         click.echo()
 
 @cli.command('search_subdomains')
@@ -321,8 +330,8 @@ def search_users(name, ip):
         else:
             return False
         for sub in subdomains:
-            results.append([sub.name, sub.ip, sub.token, sub.last_updated, sub.user.email])
-        click.echo(tabulate(results, ['subdomain', 'ip', 'token', 'last updated', 'user']))
+            results.append([sub.name, sub.name+'.'+app.config['DNS_ROOT_DOMAIN'], sub.ip, sub.token, sub.last_updated, sub.user.email])
+        click.echo(tabulate(results, ['subdomain', 'fqdn', 'ip', 'token', 'last updated', 'user']))
         click.echo()
 
 @cli.command('search_users')
@@ -387,13 +396,8 @@ def init_db():
 @click.option('--host', default='127.0.0.1', help='Host address to bind to, defaults to \'127.0.0.1\'')
 @click.option('--port', default=5000, help='Host port to bind to, defaults to \'5000\'')
 @click.option('--reloader', default=False, help='Whether or not to reload (bad idea to use with --stats')
-@click.option('--stats/--no-stats', default=False, help='Generate statistics')
-def dev_server(host, port, reloader, stats):
+def dev_server(host, port, reloader):
     """Run the development web server"""
-    if stats:
-        with app.app_context():
-            run_stats()
-
     app.run(debug=True, use_reloader=reloader, host=host, port=port)
 
 @cli.command('check_stats')

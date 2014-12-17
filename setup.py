@@ -17,7 +17,10 @@ setup(
     author_email='rolandshoemaker@gmail.com',
     url='https://lutherd.org/',
     packages=['luther'],
-    scripts=['scripts/luther-cli'],
+    entry_points='''
+        [console_scripts]
+        luther=luther.scripts.cli:cli
+    ''',
     include_package_data=True,
     zip_safe=False,
     install_requires=[
