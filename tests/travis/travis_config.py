@@ -70,9 +70,7 @@ TSIG_KEY = 'FbpOCJbGUchAZG1iKSfhJQ=='
 # Default TTL for A, AAAA, and TXT records
 DEFAULT_TTL = 86400
 # IPv4 subnets that A record addresses are allowed in (default is IPv4 default route, i.e. everyone)
-ALLOWED_DDNS_IPV4_SUBNETS = ['0.0.0.0/0']
-# IPv6 subnets that AAAA record addresses are allowed in (default is IPv6 default route, i.e. everyone)
-ALLOWED_DDNS_IPV6_SUBNETS = ['::/0']
+ALLOWED_DDNS_SUBNETS = ['0.0.0.0/0', '::/0']
 # Should private IP addresses be allowed in A/AAAA records?
 ALLOW_PRIVATE_ADDRESSES = True
 # Should luther add TXT records for each subdomain with the last update time?
@@ -83,9 +81,7 @@ ADD_TXT_RECORDS = True
 ################
 
 # IPv4 subnets that users are allowed in (default is IPv4 default route, i.e. everyone)
-ALLOWED_USER_V4_SUBNETS = ['0.0.0.0/0']
-# IPv6 subnets that users are allowed in (default is IPv6 default route, i.e. everyone)
-ALLOWED_USER_V6_SUBNETS = ['::/0']
+ALLOWED_USER_SUBNETS = ['0.0.0.0/0', '::/0']
 # User subdomain quota
 DEFAULT_USER_QUOTA = 5
 # Should luther validate emails? (using RFC 2822-ish regex)

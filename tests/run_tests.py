@@ -4,6 +4,7 @@ import json
 import unittest
 import tempfile
 import base64
+import ipaddress
 
 class LutherTestCase(unittest.TestCase):
     invalid_emails = [
@@ -25,8 +26,17 @@ class LutherTestCase(unittest.TestCase):
         'Abc..123@example.com',
         'just”not”right@example.com'
     ]
+    # Documentation block IPv4 addresses (RFC 5373)
+    first_ipv4 = '203.0.113.113'
+    second_ipv4 = '203.0.113.10'
+    third_ipv4 = '203.0.113.200'
+    # Documentation block IPv6 addresses (RFC 3849)
+    first_ipv6 = '2001:DB8::'
+    first_ipv6_exploded = ipaddress.IPv6Address(first_ipv6).exploded
+    second_ipv6 = '2001:0db8:0000::0000:0000:0F0F'
+    second_ipv6_exploded = ipaddress.IPv6Address(second_ipv6).exploded
 
-    def post_json(self, url, data, environ_base={'REMOTE_ADDR':'1.1.1.1'}):
+    def post_json(self, url, data, environ_base={'REMOTE_ADDR':first_ipv4}):
         return self.app.post(
             url,
             data=data,
@@ -34,7 +44,7 @@ class LutherTestCase(unittest.TestCase):
             environ_base=environ_base
         )
 
-    def put_json(self, url, data, environ_base={'REMOTE_ADDR':'1.1.1.1'}):
+    def put_json(self, url, data, environ_base={'REMOTE_ADDR':first_ipv4}):
         return self.app.put(
             url,
             data=data,
@@ -42,7 +52,7 @@ class LutherTestCase(unittest.TestCase):
             environ_base=environ_base
         )
 
-    def post_json_auth(self, url, data, username, password, environ_base={'REMOTE_ADDR':'1.1.1.1'}):
+    def post_json_auth(self, url, data, username, password, environ_base={'REMOTE_ADDR':first_ipv4}):
         creds = '%s:%s' % (username, password)
         b64_str = base64.standard_b64encode(bytes(creds.encode('ascii')))
         return self.app.post(
@@ -55,7 +65,7 @@ class LutherTestCase(unittest.TestCase):
             }
         )
 
-    def put_json_auth(self, url, data, username, password, environ_base={'REMOTE_ADDR':'1.1.1.1'}):
+    def put_json_auth(self, url, data, username, password, environ_base={'REMOTE_ADDR':first_ipv4}):
         creds = '%s:%s' % (username, password)
         b64_str = base64.standard_b64encode(bytes(creds.encode('ascii')))
         return self.app.put(
@@ -69,7 +79,7 @@ class LutherTestCase(unittest.TestCase):
         )
 
 
-    def delete_json_auth(self, url, data, username, password, environ_base={'REMOTE_ADDR':'1.1.1.1'}):
+    def delete_json_auth(self, url, data, username, password, environ_base={'REMOTE_ADDR':first_ipv4}):
         creds = '%s:%s' % (username, password)
         b64_str = base64.standard_b64encode(bytes(creds.encode('ascii')))
         return self.app.delete(
@@ -82,7 +92,7 @@ class LutherTestCase(unittest.TestCase):
             }
         )
 
-    def open_with_auth(self, url, method, username, password, data=None, environ_base={'REMOTE_ADDR':'1.1.1.1'}):
+    def open_with_auth(self, url, method, username, password, data=None, environ_base={'REMOTE_ADDR':first_ipv4}):
         creds = '%s:%s' % (username, password)
         b64_str = base64.standard_b64encode(bytes(creds.encode('ascii')))
         return self.app.open(
@@ -108,29 +118,29 @@ class LutherTestCase(unittest.TestCase):
     ##############
 
     def test_aa_guess_ipv4(self):
-        rv = self.app.get('/api/v1/guess_ip', environ_base={'REMOTE_ADDR':'1.1.1.1'})
+        rv = self.app.get('/api/v1/guess_ip', environ_base={'REMOTE_ADDR':self.first_ipv4})
         rd = json.loads(rv.data.decode('ascii'))
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(rd['status'], 200)
-        self.assertEqual(rd['guessed_ip'], '1.1.1.1')
+        self.assertEqual(rd['guessed_ip'], self.first_ipv4)
 
     def test_ab_guess_ipv6_compact(self):
-        rv = self.app.get('/api/v1/guess_ip', environ_base={'REMOTE_ADDR':'FE80::0202:B3FF:FE1E:8329'})
+        rv = self.app.get('/api/v1/guess_ip', environ_base={'REMOTE_ADDR':self.first_ipv6})
         rd = json.loads(rv.data.decode('ascii'))
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(rd['status'], 200)
-        self.assertEqual(rd['guessed_ip'], 'FE80::0202:B3FF:FE1E:8329')
+        self.assertEqual(rd['guessed_ip'], self.first_ipv6_exploded)
 
     def test_ac_guess_ipv6_long(self):
-        rv = self.app.get('/api/v1/guess_ip', environ_base={'REMOTE_ADDR':'FE80:0000:0000:0000:0202:B3FF:FE1E:8329'})
+        rv = self.app.get('/api/v1/guess_ip', environ_base={'REMOTE_ADDR':self.second_ipv6})
         rd = json.loads(rv.data.decode('ascii'))
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(rd['status'], 200)
-        self.assertEqual(rd['guessed_ip'], 'FE80:0000:0000:0000:0202:B3FF:FE1E:8329')
+        self.assertEqual(rd['guessed_ip'], self.second_ipv6_exploded)
 
     def test_ba_frontend_unauth_user(self):
         # How are unauthenticated requests handled
-        rv = self.app.get('/api/v1/subdomains', environ_base={'REMOTE_ADDR':'1.1.1.1'})
+        rv = self.app.get('/api/v1/subdomains', environ_base={'REMOTE_ADDR':self.first_ipv4})
         self.assertEqual(rv.status_code, 403)
 
     def test_bb_add_user(self):
@@ -194,16 +204,16 @@ class LutherTestCase(unittest.TestCase):
         self.assertEqual(rv.status_code, 201)
         self.assertEqual(rd['status'], 201)
         self.assertEqual(rd['subdomain'], 'travis-example')
-        self.assertEqual(rd['ip'], '1.1.1.1')
+        self.assertEqual(rd['ip'], self.first_ipv4)
 
     def test_cab_add_sub_spec_ip(self):
-        d = '{"subdomain":"travis-ip-example", "ip":"FE80::0202:B3FF:FE1E:8329"}'
+        d = '{"subdomain":"travis-ip-example", "ip":"'+self.first_ipv6+'"}'
         rv = self.post_json_auth('/api/v1/subdomains', d, 'tester@travis-ci.org', 'betterpassword')
         rd = json.loads(rv.data.decode('ascii'))
         self.assertEqual(rv.status_code, 201)
         self.assertEqual(rd['status'], 201)
         self.assertEqual(rd['subdomain'], 'travis-ip-example')
-        self.assertEqual(rd['ip'], 'fe80:0000:0000:0000:0202:b3ff:fe1e:8329')
+        self.assertEqual(rd['ip'], self.first_ipv6_exploded)
 
     def test_cba_get_and_update_subs(self):
         # Get list of subdomains
@@ -212,9 +222,9 @@ class LutherTestCase(unittest.TestCase):
         rd = json.loads(rv.data.decode('ascii'))
         self.assertEqual(rd['status'], 200)
         self.assertEqual(len(rd['subdomains']), 2)
-        self.assertEqual(rd['subdomains'][0]['ip'], '1.1.1.1')
+        self.assertEqual(rd['subdomains'][0]['ip'], self.first_ipv4)
         self.assertEqual(rd['subdomains'][0]['subdomain'], 'travis-example')
-        self.assertEqual(rd['subdomains'][1]['ip'], 'fe80:0000:0000:0000:0202:b3ff:fe1e:8329')
+        self.assertEqual(rd['subdomains'][1]['ip'], self.first_ipv6_exploded)
         self.assertEqual(rd['subdomains'][1]['subdomain'], 'travis-ip-example')
         self.assertIsNotNone(rd['subdomains'][0]['subdomain_token'])
         self.assertIsNotNone(rd['subdomains'][1]['subdomain_token'])
@@ -222,20 +232,20 @@ class LutherTestCase(unittest.TestCase):
         addr_two = rd['subdomains'][1]['GET_update_URI']
 
         # Update via GET interface
-        rv = self.app.get(addr_one+'/5.5.5.5', environ_base={'REMOTE_ADDR':'1.1.1.1'})
+        rv = self.app.get(addr_one+'/'+self.second_ipv4, environ_base={'REMOTE_ADDR':self.first_ipv4})
         self.assertEqual(rv.status_code, 200)
         rd = json.loads(rv.data.decode('ascii'))
         self.assertEqual(rd['status'], 200)
         self.assertEqual(rd['subdomain'], 'travis-example')
-        self.assertEqual(rd['ip'], '5.5.5.5')
+        self.assertEqual(rd['ip'], self.second_ipv4)
 
         # Convert to IPv6
-        rv = self.app.get(addr_two+'/2001:db8:1234:ffff:ffff:ffff:ffff:ffff', environ_base={'REMOTE_ADDR':'1.1.1.1'})
+        rv = self.app.get(addr_two+'/'+self.second_ipv6, environ_base={'REMOTE_ADDR':self.first_ipv4})
         self.assertEqual(rv.status_code, 200)
         rd = json.loads(rv.data.decode('ascii'))
         self.assertEqual(rd['status'], 200)
         self.assertEqual(rd['subdomain'], 'travis-ip-example')
-        self.assertEqual(rd['ip'], '2001:0db8:1234:ffff:ffff:ffff:ffff:ffff')
+        self.assertEqual(rd['ip'], self.second_ipv6_exploded)
 
     def test_cbb_get_and_fancy_update_subs(self):
         # Get list of subdomains
@@ -244,9 +254,9 @@ class LutherTestCase(unittest.TestCase):
         rd = json.loads(rv.data.decode('ascii'))
         self.assertEqual(rd['status'], 200)
         self.assertEqual(len(rd['subdomains']), 2)
-        self.assertEqual(rd['subdomains'][0]['ip'], '5.5.5.5')
+        self.assertEqual(rd['subdomains'][0]['ip'], self.second_ipv4)
         self.assertEqual(rd['subdomains'][0]['subdomain'], 'travis-example')
-        self.assertEqual(rd['subdomains'][1]['ip'], '2001:0db8:1234:ffff:ffff:ffff:ffff:ffff')
+        self.assertEqual(rd['subdomains'][1]['ip'], self.second_ipv6_exploded)
         self.assertEqual(rd['subdomains'][1]['subdomain'], 'travis-ip-example')
         self.assertIsNotNone(rd['subdomains'][0]['subdomain_token'])
         self.assertIsNotNone(rd['subdomains'][1]['subdomain_token'])
@@ -254,14 +264,14 @@ class LutherTestCase(unittest.TestCase):
         token_two = rd['subdomains'][1]['subdomain_token']
 
         # Update via fancy interface inc. guess, convert back to IPv4
-        d = '{"subdomains": [{"subdomain": "travis-example", "subdomain_token": "'+token_one+'"},{"subdomain": "travis-ip-example", "subdomain_token": "'+token_two+'", "ip": "8.8.8.8"}]}'
+        d = '{"subdomains": [{"subdomain": "travis-example", "subdomain_token": "'+token_one+'"},{"subdomain": "travis-ip-example", "subdomain_token": "'+token_two+'", "ip": "'+self.third_ipv4+'"}]}'
         rv = self.put_json('/api/v1/subdomains', d)
         self.assertEqual(rv.status_code, 200)
         rd = json.loads(rv.data.decode('ascii'))
         self.assertEqual(rd['status'], 200)
-        self.assertEqual(rd['subdomains'][0]['ip'], '1.1.1.1')
+        self.assertEqual(rd['subdomains'][0]['ip'], self.first_ipv4)
         self.assertEqual(rd['subdomains'][0]['subdomain'], 'travis-example')
-        self.assertEqual(rd['subdomains'][1]['ip'], '8.8.8.8')
+        self.assertEqual(rd['subdomains'][1]['ip'], self.third_ipv4)
         self.assertEqual(rd['subdomains'][1]['subdomain'], 'travis-ip-example')
         self.assertIsNotNone(rd['subdomains'][0]['subdomain_token'])
         self.assertIsNotNone(rd['subdomains'][1]['subdomain_token'])
@@ -272,9 +282,9 @@ class LutherTestCase(unittest.TestCase):
         rd = json.loads(rv.data.decode('ascii'))
         self.assertEqual(rd['status'], 200)
         self.assertEqual(len(rd['subdomains']), 2)
-        self.assertEqual(rd['subdomains'][0]['ip'], '1.1.1.1')
+        self.assertEqual(rd['subdomains'][0]['ip'], self.first_ipv4)
         self.assertEqual(rd['subdomains'][0]['subdomain'], 'travis-example')
-        self.assertEqual(rd['subdomains'][1]['ip'], '8.8.8.8')
+        self.assertEqual(rd['subdomains'][1]['ip'], self.third_ipv4)
         self.assertEqual(rd['subdomains'][1]['subdomain'], 'travis-ip-example')
         self.assertIsNotNone(rd['subdomains'][0]['subdomain_token'])
         self.assertIsNotNone(rd['subdomains'][1]['subdomain_token'])
@@ -283,13 +293,13 @@ class LutherTestCase(unittest.TestCase):
         token_one = rd['subdomains'][0]['subdomain_token']
         token_two = rd['subdomains'][1]['subdomain_token']
 
-        rv = self.open_with_auth(addr_one, 'POST', 'tester@travis-ci.org', 'betterpassword', environ_base={'REMOTE_ADDR':'1.1.1.1'})
+        rv = self.open_with_auth(addr_one, 'POST', 'tester@travis-ci.org', 'betterpassword', environ_base={'REMOTE_ADDR':self.first_ipv4})
         self.assertEqual(rv.status_code, 200)
         rd = json.loads(rv.data.decode('ascii'))
         self.assertEqual(rd['status'], 200)
         self.assertNotEqual(rd['subdomain_token'], token_one)
 
-        rv = self.open_with_auth(addr_two, 'POST', 'tester@travis-ci.org', 'betterpassword', environ_base={'REMOTE_ADDR':'1.1.1.1'})
+        rv = self.open_with_auth(addr_two, 'POST', 'tester@travis-ci.org', 'betterpassword', environ_base={'REMOTE_ADDR':self.first_ipv4})
         self.assertEqual(rv.status_code, 200)
         rd = json.loads(rv.data.decode('ascii'))
         self.assertEqual(rd['status'], 200)
@@ -545,7 +555,7 @@ class LutherTestCase(unittest.TestCase):
                 rd = json.loads(rv.data.decode('ascii'))
                 self.assertEqual(rv.status_code, 200)
                 self.assertEqual(rd['status'], 200)
-                self.assertEqual(rd['guessed_ip'], '1.1.1.1')
+                self.assertEqual(rd['guessed_ip'], self.first_ipv4)
 
 if __name__ == '__main__':
     luther.app.config['TESTING'] = True

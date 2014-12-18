@@ -44,7 +44,7 @@ luther is written by [Roland Shoemaker](https://www.bind.es/).
     - [*luther* configuration file](#luther-configuration-file)
     - [Dev server](#dev-server)
     - [WSGI Server](#wsgi-server)
-  - [Using the `luther` CLI tool](#using-the-luther-cli-tool)
+  - [Using the `luther-manage` CLI tool](#using-the-luther-manage-cli-tool)
 - [**Interacting with the *luther* REST API as a user**](#interacting-with-the-luther-rest-api-as-a-user)
   - [Endpoints](#endpoints)
   - [Creating a User](#creating-a-user)
@@ -151,13 +151,9 @@ First copy the example configuration file `examples/luther-config.py.example`
 
 #### Dev server
 
-To run the development server run
+You can use `luther-manage` to run the simple *Flask* development server using the command `dev_server`
 
-    # python3 scripts/dev_server.py
-    
-    -- or --
-    
-    # luther-cli dev_server
+    # luther-manage dev_server (will automatically run on 127.0.0.1:5000, --host and --port can be used for different settings)
 
 #### WSGI Server
 
@@ -167,12 +163,12 @@ To run the tests (*yay you*) run the `tests/run_tests.py`. **But** remember you 
 
     # python tests/run_tests.py
 
-### Using the `luther` CLI tool
+### Using the `luther-manage` CLI tool
 
-`luther-cli` is a simple CLI tool for admistering a luther service, allowing you to add, edit, delete, list, and search both Users and Subdomains among a few other random functions you might need.
+`luther-manage` is a simple CLI tool for admistering a luther service, allowing you to add, edit, delete, list, and search both Users and Subdomains among a few other random functions you might need or want access to.
 
-    # luther
-    Usage: luther [OPTIONS] COMMAND [ARGS]...
+    # luther-manage
+    Usage: luther-manage [OPTIONS] COMMAND [ARGS]...
 
       CLI tool for interacting with luther -- v0.1 -- roland shoemaker
 

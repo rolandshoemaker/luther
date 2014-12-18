@@ -1,4 +1,3 @@
-#!/usr/bin/python
 #  _         _    _
 # | |       | |  | |
 # | | _   _ | |_ | |__    ___  _ __
@@ -8,23 +7,21 @@
 #
 
 import ipaddress
+import datetime
 from tabulate import tabulate
 import click
 import dns.message
 import dns.query
 import dns.resolver
 
-def build_config_file():
-    click.echo('yup, welp')
-    exit(0)
-
 try:
     from luther import app, db
 except RuntimeError:
-    click.secho('you seem to have no config (LUTHER_SETTINGS is not set or broken), lets go make one!', fg='red')
-    build_config_file()
+    click.secho('LUTHER_SETTINGS is not set, or the file it points to is corrupt or incomplete', fg='red')
+    click.secho('luther-manage cannot run', fg='red')
 from luther.apiv1 import new_ddns, update_ddns, \
-    delete_ddns, validate_ip, predis, run_stats
+    delete_ddns, validate_ip, predis, run_stats, \
+    redis
 from luther.models import User, Subdomain
 
 @click.group()
@@ -406,6 +403,22 @@ def check_stats():
     stats = predis.get('luther/stats')
     click.echo(tabulate([[stats['users'][-1][1], stats['subdomains'][-1][1], stats['updates'][-1][1], stats['users'][-1][0]]], ['num users', 'num subdomains', 'updates', 'updated']))
     return True
+
+@cli.command('check_update_count')
+def get_counter():
+    """Get the current update counter (number of subdomain updates since last update_stats)"""
+    stats = predis.get('luther/stats')
+    counter = int(redis.get('luther/counter'))
+    click.echo(tabulate([[counter, stats['updates'][-1][0]]], ['Update counter', 'Last update']))
+
+@cli.command('time_to_update')
+def get_ttu():
+    """Get the time to the next stats update"""
+    stats = predis.get('luther/stats')
+    a = datetime.datetime.strptime(stats['updates'][-1][0], '%Y-%m-%d %H:%M:%S.%f')
+    b = a+datetime.timedelta(0, app.config['STATS_INTERVAL'])
+    c = datetime.datetime.utcnow()-b
+    click.echo('Time to next stats update: '+str(c))
 
 if __name__ == "__main__":
     cli()

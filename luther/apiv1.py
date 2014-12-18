@@ -200,6 +200,11 @@ def run_stats():
 ##################
 
 
+def remote_addr_guess():
+    addr = ipaddress.ip_address(request.remote_addr).exploded
+    return addr
+
+
 def subdomain_api_object(d, message=None, status=None):
     resp = {
         'subdomain': d.name,
@@ -236,27 +241,20 @@ def validate_ip(ip, obj=False):
     :type v6: bool.
     :returns: bool -- If Address is valid.
     """
-    v6 = False
     try:
-        ip_obj = ipaddress.IPv4Address(ip)
-    except ipaddress.AddressValueError:
-        try:
-            ip_obj = ipaddress.IPv6Address(ip)
-            v6 = True
-        except ipaddress.AddressValueError:
+        ip_obj = ipaddress.ip_address(ip)
+    except ValueError:
             raise LutherBroke('Invalid IP address')
-
+    v6 = True if ip_obj.version == 6 else False
     if (ip_obj.is_private and not app.config['ALLOW_PRIVATE_ADDRESSES']):
         raise LutherBroke('Private IP addresses are not allowed.')
-
     if obj:
-        return [ip_obj, v6]
+        return ip_obj
     else:
         return [ip_obj.exploded, v6]
 
 
-def in_allowed_network(ip, v4_networks=app.config['ALLOWED_USER_V4_SUBNETS'],
-                       v6_networks=app.config['ALLOWED_USER_V6_SUBNETS']):
+def in_allowed_network(ip, networks=app.config['ALLOWED_USER_SUBNETS']):
     """in_allowed_network tests whether an IP Address
     is within a list of defined networks (v4/v6).
 
@@ -268,19 +266,22 @@ def in_allowed_network(ip, v4_networks=app.config['ALLOWED_USER_V4_SUBNETS'],
     :type v6_networks: list.
     :returns: bool -- If address is in one of the provided networks.
     """
-    ip_obj, v6 = validate_ip(ip, obj=True)
+    ip_obj = validate_ip(ip, obj=True)
     in_net = bool()
-
-    if not v6 and v4_networks:
-        for subnet in v4_networks:
-            if ip_obj in ipaddress.IPv4Network(subnet):
-                in_net = True
-    elif v6 and v6_networks:
-        for subnet in v6_networks:
-            if ip_obj in ipaddress.IPv6Network(subnet):
-                in_net = True
-
+    for subnet in networks:
+        if ip_obj in ipaddress.ip_network(subnet):
+            in_net = True
     return in_net
+
+
+def validate_dns_ip(ip):
+    if len(app.config['ALLOWED_DDNS_SUBNETS']) > 0:
+        if not in_allowed_network(
+            ip,
+            networks=app.config['ALLOWED_DDNS_SUBNETS']
+        ):
+            raise LutherBroke('Bad request, IP address '
+                              'provided is not in allowed subnets')
 
 
 def validate_subdomain(subdomain):
@@ -616,7 +617,7 @@ def on_over_limit(limit):
 def ratelimit(limit, per=225,
               send_x_headers=True,
               over_limit=on_over_limit,
-              scope_func=lambda: request.remote_addr,
+              scope_func=lambda: remote_addr_guess(),
               key_func=lambda: request.endpoint):
     def decorator(f):
         def rate_limited(*args, **kwargs):
@@ -880,8 +881,8 @@ def add_subdomain():
                 )
 
             if ip in [None, '']:
-                ip = request.remote_addr
-
+                ip = remote_addr_guess()
+            validate_dns_ip(ip)
             new_domain = Subdomain(
                 name=domain_name,
                 user=g.user
@@ -992,7 +993,7 @@ def get_subdomain_json():
                     'Bad request, missing or malformed arguments'
                 )
             if not d.get('ip'):
-                d['ip'] = request.remote_addr
+                d['ip'] = remote_addr_guess()
             domain_list.append([d['subdomain'], d['subdomain_token'], d['ip']])
     else:
         raise LutherBroke(
@@ -1017,10 +1018,10 @@ def get_subdomain_args():
     for i in range(len(names)):
         if len(ips)-1 <= i:
             if ips[i] == '':
-                ips[i] = request.remote_addr
+                ips[i] = remote_addr_guess()
             domain_list.append([names[i], tokens[i], ips[i]])
         else:
-            domain_list.append([names[i], tokens[i], request.remote_addr])
+            domain_list.append([names[i], tokens[i], remote_addr_guess()])
 
 
 def get_subdomain_list():
@@ -1108,7 +1109,7 @@ def get_interface(domain_name, domain_token, domain_ip=None):
     domain = Subdomain.query.filter_by(name=domain_name).first()
     if domain and domain.verify_domain_token(domain_token):
         if domain_ip in [None, '']:
-            domain_ip = request.remote_addr
+            domain_ip = remote_addr_guess()
         if domain_ip == domain.ip:
             return jsonify(
                 subdomain_api_object(
@@ -1142,7 +1143,8 @@ def get_ip():
 
     :returns: string -- The IP address used to request the endpoint.
     """
-    return jsonify({'guessed_ip': request.remote_addr, 'status': 200})
+    addr = ipaddress.ip_address(remote_addr_guess()).exploded
+    return jsonify({'guessed_ip': addr, 'status': 200})
 
 ###############
 # Stats route #
