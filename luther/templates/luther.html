@@ -64,6 +64,11 @@
                     <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                         <ul class="nav navbar-nav navbar-right">
                             <li>
+                                <a class="hello">
+                                    <div data-bind="text: email"></div><div class="hello-sep">:</div><div data-bind="text: user_ip"></div>
+                                </a>
+                            </li>
+                            <li>
                                 <a style="cursor: pointer;" data-bind="click: beginAdd"><i class="fa fa-plus fa-fw"></i><div class="link-text">Add subdomain</div></a>
                             </li>
                             <li class="dropdown">
@@ -83,15 +88,20 @@
             </nav>
             <div id="main-content" class="container">
                 <div class="row">
+                    <!-- ko ifnot: loggedin() -->
                     <div class="col-lg-6 col-centered" style="text-align: center; margin-top: 20px; margin-bottom: 10px;">
                         <div class="well well-sm well-about">
                             <p><em>dnsd.co</em> is a (<em>beta</em>) free dynamic DNS service running <em><a href="https://lutherd.org" target="_blank">luther</a></em>.</p>
                         </div>
                     </div>
+                    <!-- /ko -->
                     <!-- ko ifnot: loggedin() -->
                     <div class="col-lg-12 col-centered" style="text-align: center; margin-top: 20px; margin-bottom: 10px;">
                         <button data-bind="click: beginLogin" class="btn btn-info">Sign up</button>
                     </div>
+                    <!-- /ko -->
+                    <!-- ko if: loggedin() -->
+                    <br>
                     <!-- /ko -->
                     <div class="col-lg-12 col-centered">
                         <!-- ko foreach: api_errors -->
@@ -147,7 +157,6 @@
                 <!-- ko if: loggedin() -->
                 <div class="row">
                     <div class="col-lg-12 col-centered" style="margin-bottom: 20px;">
-                        <!-- ko if: loggedin() -->
                         <div class="modal fade" id="delUser" tabindex="-1" role="dialog" aria-labelledby="delUserLabel" aria-hidden="true">
                             <div class="modal-dialog">
                                 <div class="modal-content">
@@ -156,7 +165,7 @@
                                         <h4 class="modal-title" id="delUserLabel">Delete Account</h4>
                                     </div>
                                     <div class="modal-body">
-                                        <p>Are you sure? All y our subdomains will be immediately deleted.</p>
+                                        <p>Are you sure? All your subdomains will be immediately deleted.</p>
                                     </div>
                                     <div class="modal-footer">
                                         <button data-bind="click: deleteUser" class="btn btn-danger">Yep</button>
@@ -192,7 +201,6 @@
                                 </div>
                             </div>
                         </div>
-                        <!-- /ko -->
                         <br>
                         <div class="table-responsive" style="margin-bottom: 20px;">
                             <table class="table table-hover table-condensed" style="background-color: white;">
@@ -221,6 +229,11 @@
                                                 <button data-bind="click: $parent.beginRemove" class="btn btn-xs btn-danger">Delete</button>
                                             </div>
                                         </td>
+                                    </tr>
+                                <!-- /ko -->
+                                <!-- ko if: subdomains().length < 1-->
+                                    <tr>
+                                        <td colspan="5" style="font-family: monospace; white-space: nowrap;text-align: center;">You have no subdomains yet!</td>
                                     </tr>
                                 <!-- /ko -->
                                 </tbody>
