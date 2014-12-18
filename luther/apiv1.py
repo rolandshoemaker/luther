@@ -434,52 +434,33 @@ def dns_query(update,
                              timeout=timeout)
         if dns_message_check(resp, on_api):
             return True
-    except NoAnswer:
-        raise LutherBroke(
-            'Internal server error, response contained no answer',
-            status_code=500
-        )
-    except UnexpectedSource:
-        raise LutherBroke(
-            'Internal server error, response came from unexpected source',
-            status_code=500
-        )
-    except BadResponse:
-        raise LutherBroke(
-            'Internal server error, malformed response from master dns server',
-            status_code=500
-        )
-    except TimeoutError:
-        raise LutherBroke(
-            'Gateway timeout, tcp connection to master DNS server timed out',
-            status_code=504
-        )
-    except OSError:
-        raise LutherBroke(
-            ('Internal server error, OSError '
-             '(most likely no route to dns master server)'),
-            status_code=500
-        )
+
+    except (NoAnswer, UnexpectedSource, BadResponse,
+            TimeoutError, OSError):
+        logging.exception()
+        raise LutherBroke('Internal server error', status_code=500)
 
 
 def add_txt(name, update):
-    update.add(
-        name,
-        app.config['DEFAULT_TTL'],
-        'TXT',
-        ('"Record for '+name+'.'+app.config['DNS_ROOT_DOMAIN']+' last '
-         ' updated at '+str(datetime.datetime.utcnow())+' UTC"')
-    )
+    if app.config['ADD_TXT_RECORDS']:
+        update.add(
+            name,
+            app.config['DEFAULT_TTL'],
+            'TXT',
+            ('"Record for '+name+'.'+app.config['DNS_ROOT_DOMAIN']+' last '
+             ' updated at '+str(datetime.datetime.utcnow())+' UTC"')
+        )
 
 
 def replace_txt(name, update):
-    update.replace(
-        name,
-        app.config['DEFAULT_TTL'],
-        'TXT',
-        ('"Record for '+name+'.'+app.config['DNS_ROOT_DOMAIN']+' last '
-         'updated at '+str(datetime.datetime.utcnow())+' UTC"')
-    )
+    if app.config['ADD_TXT_RECORDS']:
+        update.replace(
+            name,
+            app.config['DEFAULT_TTL'],
+            'TXT',
+            ('"Record for '+name+'.'+app.config['DNS_ROOT_DOMAIN']+' last '
+             'updated at '+str(datetime.datetime.utcnow())+' UTC"')
+        )
 
 
 def new_ddns(domain, ip, on_api=True):
@@ -507,8 +488,7 @@ def new_ddns(domain, ip, on_api=True):
     else:
         new_record.add(domain.name, app.config['DEFAULT_TTL'], 'AAAA', addr)
     new_record.absent(domain.name)
-    if app.config['ADD_TXT_RECORDS']:
-        add_txt(domain.name, new_record)
+    add_txt(domain.name, new_record)
     if dns_query(new_record, on_api):
         domain.ip = addr
         domain.v6 = v6
@@ -546,13 +526,11 @@ def update_ddns(subdomain, ip, on_api=True):
                 'A',
                 addr
             )
-            if app.config['ADD_TXT_RECORDS']:
-                replace_txt(subdomain.name, update)
+            replace_txt(subdomain.name, update)
         else:
             update.delete(subdomain.name)
             update.add(subdomain.name, app.config['DEFAULT_TTL'], 'AAAA', addr)
-            if app.config['ADD_TXT_RECORDS']:
-                add_txt(subdomain.name, update)
+            add_txt(subdomain.name, update)
     else:
         if addr_v6:
             update.replace(
@@ -561,13 +539,11 @@ def update_ddns(subdomain, ip, on_api=True):
                 'AAAA',
                 addr
             )
-            if app.config['ADD_TXT_RECORDS']:
-                replace_txt(subdomain.name, update)
+            replace_txt(subdomain.name, update)
         else:
             update.delete(subdomain.name)
             update.add(subdomain.name, app.config['DEFAULT_TTL'], 'A', addr)
-            if app.config['ADD_TXT_RECORDS']:
-                add_txt(subdomain.name, update)
+            add_txt(subdomain.name, update)
     if dns_query(update, on_api):
         subdomain.v6 = addr_v6
         subdomain.ip = addr
@@ -678,6 +654,9 @@ def check_user_network():
     is within the configured allowed networks using in_allowed_network().
     """
     if not in_allowed_network(request.remote_addr):
+        logging.info(
+            'Unauthorized attempt to connect made by '+request.remote_addr
+        )
         raise LutherBroke('You are not in an authorized network',
                           status_code=403)
 
@@ -708,44 +687,22 @@ if app.config['VALIDATE_USER_EMAIL_MX']:
                     return True
                 elif msg.response and msg.response.rcode() in \
                         [1, 2, 4, 5, 6, 7, 8, 9, 10, 16]:
+                    logging.error('Unexpected response to MX record query. '
+                                  'Query: [name: '+msg.qname+', rdclass:'
+                                  ' '+str(msg.rdclass)+', rdtype:'
+                                  ' '+str(msg.rdtype)+']'
+                                  ', Response: '+msg.response)
                     raise LutherBroke(
                         ('Internal server error, weird answer to DNS '
                          'MX query'),
                         status_code=500
                     )
-            else:
-                raise LutherBroke('Invalid email address')
         except NXDOMAIN:
             raise LutherBroke('Invalid email address')
-        except NoAnswer:
-            raise LutherBroke(
-                'Internal server error, no answer to DNS MX query',
-                status_code=500
-            )
-        except UnexpectedSource:
-            raise LutherBroke(
-                ('Internal server error, response came from '
-                 'unexpected source'),
-                status_code=500
-            )
-        except BadResponse:
-            raise LutherBroke(
-                ('Internal server error, malformed response from '
-                 'master dns server'),
-                status_code=500
-            )
-        except TimeoutError:
-            raise LutherBroke(
-                ('Gateway timeout, tcp connection to master DNS '
-                 'server timed out'),
-                status_code=504
-            )
-        except OSError:
-            raise LutherBroke(
-                ('Internal server error, OSError (most likely no route '
-                 'to dns master server)'),
-                status_code=500
-            )
+        except (NoAnswer, UnexpectedSource, BadResponse,
+                TimeoutError, OSError):
+            logging.exception("Exception in MX record lookup")
+            raise LutherBroke('Internal server error', status_code=500)
 
 
 def verify_email(email):
@@ -760,8 +717,6 @@ def verify_email(email):
         if app.config['VALIDATE_USER_EMAIL_MX']:
             if check_mx(email):
                 return True
-            else:
-                raise LutherBroke('Internal server error', status_code=500)
         else:
             return True
     else:
@@ -802,8 +757,7 @@ def new_user():
 
     if email in [None, ''] or password in [None, '']:
         raise LutherBroke('Bad request, missing arguments')
-    if not verify_email(email):
-        raise LutherBroke('Bad request, invalid email')
+    verify_email(email)
     if User.query.filter_by(email=email).first() is not None:
         raise LutherBroke(
             'Conflict in request, existing user',
@@ -965,8 +919,6 @@ def json_or_args(args):
         return results
     elif len(results) == 1:
         return results[0]
-    else:
-        raise LutherBroke('Internal server error', status_code=500)
 
 
 @api_v1.route('/subdomains', methods=['DELETE'])
@@ -1037,7 +989,7 @@ def get_subdomain_json():
             if d.get('subdomain') in ['', None] or \
                     d.get('subdomain_token') in ['', None]:
                 raise LutherBroke(
-                    'Bad request, missing or malformed arguments111'
+                    'Bad request, missing or malformed arguments'
                 )
             if not d.get('ip'):
                 d['ip'] = request.remote_addr
