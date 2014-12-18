@@ -6,6 +6,26 @@ import tempfile
 import base64
 
 class LutherTestCase(unittest.TestCase):
+    invalid_emails = [
+        'plainaddress',
+        '#@%^%#$@#$@#.com',
+        '@example.com',
+        'Joe Smith <email@example.com>',
+        'email.example.com',
+        'email@example@example.com',
+        '.email@example.com',
+        'email.@example.com',
+        'email..email@example.com',
+        'email@example.com (Joe Smith)',
+        'email@example',
+        'email@-example.com',
+        'email@example.web',
+        'email@111.222.333.44444',
+        'email@example..com',
+        'Abc..123@example.com',
+        'just”not”right@example.com'
+    ]
+
     def post_json(self, url, data, environ_base={'REMOTE_ADDR':'1.1.1.1'}):
         return self.app.post(
             url,
@@ -308,6 +328,15 @@ class LutherTestCase(unittest.TestCase):
         self.assertEqual(rd['status'], 400)
         self.assertEqual(rd['message'], 'Invalid email address')
 
+    def test_xad_add_invalid_user_email(self):
+        for e in self.invalid_emails:
+            d = '{"email":"'+e+'", "password":"weakpassword"}'
+            rv = self.post_json('/api/v1/user', d)
+            rd = json.loads(rv.data.decode('ascii'))
+            self.assertEqual(rv.status_code, 400)
+            self.assertEqual(rd['status'], 400)
+            self.assertEqual(rd['message'], 'Invalid email address')
+
     def test_xba_auth_bad_user(self):
         # Can we authenticate a random user not registered
         rv = self.open_with_auth('/api/v1/subdomains', 'GET', 'der@der.com', 'weakpassword')
@@ -351,6 +380,95 @@ class LutherTestCase(unittest.TestCase):
     def test_xdc_delete_sub_bad_sub(self):
         d = '{"subdomain":"travis-not-an-example", "confirm":"DELETE"}'
         rv = self.delete_json_auth('/api/v1/subdomains', d, 'anothertester@travis-ci.org', 'weakpassword')
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(rd['status'], 400)
+        self.assertEqual(rd['message'], 'Bad request, invalid subdomain')
+
+    def test_xea_add_restricted_subs(self):
+        for s in luther.app.config['RESTRICTED_SUBDOMAINS']:
+            d = '{"subdomain":"'+s+'"}'
+            rv = self.post_json_auth('/api/v1/subdomains', d, 'tester@travis-ci.org', 'betterpassword')
+            rd = json.loads(rv.data.decode('ascii'))
+            self.assertEqual(rv.status_code, 400)
+            self.assertEqual(rd['status'], 400)
+            self.assertEqual(rd['message'], 'Bad request, invalid subdomain')
+
+    def test_xeb_add_bad_long_octet_sub(self):
+        d = '{"subdomain":"'+'a'*64+'"}'
+        rv = self.post_json_auth('/api/v1/subdomains', d, 'tester@travis-ci.org', 'betterpassword')
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(rd['status'], 400)
+        self.assertEqual(rd['message'], 'Bad request, invalid subdomain')
+
+    def test_xec_add_bad_long_sub(self):
+        d = '{"subdomain":"'+(('a'*63+'.')*4)[:-1]+'"}'
+        rv = self.post_json_auth('/api/v1/subdomains', d, 'tester@travis-ci.org', 'betterpassword')
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(rd['status'], 400)
+        self.assertEqual(rd['message'], 'Bad reqiest, subdomain is too long. (max = '+str(luther.app.config['SUB_MAX_LENGTH'])+' characters)')
+
+    def test_xec_add_bad_char_sub(self):
+        d = '{"subdomain":"asd@bes"}'
+        rv = self.post_json_auth('/api/v1/subdomains', d, 'tester@travis-ci.org', 'betterpassword')
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(rd['status'], 400)
+        self.assertEqual(rd['message'], 'Bad request, invalid subdomain')
+
+    def test_xed_add_bad_dash_sub(self):
+        d = '{"subdomain":"-bes-"}'
+        rv = self.post_json_auth('/api/v1/subdomains', d, 'tester@travis-ci.org', 'betterpassword')
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(rd['status'], 400)
+        self.assertEqual(rd['message'], 'Bad request, invalid subdomain')
+
+    def test_xee_add_bad_dash_sub(self):
+        d = '{"subdomain":"-bes"}'
+        rv = self.post_json_auth('/api/v1/subdomains', d, 'tester@travis-ci.org', 'betterpassword')
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(rd['status'], 400)
+        self.assertEqual(rd['message'], 'Bad request, invalid subdomain')
+
+    def test_xef_add_bad_dash_sub(self):
+        d = '{"subdomain":"bes-"}'
+        rv = self.post_json_auth('/api/v1/subdomains', d, 'tester@travis-ci.org', 'betterpassword')
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(rd['status'], 400)
+        self.assertEqual(rd['message'], 'Bad request, invalid subdomain')
+
+    def test_xeg_add_bad_dot_sub(self):
+        d = '{"subdomain":"bes."}'
+        rv = self.post_json_auth('/api/v1/subdomains', d, 'tester@travis-ci.org', 'betterpassword')
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(rd['status'], 400)
+        self.assertEqual(rd['message'], 'Bad request, invalid subdomain')
+
+    def test_xeh_add_bad_dot_sub(self):
+        d = '{"subdomain":".bes"}'
+        rv = self.post_json_auth('/api/v1/subdomains', d, 'tester@travis-ci.org', 'betterpassword')
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(rd['status'], 400)
+        self.assertEqual(rd['message'], 'Bad request, invalid subdomain')
+
+    def test_xej_add_bad_dot_sub(self):
+        d = '{"subdomain":".bes."}'
+        rv = self.post_json_auth('/api/v1/subdomains', d, 'tester@travis-ci.org', 'betterpassword')
+        rd = json.loads(rv.data.decode('ascii'))
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(rd['status'], 400)
+        self.assertEqual(rd['message'], 'Bad request, invalid subdomain')
+
+    def test_xek_add_bad_dot_sub(self):
+        d = '{"subdomain":"b..s"}'
+        rv = self.post_json_auth('/api/v1/subdomains', d, 'tester@travis-ci.org', 'betterpassword')
         rd = json.loads(rv.data.decode('ascii'))
         self.assertEqual(rv.status_code, 400)
         self.assertEqual(rd['status'], 400)

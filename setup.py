@@ -19,7 +19,7 @@ setup(
     packages=['luther'],
     entry_points='''
         [console_scripts]
-        luther=luther.scripts.cli:cli
+        luther-manage=luther.scripts.cli:cli
     ''',
     include_package_data=True,
     zip_safe=False,
