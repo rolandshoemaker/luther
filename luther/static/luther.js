@@ -311,7 +311,7 @@ function AddSubdomainViewModel() {
         });
 
         self.subdomain("");
-        self.ip(luther_client_address);
+        self.ip(lutherMainViewModel.user_ip);
     }
 }
 
@@ -320,7 +320,7 @@ function EditSubdomainViewModel() {
     self.subdomain_obj = null;
     self.subdomain = ko.observable();
     self.ip = ko.observable();
-    self.user_ip = ko.observable(self.user_ip);
+    self.user_ip = ko.observable(lutherMainViewModel.user_ip);
 
     self.setSubdomain = function(subdomain) {
         self.subdomain_obj = subdomain;
@@ -438,20 +438,40 @@ $.ajax('http://192.168.1.8/api/v1/stats', 'GET').done(function(stuff) {
         series: [
             {
                 name: 'Number of Users',
-                data: stuff.users
+                data: stuff.users,
+                states: {
+                    hover: {
+                        enabled: false
+                    }
+                }
             },{
                 name: 'Number of Subdomains',
-                data: stuff.subdomains
+                data: stuff.subdomains,
+                states: {
+                    hover: {
+                        enabled: false
+                    }
+                }
             },{
                 name: 'Number of Subdomain updates since last check',
-                data: stuff.updates
+                data: stuff.updates,
+                states: {
+                    hover: {
+                        enabled: false
+                    }
+                }
             },{
                 name: 'dnsd.co Subdomain limit',
                 data: stuff.subdomain_limit,
                 dashStyle: 'longdash',
                 color: '#ff0000',
                 lineWidth: 1,
-                visible: false
+                visible: false,
+                states: {
+                    hover: {
+                        enabled: false
+                    }
+                }
             }
         ],
         tooltip: {

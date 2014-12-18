@@ -29,10 +29,13 @@ luther is written by [Roland Shoemaker](https://www.bind.es/).
 * Interchangable `IPv4/6` address use
 * REST User account creation, management, and deletion
 * Simple *Knockout.js* frontend interface
-* CLI tool for administrative actions
+* CLI tool for admin management
 
 ## *Table of Contents*
 
+- [**Documentation**](#documentation)
+- [**Contributing**](#contributing)
+- [**TODO**](#todo)
 - [**Quickstart**](#quickstart)
   - [Requirements](#requirements)
   - [Installation](#installation)
@@ -57,10 +60,30 @@ luther is written by [Roland Shoemaker](https://www.bind.es/).
       - [JSON](#json)
       - [URL parameters](#url)
   - [Regenerating a subdomain_token](#regenerating-a-subdomain_token)
-- [**Documentation**](#documentation)
-- [**Contributing**](#contributing)
-- [**TODO**](#todo)
 - [**License**](#license)
+
+
+## Documentation
+
+Sphinx documentation can be built from source be navigating to `docs/` and typing
+
+    # make html
+
+or you can view the documentation for the latest release at [https://www.lutherd.org/docs](https://www.lutherd.org/docs).
+
+## Contributing
+
+Please do! Pull requests are welcomed at the *luther* [github page](https://github.com/rolandshoemaker/luther).
+
+## TODO
+
+* ADD: Write python cli update tool (probably seperate repo, luther-update)
+* ADD: atom-shell portable gui update tool (probably seperate repo, luther-update-gui)
+* FINISH: tests
+  * Mostly need tests for invalid input and stuff
+* ADD: Load set of config defaults from a default object (not complete, just things that can be set by default without worrying), load again from ENV to overwrite with user changes to defaults and the rest of the config (api url/dns address stuff)
+* FIX: Slim down configuration file, there is a bit of duplication
+* FINISH: write/rewrite/update sphinx docs
 
 ## Quickstart
 
@@ -75,17 +98,17 @@ If you install *luther* using `setup.py` all these Python packages will be insta
   * flask
   * flask.ext.httpauth
   * sqlalchemy
-  * tabulate (for the cli tool)
-  * click (for the cli tool)
-  * redis (for rate limiting and storing stats)
+  * tabulate
+  * click
+  * redis
 
 You will also need these extra services that *luther* relies on to function.
 
 * Local or remote services not provided by *luther*
-  * WSGI capable Web server (Apache, nginx, gunicorn, etc)
-  * DNS server that supports RFC 2136 DNS Updates (BIND > 8, PowerDNS > 3.4, etc)
-  * SQL database (MySQL, PostgreSQL, SQLite, etc)
-  * Redis database
+  * WSGI capable Web server (*Apache, nginx, gunicorn, etc*)
+  * DNS server that supports RFC 2136 DNS Updates (*BIND > 8, PowerDNS > 3.4, etc*)
+  * SQL database (*MySQL, PostgreSQL, SQLite, etc*)
+  * Redis
 
 ### Installation
 
@@ -598,38 +621,6 @@ To regenerate the `subdomain_token` used to authenticate updates send a authenti
       "subdomain": "example",
       "subdomain_token": "a388a2ba-a461-4fbf-b907-281f25723586"
     }%
-
-## Documentation
-
-Sphinx documentation can be built from source be navigating to `docs/` and typing
-
-    # make html
-
-or you can view the documentation for the latest release at [https://www.lutherd.org/docs](https://www.lutherd.org/docs).
-
-## Contributing
-
-Please do! Pull requests are welcomed at the *luther* [github page](https://github.com/rolandshoemaker/luther).
-
-## TODO
-
-* ADD: Write example client tools
-* FINISH: tests
-  * Users
-    * TEST: Add user (URLARGS)
-    * TEST: Change user pass (URLARGS)
-    * TEST: Delete user (URLARGS)
-  * Subdomains
-    * TEST: Add subdomain (URLARGS)
-    * TEST: List subdomains
-    * TEST: Delete subdomain (URLARGS)
-    * TEST: Regen subdomain token (URLARGS)
-    * TEST: Update subdomain with GET route
-    * TEST: Update subdomain with fancy route (URLARGS)
-      * *Single* **+** *Multiple* domains
-* FIX: Slim down configuration file, there is a bit of duplication
-* FINISH: writing the README (._.)
-* FINISH: writing all the documentation
 
 ## License
 

@@ -183,7 +183,7 @@ class LutherTestCase(unittest.TestCase):
         self.assertEqual(rv.status_code, 201)
         self.assertEqual(rd['status'], 201)
         self.assertEqual(rd['subdomain'], 'travis-ip-example')
-        self.assertEqual(rd['ip'], 'FE80::0202:B3FF:FE1E:8329')
+        self.assertEqual(rd['ip'], 'fe80:0000:0000:0000:0202:b3ff:fe1e:8329')
 
     def test_cba_get_and_update_subs(self):
         # Get list of subdomains
@@ -194,7 +194,7 @@ class LutherTestCase(unittest.TestCase):
         self.assertEqual(len(rd['subdomains']), 2)
         self.assertEqual(rd['subdomains'][0]['ip'], '1.1.1.1')
         self.assertEqual(rd['subdomains'][0]['subdomain'], 'travis-example')
-        self.assertEqual(rd['subdomains'][1]['ip'], 'FE80::0202:B3FF:FE1E:8329')
+        self.assertEqual(rd['subdomains'][1]['ip'], 'fe80:0000:0000:0000:0202:b3ff:fe1e:8329')
         self.assertEqual(rd['subdomains'][1]['subdomain'], 'travis-ip-example')
         self.assertIsNotNone(rd['subdomains'][0]['subdomain_token'])
         self.assertIsNotNone(rd['subdomains'][1]['subdomain_token'])
@@ -215,7 +215,7 @@ class LutherTestCase(unittest.TestCase):
         rd = json.loads(rv.data.decode('ascii'))
         self.assertEqual(rd['status'], 200)
         self.assertEqual(rd['subdomain'], 'travis-ip-example')
-        self.assertEqual(rd['ip'], '2001:db8:1234:ffff:ffff:ffff:ffff:ffff')
+        self.assertEqual(rd['ip'], '2001:0db8:1234:ffff:ffff:ffff:ffff:ffff')
 
     def test_cbb_get_and_fancy_update_subs(self):
         # Get list of subdomains
@@ -226,7 +226,7 @@ class LutherTestCase(unittest.TestCase):
         self.assertEqual(len(rd['subdomains']), 2)
         self.assertEqual(rd['subdomains'][0]['ip'], '5.5.5.5')
         self.assertEqual(rd['subdomains'][0]['subdomain'], 'travis-example')
-        self.assertEqual(rd['subdomains'][1]['ip'], '2001:db8:1234:ffff:ffff:ffff:ffff:ffff')
+        self.assertEqual(rd['subdomains'][1]['ip'], '2001:0db8:1234:ffff:ffff:ffff:ffff:ffff')
         self.assertEqual(rd['subdomains'][1]['subdomain'], 'travis-ip-example')
         self.assertIsNotNone(rd['subdomains'][0]['subdomain_token'])
         self.assertIsNotNone(rd['subdomains'][1]['subdomain_token'])
@@ -306,7 +306,7 @@ class LutherTestCase(unittest.TestCase):
         rd = json.loads(rv.data.decode('ascii'))
         self.assertEqual(rv.status_code, 400)
         self.assertEqual(rd['status'], 400)
-        self.assertEqual(rd['message'], 'Invalid email address, domain has no MX record')
+        self.assertEqual(rd['message'], 'Invalid email address')
 
     def test_xba_auth_bad_user(self):
         # Can we authenticate a random user not registered
@@ -359,23 +359,23 @@ class LutherTestCase(unittest.TestCase):
     def test_xx_guess_bad_ip(self):
         rv = self.app.get('/api/v1/guess_ip', environ_base={'REMOTE_ADDR':'asdimnotaipaddress'})
         rd = json.loads(rv.data.decode('ascii'))
-        self.assertEqual(rv.status_code, 403)
-        self.assertEqual(rd['status'], 403)
-        self.assertEqual(rd['message'], 'You are not in an authorized network')
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(rd['status'], 400)
+        self.assertEqual(rd['message'], 'Invalid IP address')
 
     def test_xxx_guess_bad_ip(self):
         rv = self.app.get('/api/v1/guess_ip', environ_base={'REMOTE_ADDR':'7.7.7.7.7'})
         rd = json.loads(rv.data.decode('ascii'))
-        self.assertEqual(rv.status_code, 403)
-        self.assertEqual(rd['status'], 403)
-        self.assertEqual(rd['message'], 'You are not in an authorized network')
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(rd['status'], 400)
+        self.assertEqual(rd['message'], 'Invalid IP address')
 
     def test_xxxx_guess_bad_ip(self):
         rv = self.app.get('/api/v1/guess_ip', environ_base={'REMOTE_ADDR':'2074613113'})
         rd = json.loads(rv.data.decode('ascii'))
-        self.assertEqual(rv.status_code, 403)
-        self.assertEqual(rd['status'], 403)
-        self.assertEqual(rd['message'], 'You are not in an authorized network')
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(rd['status'], 400)
+        self.assertEqual(rd['message'], 'Invalid IP address')
 
     ##########################
     # Cleanup, also tests... #

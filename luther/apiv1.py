@@ -226,7 +226,7 @@ def subdomain_api_object(d, message=None, status=None):
     return resp
 
 
-def validate_ip(ip, v6=False):
+def validate_ip(ip, obj=False):
     """validate_ip uses the ipaddress library to validate IPv4 and IPv6
     Addresses.
 
@@ -236,24 +236,23 @@ def validate_ip(ip, v6=False):
     :type v6: bool.
     :returns: bool -- If Address is valid.
     """
+    v6 = False
     try:
-        if not v6:
-            test = ipaddress.IPv4Address(ip)
-        else:
-            test = ipaddress.IPv6Address(ip)
-        correct_subnet = False
-        for subnet in app.config['ALLOWED_DDNS_IPV4_SUBNETS']:
-            if test in ipaddress.IPv4Network(subnet):
-                correct_subnet = True
-        for subnet in app.config['ALLOWED_DDNS_IPV6_SUBNETS']:
-            if test in ipaddress.IPv6Network(subnet):
-                correct_subnet = True
-        if (test.is_private and not app.config['ALLOW_PRIVATE_ADDRESSES']) \
-                or not correct_subnet:
-            return False
-        return test.exploded
+        ip_obj = ipaddress.IPv4Address(ip)
     except ipaddress.AddressValueError:
-        return False
+        try:
+            ip_obj = ipaddress.IPv6Address(ip)
+            v6 = True
+        except ipaddress.AddressValueError:
+            raise LutherBroke('Invalid IP address')
+
+    if (ip_obj.is_private and not app.config['ALLOW_PRIVATE_ADDRESSES']):
+        raise LutherBroke('Private IP addresses are not allowed.')
+
+    if obj:
+        return [ip_obj, v6]
+    else:
+        return [ip_obj.exploded, v6]
 
 
 def in_allowed_network(ip, v4_networks=app.config['ALLOWED_USER_V4_SUBNETS'],
@@ -269,16 +268,9 @@ def in_allowed_network(ip, v4_networks=app.config['ALLOWED_USER_V4_SUBNETS'],
     :type v6_networks: list.
     :returns: bool -- If address is in one of the provided networks.
     """
-    in_net = False
-    v6 = False
-    try:
-        ip_obj = ipaddress.IPv4Address(ip)
-    except ipaddress.AddressValueError:
-        try:
-            ip_obj = ipaddress.IPv6Address(ip)
-            v6 = True
-        except ipaddress.AddressValueError:
-            return False
+    ip_obj, v6 = validate_ip(ip, obj=True)
+    in_net = bool()
+
     if not v6 and v4_networks:
         for subnet in v4_networks:
             if ip_obj in ipaddress.IPv4Network(subnet):
@@ -287,12 +279,8 @@ def in_allowed_network(ip, v4_networks=app.config['ALLOWED_USER_V4_SUBNETS'],
         for subnet in v6_networks:
             if ip_obj in ipaddress.IPv6Network(subnet):
                 in_net = True
-    return in_net
 
-SUBDOMAIN_REGEX = re.compile(
-    '^[A-Za-z0-9](?:[A-Za-z0-9\-]{0,61}[A-Za-z0-9])?$',
-    re.IGNORECASE
-)  # This could be better (should really support subsub domains...)
+    return in_net
 
 
 def validate_subdomain(subdomain):
@@ -306,7 +294,8 @@ def validate_subdomain(subdomain):
     hostname = subdomain+'.'+app.config['DNS_ROOT_DOMAIN']
     if len(hostname) > 255:
         raise LutherBroke(
-            'Subdomain is too long. (max = '+str(app.config['SUB_MAX_LENGTH'])+' characters)'
+            'Subdomain is too long. (max ='
+            ' '+str(app.config['SUB_MAX_LENGTH'])+' characters)'
         )
     allowed = re.compile("(?!-)[A-Z\d-]{1,63}(?<!-)$", re.IGNORECASE)
     return all(allowed.match(x) for x in hostname.split(".")) \
@@ -493,7 +482,7 @@ def replace_txt(name, update):
     )
 
 
-def new_ddns(name, ip, v6=False, on_api=True):
+def new_ddns(domain, ip, on_api=True):
     """new_ddns formats a dns.update.Update object to add A/AAA
     (and optionally TXT) records for a subdomain and sends it to
     a dns server via dns_query().
@@ -512,21 +501,23 @@ def new_ddns(name, ip, v6=False, on_api=True):
         app.config['DNS_ROOT_DOMAIN'],
         keyring=keyring
     )
-    addr = validate_ip(ip, v6=v6)
+    addr, v6 = validate_ip(ip)
     if not v6:
-        new_record.add(name, app.config['DEFAULT_TTL'], 'A', addr)
+        new_record.add(domain.name, app.config['DEFAULT_TTL'], 'A', addr)
     else:
-        new_record.add(name, app.config['DEFAULT_TTL'], 'AAAA', addr)
-    new_record.absent(name)
+        new_record.add(domain.name, app.config['DEFAULT_TTL'], 'AAAA', addr)
+    new_record.absent(domain.name)
     if app.config['ADD_TXT_RECORDS']:
-        add_txt(name, new_record)
+        add_txt(domain.name, new_record)
     if dns_query(new_record, on_api):
+        domain.ip = addr
+        domain.v6 = v6
         return True
     else:
         return False
 
 
-def update_ddns(subdomain, ip, v6=False, on_api=True):
+def update_ddns(subdomain, ip, on_api=True):
     """update_ddns formats a dns.update.Update object to update A/AAA
     (and optionally TXT) records for a subdomain and sends it to a dns
     server via dns_query().
@@ -536,20 +527,19 @@ def update_ddns(subdomain, ip, v6=False, on_api=True):
     :param ip: The new IP address to point to.
     :type ip: string.
     :param v6: If the address to point to is a IPv6 address.
-    :type b6: bool.
+    :type v6: bool.
     :param on_api:
     :type on_api: bool.
     :returns: object -- None on success or JSON response indicating the error.
     """
-    # addr = validate_ip(ip, v6=v6)
-    addr = ip
+    addr, addr_v6 = validate_ip(ip)
     update = dns.update.Update(
         app.config['DNS_ROOT_DOMAIN'],
         keyring=keyring
     )
     update.present(subdomain.name)
-    if not v6:
-        if validate_ip(ip, v6=False):
+    if not subdomain.v6:
+        if not addr_v6:
             update.replace(
                 subdomain.name,
                 app.config['DEFAULT_TTL'],
@@ -558,20 +548,13 @@ def update_ddns(subdomain, ip, v6=False, on_api=True):
             )
             if app.config['ADD_TXT_RECORDS']:
                 replace_txt(subdomain.name, update)
-        elif validate_ip(ip, v6=True):
+        else:
             update.delete(subdomain.name)
             update.add(subdomain.name, app.config['DEFAULT_TTL'], 'AAAA', addr)
             if app.config['ADD_TXT_RECORDS']:
                 add_txt(subdomain.name, update)
-            subdomain.v6 = True
-            db.session.commit()
-        else:
-            if on_api:
-                raise LutherBroke('Bad request, invalid IP address')
-            else:
-                return False
     else:
-        if validate_ip(ip, v6=True):
+        if addr_v6:
             update.replace(
                 subdomain.name,
                 app.config['DEFAULT_TTL'],
@@ -580,19 +563,15 @@ def update_ddns(subdomain, ip, v6=False, on_api=True):
             )
             if app.config['ADD_TXT_RECORDS']:
                 replace_txt(subdomain.name, update)
-        elif validate_ip(ip, v6=False):
+        else:
             update.delete(subdomain.name)
             update.add(subdomain.name, app.config['DEFAULT_TTL'], 'A', addr)
             if app.config['ADD_TXT_RECORDS']:
                 add_txt(subdomain.name, update)
-            subdomain.v6 = False
-            db.session.commit()
-        else:
-            if on_api:
-                raise LutherBroke('Bad request, invalid IP address')
-            else:
-                return False
     if dns_query(update, on_api):
+        subdomain.v6 = addr_v6
+        subdomain.ip = addr
+        redis.incr('luther/counter')
         return True
     else:
         return False
@@ -734,12 +713,10 @@ if app.config['VALIDATE_USER_EMAIL_MX']:
                          'MX query'),
                         status_code=500
                     )
-                else:
-                    raise LutherBroke('Invalid email address')
             else:
                 raise LutherBroke('Invalid email address')
         except NXDOMAIN:
-            raise LutherBroke('Invalid email address, domain has no MX record')
+            raise LutherBroke('Invalid email address')
         except NoAnswer:
             raise LutherBroke(
                 'Internal server error, no answer to DNS MX query',
@@ -820,14 +797,9 @@ def new_user():
 
     :returns: object -- JSON response indicating the outcome of action.
     """
-    if request.json and not request.args:
-        email = request.json.get('email')
-        password = request.json.get('password')
-    elif request.args and not request.json:
-        email = request.args.get('email')
-        password = request.args.get('password')
-    else:
-        raise LutherBroke('Bad request, no data')
+
+    email, password = json_or_args(['email', 'password'])
+
     if email in [None, ''] or password in [None, '']:
         raise LutherBroke('Bad request, missing arguments')
     if not verify_email(email):
@@ -869,14 +841,10 @@ def del_user():
 
     :returns: object -- JSON response indicating the outcome of action.
     """
-    if request.json and not request.args:
-        sure = request.json.get('confirm')
-    elif request.args:
-        sure = request.args.get('confirm')
-    else:
-        raise LutherBroke('Bad request, no data')
+
+    sure = json_or_args(['confirm'])
+
     if sure in [None, ''] or not sure == 'DELETE':
-        print(sure)
         raise LutherBroke('Bad request, missing or malformed arguments')
     for d in g.user.subdomains:
         delete_ddns(d.name)
@@ -893,12 +861,9 @@ def del_user():
 )
 @auth.login_required
 def edit_user():
-    if request.json and not request.args:
-        password = request.json.get('new_password')
-    elif request.args:
-        password = request.args.get('new_password')
-    else:
-        raise LutherBroke('Bad request, no data')
+
+    password = json_or_args(['new_password'])
+
     if password in [None, '']:
         raise LutherBroke('Bad request, missing arguments')
     g.user.hash_password(password)
@@ -948,49 +913,32 @@ def add_subdomain():
     if Subdomain.query.count() <= app.config['TOTAL_SUBDOMAIN_LIMIT']:
         if g.user.quota is 0 \
                 or not g.user.subdomains.count() == g.user.quota:
-            if request.json and not request.args:
-                domain_name = request.json.get('subdomain')
-                ip = request.json.get('ip')
-            elif request.args and not request.json:
-                domain_name = request.args.get('subdomain')
-                ip = request.args.get('ip')
-            else:
-                raise LutherBroke('Bad request, no data')
-            if domain_name in [None, '']:
-                raise LutherBroke('Bad request, missing arguments')
+            domain_name, ip = json_or_args(['subdomain', 'ip'])
+
+            if domain_name in [None, ''] or \
+                    not validate_subdomain(domain_name):
+                raise LutherBroke('Bad request, invalid subdomain')
+
             if Subdomain.query.filter_by(name=domain_name).first():
                 raise LutherBroke(
                     'Conflict in request, subdomain already exists',
                     status_code=409
                 )
+
             if ip in [None, '']:
                 ip = request.remote_addr
-            if not validate_subdomain(domain_name):
-                raise LutherBroke('Bad request, invalid subdomain')
-            if validate_ip(ip):
-                ipv6 = False
-            else:
-                if validate_ip(ip, v6=True):
-                    ipv6 = True
-                else:
-                    raise LutherBroke(('Bad request, IP address invalid '
-                                       'or not in allowed subnets'))
+
             new_domain = Subdomain(
                 name=domain_name,
-                ip=ip,
-                v6=ipv6,
                 user=g.user
             )
-            new_domain.generate_domain_token()
-            ddns_result = new_ddns(domain_name, ip, ipv6)
-            if ddns_result:
+            if new_ddns(new_domain, ip):
+                new_domain.generate_domain_token()
                 db.session.add(new_domain)
                 db.session.commit()
                 resp = jsonify(subdomain_api_object(new_domain, status=201))
                 resp.status_code = 201
                 return resp
-            else:
-                raise LutherBroke()
         else:
             raise LutherBroke(
                 ('You have reached your subdomain quota,'
@@ -1002,6 +950,25 @@ def add_subdomain():
         )
 
 
+def json_or_args(args):
+    results = []
+    if request.json and not request.args:
+        for a in args:
+            results.append(request.json.get(a))
+    elif request.args and not request.json:
+        for a in args:
+            results.append(request.args.get(a))
+    else:
+        raise LutherBroke('Bad request, no data or data provided '
+                          'through multiple channels')
+    if len(results) > 1:
+        return results
+    elif len(results) == 1:
+        return results[0]
+    else:
+        raise LutherBroke('Internal server error', status_code=500)
+
+
 @api_v1.route('/subdomains', methods=['DELETE'])
 @ratelimit(
     limit=app.config['RATE_LIMIT_ACTIONS'],
@@ -1009,14 +976,7 @@ def add_subdomain():
 )
 @auth.login_required
 def del_subdomain():
-    if request.json and not request.args:
-        domain_name = request.json.get('subdomain')
-        confirm = request.json.get('confirm')
-    elif request.args and not request.json:
-        domain_name = request.args.get('subdomain')
-        confirm = request.args.get('confirm')
-    else:
-        raise LutherBroke('Bad request, no data')
+    domain_name, confirm = json_or_args(['subdomain', 'confirm'])
     if domain_name in [None, ''] or not confirm == 'DELETE':
         raise LutherBroke('Bad request, malformed or missing arguments')
     domains = g.user.subdomains if \
@@ -1027,8 +987,6 @@ def del_subdomain():
                 db.session.delete(d)
                 db.session.commit()
                 return json_status_message('Subdomain deleted', 200)
-            else:
-                raise LutherBroke('Internal server error', status_code=500)
     raise LutherBroke('Bad request, invalid subdomain')
 
 
@@ -1045,14 +1003,11 @@ def regen_subdomain_token(subdomain_name=None):
 
     :returns: object -- JSON response indicating the outcome of action.
     """
-    if request.json and not request.args and not subdomain_name:
-        domain_name = request.json.get('subdomain')
-    elif request.args and not request.json and not subdomain_name:
-        domain_name = request.args.get('subdomain')
-    elif subdomain_name and not request.json and not request.args:
+    if subdomain_name:
         domain_name = subdomain_name
     else:
-        raise LutherBroke('Bad request, no data')
+        domain_name = json_or_args(['subdomain'])
+
     if domain_name in [None, '']:
         raise LutherBroke('Bad request, missing arguments')
     domains = g.user.subdomains if \
@@ -1116,6 +1071,15 @@ def get_subdomain_args():
             domain_list.append([names[i], tokens[i], request.remote_addr])
 
 
+def get_subdomain_list():
+    if request.json and not request.args:
+        return get_subdomain_json()
+    elif request.args and not request.json:
+        return get_subdomain_args()
+    else:
+        raise LutherBroke('Bad request')
+
+
 @api_v1.route('/subdomains', methods=['PUT'])
 @ratelimit(
     limit=app.config['RATE_LIMIT_ACTIONS'],
@@ -1128,14 +1092,10 @@ def fancy_interface():
 
     :returns: object -- JSON response indicating the outcome of action.
     """
-    if request.json and not request.args:
-        domain_list = get_subdomain_json()
-    elif request.args and not request.json:
-        domain_list = get_subdomain_args()
-    else:
-        raise LutherBroke('Bad request, no data')
+    domain_list = get_subdomain_list()
     if not len(domain_list) > 0:
-        raise LutherBroke()
+        raise LutherBroke('Bad request, no data passed '
+                          '(or both args and json specified')
     results = []
     for domain_obj in domain_list:
         domain = Subdomain.query.filter_by(name=domain_obj[0]).first()
@@ -1149,8 +1109,7 @@ def fancy_interface():
                     )
                 )
             else:
-                if update_ddns(domain, domain_obj[2], v6=domain.v6):
-                    domain.ip = domain_obj[2]
+                if update_ddns(domain, domain_obj[2]):
                     db.session.commit()
                     results.append(
                         subdomain_api_object(
@@ -1158,9 +1117,6 @@ def fancy_interface():
                             message='Subdomain updated.'
                         )
                     )
-                    redis.incr('luther/counter')
-                else:
-                    raise LutherBroke()
         else:
             raise LutherBroke('Bad request, invalid subdomain or token')
     if len(results) > 0:
@@ -1209,14 +1165,8 @@ def get_interface(domain_name, domain_token, domain_ip=None):
                              'the same as current IP.'))
                 )
         else:
-            if domain.v6:
-                ddns_result = update_ddns(domain, domain_ip, v6=True)
-            else:
-                ddns_result = update_ddns(domain, domain_ip)
-            if ddns_result:
-                domain.ip = domain_ip
+            if update_ddns(domain, domain_ip):
                 db.session.commit()
-                redis.incr('luther/counter')
                 return jsonify(
                     subdomain_api_object(domain, message='Subdomain updated.')
                 )

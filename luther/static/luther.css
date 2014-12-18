@@ -177,20 +177,23 @@ hr {
 
 .current .current-row {
     font-family: monospace;
+    display: table;
+    width: 100%;
 }
 
 .current .current-row .bit {
     display: inline-block;
     padding: 0px 35px;
     font-size: 18px;
+    width: 40%;
+    vertical-align: middle;
 }
 
-.current .current-row .big-bit {
-    display: inline-block;
-    padding: 0px 35px;
-    font-size: 18px;
+.current-arrow {
+    font-size: 1.5em;
+    width: 20%;
+    vertical-align: middle;
 }
-
 
 .current h3 {
     color: black;

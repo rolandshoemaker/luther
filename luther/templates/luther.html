@@ -19,26 +19,23 @@
                 <div class="modal-content">
                     <div class="modal-header">
                         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                        <h2 class="modal-title" id="loginLabel" style="text-align: center;">Register</h2>
+                        <h4 class="modal-title" id="loginLabel">Register</h2>
                     </div>
                     <div class="modal-body">
                         <form>
                             <div class="control-group form-group">
-                                <label class="control-label" for="new_email">Email</label>
                                 <div class="controls">
-                                    <input data-bind="value: new_email" id="new_email" class="form-control" placeholder="email">
+                                    <input data-bind="value: new_email" id="new_email" class="form-control" placeholder="Email">
                                 </div>
                             </div>
                             <div class="control-group form-group">
-                                <label class="control-label" for="new_password">Password</label>
                                 <div class="controls">
-                                    <input data-bind="value: new_password" type="password" type="password" id="password" class="form-control" placeholder="password">
+                                    <input data-bind="value: new_password" type="password" type="password" id="password" class="form-control" placeholder="Password">
                                 </div>
                             </div>
                             <div class="control-group form-group">
-                                <label class="control-label" for="new_password_two">Confirm Password</label>
                                 <div class="controls">
-                                    <input data-bind="value: new_password_two" type="password" type="password" id="password" class="form-control" placeholder="confirm password">
+                                    <input data-bind="value: new_password_two" type="password" type="password" id="password" class="form-control" placeholder="Confirm Password">
                                 </div>
                             </div>
                             <button data-bind="click: register" class="btn btn-primary">Register</button>
@@ -106,16 +103,16 @@
                 <div class="row" style="width: 80%; margin: 15px auto;">
                     <div id="token_pane" class="col-lg-6">
                         <div class="jumbotron">
-                            <h3>Update sudomain with token</h3>
+                            <h3>Update Subdomain with Subdomain_token</h3>
                             <form>
                                 <div class="control-group form-group">
                                     <div class="controls">
-                                        <input data-bind="value: singleSubdomain" id="subdomain" class="form-control" placeholder="subdomain">
+                                        <input data-bind="value: singleSubdomain" id="subdomain" class="form-control" placeholder="Subdomain">
                                     </div>
                                 </div>
                                 <div class="control-group form-group">
                                     <div class="controls">
-                                        <input data-bind="value: singleToken" id="subdomain_token" class="form-control" placeholder="subdomain_token">
+                                        <input data-bind="value: singleToken" id="subdomain_token" class="form-control" placeholder="Subdomain_token">
                                     </div>
                                 </div>
                                 <div class="control-group form-group">
@@ -133,12 +130,12 @@
                             <form>
                                 <div class="control-group form-group">
                                     <div class="controls">
-                                        <input data-bind="value: email" id="email" class="form-control" placeholder="email">
+                                        <input data-bind="value: email" id="email" class="form-control" placeholder="Email">
                                     </div>
                                 </div>
                                  <div class="control-group form-group">
                                     <div class="controls">
-                                        <input data-bind="value: password" type="password" id="password" class="form-control" placeholder="password">
+                                        <input data-bind="value: password" type="password" id="password" class="form-control" placeholder="Password">
                                     </div>
                                 </div>
                                 <button data-bind="click: startLogin" class="btn btn-primary btn-block">Login</button>
@@ -180,13 +177,13 @@
                                             <div class="control-group form-group">
                                                 <label class="control-label" for="new_password">New Password</label>
                                                 <div class="controls">
-                                                    <input data-bind="value: new_password" type="password" type="password" id="password" class="form-control" placeholder="password">
+                                                    <input data-bind="value: new_password" type="password" type="password" id="password" class="form-control" placeholder="Password">
                                                 </div>
                                             </div>
                                             <div class="control-group form-group">
                                                 <label class="control-label" for="new_password_two">Confirm New Password</label>
                                                 <div class="controls">
-                                                    <input data-bind="value: new_password_two" type="password" type="password" id="password" class="form-control" placeholder="confirm password">
+                                                    <input data-bind="value: new_password_two" type="password" type="password" id="password" class="form-control" placeholder="Confirm Password">
                                                 </div>
                                             </div>
                                             <button data-bind="click: changePassword" class="btn btn-primary">Change</button>
@@ -200,7 +197,7 @@
                         <div class="table-responsive" style="margin-bottom: 20px;">
                             <table class="table table-hover table-condensed" style="background-color: white;">
                                 <thead>
-                                    <tr style="margin-top:10px; height: 45px; color: white; background-color: #656565; font-family: monospace;"><th><b>Subdomain</b></th><th><b>IP Address</b></th><th><b>Subdomain_token</b></th><th><b>Last update</b></th><th><b></b></th></tr>
+                                    <tr style="margin-top:10px; height: 45px; color: white; background-color: #656565; font-family: monospace;"><th><b>SUBDOMAIN</b></th><th><b>IP ADDRESS</b></th><th><b>SUBDOMAIN_TOKEN</b></th><th><b>LAST UPDATE</b></th><th><b></b></th></tr>
                                 </thead>
                                 <tbody>
                                 <!-- ko foreach: subdomains -->
@@ -352,7 +349,7 @@
                             <div class="well well-sm" style="font-family: monospace;border-style: dashed;text-align: center;">
                             <strong>Current</strong>
                             <p>-----------</p>
-                            <div class="current-row"><div class="bit"><div id="updIP" data-bind="text: subdomain"></div><span id="editTail">.dnsd.co</span></div><i class="fa fa-long-arrow-right" style="font-size: 1.5em;"></i><div class="bit" data-bind="text: ip"></div></div>
+                            <div class="current-row"><div class="bit" style="width: 40%;"><div id="updIP" data-bind="text: subdomain"></div><span id="editTail">.dnsd.co</span></div><i class="fa fa-long-arrow-right current-arrow"></i><div class="bit" style="width: 40%;" data-bind="text: ip"></div></div>
                             <br>
                                 <strong>You seem to be</strong>
                                 <p>------------------</p>
@@ -396,9 +393,6 @@
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
         <script src="http://cdnjs.cloudflare.com/ajax/libs/knockout/3.1.0/knockout-min.js"></script>
         <script src="https://code.highcharts.com/highcharts.js"></script>
-        <script>
-            var luther_client_address = '{{client_ip}}';
-        </script>
         <script src="/static/luther.js"></script>
     </body>
 </html>
